@@ -56,7 +56,7 @@ body {
 
 #root {
   width: 100%;
-  height: 100vh;
+  height: 100dvh; /* 모바일 주소창을 고려한 동적 높이 */
   margin: 0;
   padding: 0;
   text-align: left;
@@ -111,7 +111,7 @@ code {
 
 .intro-screen {
   background: #111;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   justify-content: flex-start; /* 제목을 상단으로 */
@@ -131,9 +131,9 @@ code {
   max-width: 1000px;
   flex-direction: column; /* 모바일 최적화를 위해 세로로 쌓기 */
   align-items: center;
-  gap: 30px; /* 제목, 경고, 메뉴 사이 간격 조정 */
-  padding-top: 10vh; /* 상단 여백 */
-  padding-bottom: 10vh; /* 하단 여백 추가 */
+  gap: 20px; /* 간격 축소 */
+  padding-top: 40px; /* 고정 여백으로 변경 */
+  padding-bottom: 40px;
   flex-grow: 1; /* content가 남은 공간을 채우도록 */
   justify-content: center; /* 요소들을 중앙에 배치 */
 }
@@ -148,11 +148,10 @@ code {
   color: #ff4444;
   text-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
   margin: 0;
-  white-space: nowrap; /* 제목이 줄바꿈되지 않도록 */
 }
 @media (max-width: 768px) { /* 모바일 화면에서 폰트 크기 조정 */
   .intro-title {
-    font-size: 50px;
+    font-size: 44px; /* 모바일에서 한 줄에 잘 들어가도록 축소 */
   }
 }
 
