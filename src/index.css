@@ -138,29 +138,12 @@ code {
   justify-content: center; /* 요소들을 중앙에 배치 */
 }
 
-.intro-title-area {
-  width: 100%;
-  text-align: center;
-}
-
-.intro-title {
-  font-size: 80px;
-  color: #ff4444;
-  text-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
-  margin: 0;
-}
-@media (max-width: 768px) { /* 모바일 화면에서 폰트 크기 조정 */
-  .intro-title {
-    font-size: 44px; /* 모바일에서 한 줄에 잘 들어가도록 축소 */
-  }
-}
-
 .intro-menu {
   display: flex;
   flex-direction: column;
   gap: 20px;
   align-items: center; /* 메뉴 버튼 중앙 정렬 */
-  margin-top: 30px; /* 경고 문구와의 간격 */
+  margin-top: 20px; /* 경고 문구와의 간격 조정 */
 }
 
 .menu-btn {
