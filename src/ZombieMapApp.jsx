@@ -29,6 +29,7 @@ const ZombieMapApp = () => {
   const userPosRef = useRef(null);
   const zombiePosRef = useRef(null);
   const spawnTimerRef = useRef(null); // 좀비 스폰 타이머 Ref 추가
+  const animationIntervalRef = useRef(null); // 애니메이션 인터벌 Ref 추가
 
   // 카운트다운 Ticker 로직
   useEffect(() => {
