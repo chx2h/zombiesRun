@@ -12,7 +12,7 @@ const ZombieMapApp = () => {
   const [mapLoaded, setMapLoaded] = useState(false);
 
   const [countdown, setCountdown] = useState(0); // 카운트다운 상태 추가
-  const [selectedZombieSpeed, setSelectedZombieSpeed] = useState(5); // 좀비 속도 조절 (1~10)
+  const [selectedZombieSpeed, setSelectedZombieSpeed] = useState(1); // 좀비 속도 조절 (1~10), 기본값 1로 수정
   const [selectedSpawnDelay, setSelectedSpawnDelay] = useState(10); // 좀비 생성 지연 상태 추가
   // 카카오맵 객체들을 참조하기 위한 Refs
   const mapRef = useRef(null);
@@ -29,7 +29,6 @@ const ZombieMapApp = () => {
   const userPosRef = useRef(null);
   const zombiePosRef = useRef(null);
   const spawnTimerRef = useRef(null); // 좀비 스폰 타이머 Ref 추가
-  const animationIntervalRef = useRef(null); // 애니메이션 인터벌 Ref 추가
 
   // 카운트다운 Ticker 로직
   useEffect(() => {
@@ -365,19 +364,19 @@ const ZombieMapApp = () => {
     <div style={{ width: '100vw', height: '100vh' }}>
       <div style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.8)', color: 'white', padding: '10px 20px', borderRadius: '20px' }}>
         {isGameOver ? <h1 style={{ color: 'red' }}>CAUGHT!</h1> : `Distance: ${distance || 0}m`}
-        <div style={{ marginTop: '10px' }}>
-          <label htmlFor="zombie-speed-select" style={{ marginRight: '10px' }}>좀비 추격 속도 (1-10):</label>
-          <select
-            id="zombie-speed-select"
+        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center' }}>
+          <label htmlFor="zombie-speed-slider" style={{ marginRight: '10px', whiteSpace: 'nowrap' }}>좀비 추격 속도:</label>
+          <input
+            id="zombie-speed-slider"
+            type="range"
+            min="1"
+            max="10"
+            step="1"
             value={selectedZombieSpeed}
             onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))}
-          >
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(speed => (
-              <option key={speed} value={speed}>
-                {speed} {speed === 5 ? '(보통)' : speed === 10 ? '(최대)' : ''}
-              </option>
-            ))}
-          </select>
+            style={{ cursor: 'pointer' }}
+          />
+          <span style={{ marginLeft: '10px', minWidth: '30px', fontWeight: 'bold', color: '#ff4444' }}>{selectedZombieSpeed}</span>
         </div>
         <div style={{ marginTop: '10px' }}>
           <label htmlFor="zombie-spawn-delay-select" style={{ marginRight: '10px' }}>좀비 생성 지연:</label>
