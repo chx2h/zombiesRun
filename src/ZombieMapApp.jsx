@@ -281,21 +281,21 @@ const ZombieMapApp = () => {
       {/* 상단 컨트롤 UI */}
       <div style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.8)', color: 'white', padding: '15px 25px', borderRadius: '25px', textAlign: 'center', minWidth: '280px' }}>
         <div style={{ fontSize: '20px', fontWeight: 'bold' }}>
-          {isGameOver ? <span style={{ color: 'red' }}>CAUGHT!</span> : `Distance: ${distance !== null ? `${distance}m` : 'Click Map'}`}
+          {isGameOver ? <span style={{ color: 'red' }}>잡혔습니다!</span> : `좀비와의 거리: ${distance !== null ? `${distance}m` : '지도를 클릭하세요'}`}
         </div>
         
         <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Speed ({selectedZombieSpeed})</label>
+          <label style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>좀비 케이던스 ({selectedZombieSpeed})</label>
           <input type="range" min="1" max="10" value={selectedZombieSpeed} onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} style={{ flexGrow: 1 }} />
         </div>
         
         <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label style={{ fontSize: '12px' }}>Delay</label>
+          <label style={{ fontSize: '12px' }}>좀비 발생 시간</label>
           <select value={selectedSpawnDelay} onChange={(e) => setSelectedSpawnDelay(Number(e.target.value))} style={{ background: '#333', color: 'white', border: 'none', borderRadius: '5px' }}>
             <option value={0}>즉시</option>
-            <option value={10}>10s</option>
-            <option value={30}>30s</option>
-            <option value={60}>60s</option>
+            <option value={10}>10초</option>
+            <option value={30}>30초</option>
+            <option value={60}>60초</option>
           </select>
         </div>
       </div>
