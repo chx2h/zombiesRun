@@ -144,7 +144,7 @@ code {
   gap: 20px;
   align-items: center; /* 메뉴 버튼 중앙 정렬 */
   margin-top: 20px; /* 경고 문구와의 간격 조정 */
-  margin-bottom: 240px; /* 경고 문구와의 간격 조정 */
+  margin-bottom: 210px; /* 경고 문구와의 간격 조정 */
 }
 
 .menu-btn {
@@ -204,3 +204,382 @@ code {
   padding: 0 20px;
   max-width: 600px; /* 가독성을 위해 최대 너비 설정 */
 }
+
+/* 게임 오버 시 피 흐르는 효과 */
+.blood-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(to bottom, rgba(139, 0, 0, 0.9) 0%, rgba(139, 0, 0, 0.4) 100%);
+  z-index: 9999;
+  pointer-events: none;
+  animation: bloodDrip 1.5s ease-in forwards;
+}
+
+@keyframes bloodDrip {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* 사용자 메뉴얼 페이지 스타일 */
+.manual-screen {
+  background: #111;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #fff;
+  position: relative;
+  overflow-y: auto; /* 내용이 길어지면 스크롤 가능 */
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.manual-content {
+  width: 90%;
+  max-width: 800px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.manual-title {
+  text-align: center;
+  margin-bottom: 40px;
+  color: #ff4444;
+}
+
+.manual-section {
+  margin-bottom: 30px;
+}
+
+.manual-section h2 {
+  color: #c084fc; /* 강조 색상 */
+  margin-bottom: 10px;
+}
+
+.manual-screen .back-button {
+  margin: 20px auto; /* 가운데 정렬 및 상단 여백 */
+  display: block; /* margin: auto가 작동하도록 블록 요소로 설정 */
+}
+
+/* --- Manual Page Custom Design --- */
+
+.manual-page-container {
+  min-height: 100dvh;
+  background-color: #020617;
+  color: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  position: relative;
+  overflow-x: hidden;
+  font-family: var(--sans);
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, #1e293b 1px, transparent 1px),
+    linear-gradient(to bottom, #1e293b 1px, transparent 1px);
+  background-size: 4rem 4rem;
+  mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, #000 70%, transparent 100%);
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.manual-header {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 64rem;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(76, 5, 25, 0.4);
+  padding-bottom: 0.75rem;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dot-ping {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background-color: #f43f5e;
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.system-tag {
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #f43f5e;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.version-tag {
+  font-size: 0.65rem;
+  color: #64748b;
+  font-family: var(--mono);
+}
+
+.manual-main-content {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 64rem;
+  margin: 0 auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.manual-main-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  text-align: center;
+  background: linear-gradient(to right, #dc2626, #f43f5e, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+  letter-spacing: -0.02em;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.manual-subtitle {
+  color: #94a3b8;
+  font-size: 1rem;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.tab-nav {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(30, 41, 59, 0.8);
+  border-radius: 0.75rem;
+  padding: 0.25rem;
+  display: flex;
+  gap: 0.5rem;
+  margin: 1.5rem 0;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: bold;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tab-btn:hover {
+  background: rgba(30, 41, 59, 0.4);
+  color: #f1f5f9;
+}
+
+.tab-btn.active-run { background: #e11d48; color: white; box-shadow: 0 0 12px rgba(225, 29, 72, 0.35); }
+.tab-btn.active-survival { background: #d97706; color: white; box-shadow: 0 0 12px rgba(217, 119, 6, 0.35); }
+.tab-btn.active-gear { background: #1e293b; color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); }
+
+.manual-content-box {
+  width: 100%;
+  min-height: 320px;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(30, 41, 59, 0.8);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.tab-pane-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.pane-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.pane-number {
+  background: rgba(244, 63, 94, 0.1);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  font-family: var(--mono);
+  font-weight: bold;
+  font-size: 1.25rem;
+}
+
+.tab-pane-content h3 {
+  font-size: 1.25rem;
+  font-weight: 900;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pane-desc {
+  color: #94a3b8;
+  font-size: 0.875rem;
+  margin: 0.25rem 0 0;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.info-card {
+  background: rgba(2, 6, 23, 0.6);
+  border: 1px solid rgba(30, 41, 59, 0.5);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  position: relative;
+}
+
+.info-card h4 {
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin: 0 0 0.5rem;
+}
+
+.info-card p {
+  font-size: 0.875rem;
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.advice-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(to right, rgba(76, 5, 25, 0.2), #020617);
+  border: 1px solid rgba(127, 29, 29, 0.3);
+}
+
+.advice-icon { font-size: 1.5rem; }
+.advice-box p { font-size: 0.75rem; color: #cbd5e1; margin: 0; }
+
+.text-rose { color: #f43f5e; }
+.text-amber { color: #f59e0b; }
+.text-cyan { color: #22d3ee; }
+.border-rose { border-color: rgba(244, 63, 94, 0.3); }
+.border-amber { border-color: rgba(245, 158, 11, 0.3); }
+.border-cyan { border-color: rgba(34, 211, 238, 0.3); }
+
+.highlight-red { color: #ef4444; font-weight: bold; }
+.highlight-green { color: #10b981; font-weight: bold; }
+
+.simulator-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(30, 41, 59, 0.6);
+}
+
+.simulator-panel {
+  background: rgba(2, 6, 23, 0.8);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.simulator-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.sim-badge {
+  background: #dc2626;
+  color: white;
+  font-size: 0.6rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  font-family: var(--mono);
+  text-transform: uppercase;
+}
+
+.sim-toggle-btn {
+  background: #1e293b;
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.sim-toggle-btn.running {
+  background: #f43f5e;
+  color: #020617;
+  animation: pulse 1s infinite;
+}
+
+.sim-controls {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
+}
+
+.current-dist { color: #ef4444; font-weight: bold; }
+
+.back-btn-main {
+  width: 100%;
+  max-width: 24rem;
+  background: linear-gradient(to right, #dc2626, #f43f5e);
+  color: white;
+  font-weight: 900;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: none;
+  cursor: pointer;
+  font-size: 1.125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: transform 0.2s;
+}
+
+.back-btn-main:hover { transform: scale(1.02); background: #f43f5e; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

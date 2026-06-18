@@ -20,20 +20,36 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return Math.round(R * c);
 };
 
-const ZombieMapApp = () => {
+const ZombieMapApp = ({ gameMode }) => {
   // 상태 관리
   const [userPosition, setUserPosition] = useState(null);
   const [zombiePosition, setZombiePosition] = useState(null);
   const [routePath, setRoutePath] = useState([]);
   const [distance, setDistance] = useState(null);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [gameResult, setGameResult] = useState(null); // 'win' 또는 'lose'
   const [countdown, setCountdown] = useState(0);
   const [mapCenter, setMapCenter] = useState({ lat: 37.5665, lng: 126.978 }); // 지도의 현재 중심 좌표 (서울 시청)
   const [isFollowingUser, setIsFollowingUser] = useState(true); // 사용자를 따라갈지 여부
 
   // 설정 상태
-  const [selectedZombieSpeed, setSelectedZombieSpeed] = useState(1); // 1~10
-  const [selectedSpawnDelay, setSelectedSpawnDelay] = useState(10); // 초 단위
+  const [selectedZombieSpeed, setSelectedZombieSpeed] = useState(() => {
+    const saved = localStorage.getItem(`${gameMode}_zombieSpeed`);
+    return saved !== null ? Number(saved) : 1;
+  });
+  const [selectedSpawnDelay, setSelectedSpawnDelay] = useState(() => {
+    const saved = localStorage.getItem(`${gameMode}_spawnDelay`);
+    return saved !== null ? Number(saved) : 10;
+  });
+
+  // 설정값이 변경될 때마다 localStorage에 저장
+  useEffect(() => {
+    localStorage.setItem(`${gameMode}_zombieSpeed`, selectedZombieSpeed);
+  }, [selectedZombieSpeed, gameMode]);
+
+  useEffect(() => {
+    localStorage.setItem(`${gameMode}_spawnDelay`, selectedSpawnDelay);
+  }, [selectedSpawnDelay, gameMode]);
 
   // API 키 설정 (Vite는 import.meta.env를 사용합니다)
   const TMAP_API_KEY = import.meta.env.VITE_TMAP_API_KEY;
@@ -210,6 +226,7 @@ const ZombieMapApp = () => {
     setZombiePosition(startPos);
     zombiePosRef.current = startPos;
     setIsGameOver(false);
+    setGameResult(null);
     setDistance(null);
   }, [routePath]);
 
@@ -229,7 +246,14 @@ const ZombieMapApp = () => {
     }
 
     const target = routePath[pathIndexRef.current + 1];
-    if (!target) return; // 목적지 도달 시 정지
+    if (!target) {
+      // 좀비가 목적지에 도달했을 때 (잡힌 것과 동일하게 처리)
+      if ("vibrate" in navigator) navigator.vibrate([1000, 500, 1000]);
+      setIsGameOver(true);
+      setGameResult('lose');
+      if (gainNodeRef.current) gainNodeRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+      return;
+    }
 
     const dLat = target.lat - prevPos.lat;
     const dLng = target.lng - prevPos.lng;
@@ -260,17 +284,28 @@ const ZombieMapApp = () => {
         gainNodeRef.current.gain.setTargetAtTime(vol, audioCtxRef.current.currentTime, 0.1);
       }
 
-      // 잡힘 판정 (5m 이내)
-      if (d <= 5) {
+      // 잡힘 판정 (Survival 모드일 때만 5m 이내 종료)
+      if (d <= 5 && gameMode === 'survival') {
         if ("vibrate" in navigator) navigator.vibrate([1000, 500, 1000]);
         setIsGameOver(true);
+        setGameResult('lose');
+        if (gainNodeRef.current) gainNodeRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+        return;
+      }
+
+      // 사용자가 목적지에 도달했는지 확인 (RUN 모드 승리 조건)
+      const destination = routePath[routePath.length - 1];
+      const distToFinish = calculateDistance(userPosRef.current.lat, userPosRef.current.lng, destination.lat, destination.lng);
+      if (distToFinish <= 15) { // 15미터 이내 도착 시 승리
+        setIsGameOver(true);
+        setGameResult('win');
         if (gainNodeRef.current) gainNodeRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
         return;
       }
     }
 
     requestRef.current = requestAnimationFrame(animate);
-  }, [routePath, isGameOver, currentZombieSpeed]);
+  }, [routePath, isGameOver, currentZombieSpeed, gameMode]);
 
   useEffect(() => {
     if (routePath.length > 0 && !isGameOver) {
@@ -287,10 +322,29 @@ const ZombieMapApp = () => {
 
   return (
     <div style={{ width: '100vw', height: '100dvh', position: 'relative' }}>
+      {/* 현재 위치 로딩 중 표시 */}
+      {!userPosition && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 1000,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          color: 'white',
+          padding: '20px 40px',
+          borderRadius: '15px',
+          textAlign: 'center',
+          fontWeight: 'bold',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.5)'
+        }}>
+          현재 위치를 찾는 중입니다...
+        </div>
+      )}
       <Map
         center={mapCenter}
         style={{ width: "100%", height: "100%" }}
-        level={3}
+        level={4} // 초기 줌 레벨을 4로 조정하여 좀 더 넓은 시야 제공
         onCreate={(map) => (mapRef.current = map)}
         onDragStart={() => setIsFollowingUser(false)} // 드래그 시작 즉시 고정 해제
         onCenterChanged={(map) => {
@@ -301,7 +355,7 @@ const ZombieMapApp = () => {
         onClick={(_t, mouseEvent) => onMapClick(mouseEvent.latLng)} // 카카오맵의 latLng 객체를 직접 전달
       >
         {userPosition && (
-          <CustomOverlayMap position={userPosition}>
+          <CustomOverlayMap position={userPosition} zIndex={1}>
             <div style={{ fontSize: '30px' }}>🏃</div>
           </CustomOverlayMap>
         )}
@@ -341,13 +395,15 @@ const ZombieMapApp = () => {
             bottom: '20px',
             right: '20px', // 버튼 위치를 우측 하단으로 변경
             zIndex: 10,
-            padding: '10px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            color: 'white',
+            background: 'none',
             border: 'none',
             cursor: 'pointer',
-            fontSize: '24px'
+            width: '50px',
+            height: '50px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '35px'
           }}
         >
           📍
@@ -357,7 +413,39 @@ const ZombieMapApp = () => {
       {/* 상단 컨트롤 UI */}
       <div style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.8)', color: 'white', padding: '15px 25px', borderRadius: '25px', textAlign: 'center', minWidth: '280px' }}>
         <div style={{ fontSize: '20px', fontWeight: 'bold' }}>
-          {isGameOver ? <span style={{ color: 'red' }}>잡혔습니다!</span> : `좀비와의 거리: ${distance !== null ? `${distance}m` : '지도를 클릭하세요'}`}
+          {isGameOver ? (
+            <span style={{ color: gameResult === 'win' ? '#44ff44' : 'red' }}>
+              {gameResult === 'win' ? '탈출 성공!' : (gameMode === 'run' ? '좀비가 먼저 도착함!' : '잡혔습니다!')}
+            </span>
+          ) : (
+            <>
+              <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>Mode: {gameMode.toUpperCase()}</div>
+              {gameMode === 'run' ? ( // RUN 모드일 때
+                routePath.length > 0 ? ( // 경로가 설정되었으면 목적지까지의 거리 표시
+                  (() => {
+                    const destination = routePath[routePath.length - 1];
+                    const distUserToDest = userPosition ? calculateDistance(userPosition.lat, userPosition.lng, destination.lat, destination.lng) : '...';
+                    const zPos = zombiePosition || routePath[0];
+                    const distZombieToDest = calculateDistance(zPos.lat, zPos.lng, destination.lat, destination.lng);
+                    return (
+                      <>
+                        <div>나의 목적지까지: {distUserToDest}m</div>
+                        <div>좀비의 목적지까지: {distZombieToDest}m</div>
+                      </>
+                    );
+                  })()
+                ) : ( // 경로가 설정되지 않았으면 안내 문구
+                  "지도를 클릭하세요"
+                )
+              ) : ( // SURVIVAL 모드일 때
+                routePath.length > 0 ? ( // 경로가 설정되었으면 좀비와의 거리 표시
+                  `좀비와의 거리: ${distance !== null ? `${distance}m` : countdown}`
+                ) : (
+                  "지도를 클릭하세요"
+                )
+              )}
+            </>
+          )}
         </div>
         
         <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -401,6 +489,9 @@ const ZombieMapApp = () => {
           {countdown}
         </div>
       )}
+
+      {/* 잡혔을 때 피 효과 */}
+      {isGameOver && <div className="blood-screen" />}
     </div>
   );
 };

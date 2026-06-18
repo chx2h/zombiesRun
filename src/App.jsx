@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ZombieMapApp from './ZombieMapApp';
 import mainImg from './assets/main.png'; // 배경 이미지 임포트
+import ManualPage from './ManualPage'; // ManualPage 컴포넌트 임포트
 
 function App() {
   const [view, setView] = useState('intro');
+  const [gameMode, setGameMode] = useState('survival'); // 'survival' 또는 'run'
   const wakeLockSentinelRef = useRef(null); // WakeLockSentinel 객체를 저장할 Ref
 
   // Wake Lock 요청 함수
@@ -60,8 +62,14 @@ function App() {
   if (view === 'playing') {
     return (
       <div className="App">
-        <ZombieMapApp />
+        <ZombieMapApp key={gameMode} gameMode={gameMode} />
       </div>
+    );
+  }
+
+  if (view === 'manual') {
+    return (
+      <ManualPage onBackToIntro={() => setView('intro')} />
     );
   }
 
@@ -72,7 +80,17 @@ function App() {
           <p>※ 일반 도로에서 사용 시 횡단보도나 주위 사물을 주의하며 안전하게 이용해 주세요.</p>
         </div>
         <div className="intro-menu">
-          <button className="menu-btn start-button" onClick={() => setView('playing')}>RUN</button>
+          <button className="menu-btn start-button" onClick={() => {
+            setGameMode('run');
+            setView('playing');
+          }}>RUN</button>
+          <button className="menu-btn start-button" onClick={() => {
+            setGameMode('survival');
+            setView('playing');
+          }}>SURVIVAL</button>
+          <button className="menu-btn" onClick={() => setView('manual')}>
+            INFO
+          </button>
         </div>
       </div>
     </div>
