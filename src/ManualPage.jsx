@@ -14,6 +14,12 @@ export default function ManualPage({ onBackToIntro }) {
   const ambientGainRef = useRef(null);
   const intervalRef = useRef(null);
 
+  // 실시간 거리 값을 루프 내에서 참조하기 위한 Ref
+  const demoDistanceRef = useRef(demoDistance);
+  useEffect(() => {
+    demoDistanceRef.current = demoDistance;
+  }, [demoDistance]);
+
   // 데모 사운드 켜기/끄기 토글
   const toggleAudioDemo = () => {
     if (!isAudioRunning) {
@@ -62,6 +68,7 @@ export default function ManualPage({ onBackToIntro }) {
 
       const triggerHeartbeat = () => {
         const now = ctx.currentTime;
+        const currentDist = demoDistanceRef.current;
         
         // 심장 소리 합성
         const osc = ctx.createOscillator();
@@ -72,7 +79,7 @@ export default function ManualPage({ onBackToIntro }) {
         const oscGain = ctx.createGain();
         oscGain.gain.setValueAtTime(0, now);
         // 거리가 가까울수록 심박 소리가 강해짐
-        const volumeFactor = Math.max(0, 1 - (demoDistance / 50));
+        const volumeFactor = Math.max(0, 1 - (currentDist / 50));
         oscGain.gain.linearRampToValueAtTime(volumeFactor * 0.8, now + 0.05);
         oscGain.gain.linearRampToValueAtTime(0, now + 0.3);
 
@@ -83,10 +90,10 @@ export default function ManualPage({ onBackToIntro }) {
 
         // 안드로이드 기기이고 진동 패턴 조건일 때 진동 발생
         if (navigator.vibrate) {
-          if (demoDistance <= 10) {
-            navigator.vibrate([150, 100, 150]); // 극도로 심한 심장 박동 진동
-          } else if (demoDistance <= 25) {
-            navigator.vibrate(80); // 가벼운 경고 진동
+          if (currentDist <= 10) {
+            navigator.vibrate([200, 100, 200]); // 좀 더 강한 진동 패턴
+          } else if (currentDist <= 25) {
+            navigator.vibrate(100); // 인지 가능한 수준의 진동
           }
         }
       };
@@ -96,7 +103,7 @@ export default function ManualPage({ onBackToIntro }) {
         triggerHeartbeat();
         // 거리가 가까울수록 템포(속도)가 빨라짐
         const baseInterval = 1200; // 50m 이상일 때 1.2초마다 뜀
-        const factor = Math.max(0.1, demoDistance / 50); // 가까워지면 비율이 0.1까지 줄어듦 (즉 매우 빨라짐)
+        const factor = Math.max(0.1, demoDistanceRef.current / 50);
         const nextTime = baseInterval * factor;
 
         intervalRef.current = setTimeout(runPulse, nextTime);
