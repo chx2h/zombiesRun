@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Map, Polyline, CustomOverlayMap } from 'react-kakao-maps-sdk';
+import { Map, Polyline, CustomOverlayMap, Circle } from 'react-kakao-maps-sdk';
 import zombieSfx from './assets/dragon-studio-female-zombie-screams-324744.mp3';
 
 // 좀비 최대 속도 기준 (보행자 경로의 정밀도를 고려해 밸런싱)
-const ZOMBIE_SPEED_BASE = 0.000005; 
+const ZOMBIE_SPEED_BASE = 0.000002; // 기본 속도를 더 낮춰서 1일 때 훨씬 느리게
 
 /**
  * 두 좌표 간 거리 계산 (하버사인 공식)
@@ -28,16 +28,18 @@ const ZombieMapApp = () => {
   const [distance, setDistance] = useState(null);
   const [isGameOver, setIsGameOver] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [mapCenter, setMapCenter] = useState({ lat: 37.5665, lng: 126.978 }); // 지도의 현재 중심 좌표 (서울 시청)
+  const [isFollowingUser, setIsFollowingUser] = useState(true); // 사용자를 따라갈지 여부
 
   // 설정 상태
   const [selectedZombieSpeed, setSelectedZombieSpeed] = useState(1); // 1~10
   const [selectedSpawnDelay, setSelectedSpawnDelay] = useState(10); // 초 단위
 
   // API 키 설정 (Vite는 import.meta.env를 사용합니다)
-  // .env.local 설정이 우선이며, 없을 경우 제공해주신 새 키를 사용합니다.
   const TMAP_API_KEY = import.meta.env.VITE_TMAP_API_KEY;
 
   // 애니메이션 및 오디오 제어용 Refs
+  const mapRef = useRef(null); // mapRef 선언
   const requestRef = useRef();
   const pathIndexRef = useRef(0);
   const audioCtxRef = useRef(null);
@@ -45,6 +47,13 @@ const ZombieMapApp = () => {
   const userPosRef = useRef(null);
   const zombiePosRef = useRef(null);
   const spawnTimerRef = useRef(null);
+
+  // "따라가기" 모드일 때 사용자 위치를 지도 중심에 동기화
+  useEffect(() => {
+    if (isFollowingUser && userPosition) {
+      setMapCenter(userPosition);
+    }
+  }, [userPosition, isFollowingUser]);
 
   // 카운트다운 타이머
   useEffect(() => {
@@ -64,8 +73,7 @@ const ZombieMapApp = () => {
         setUserPosition(newPos);
         userPosRef.current = newPos;
         console.log("현재 위치 수신:", newPos);
-      },
-      (err) => console.error("위치 추적 실패:", err),
+      }, (err) => console.error("위치 추적 실패:", err),
       { enableHighAccuracy: true }
     );
     return () => navigator.geolocation.clearWatch(watchId);
@@ -92,7 +100,7 @@ const ZombieMapApp = () => {
       audioCtxRef.current = ctx;
       gainNodeRef.current = gainNode;
     } catch (e) {
-      console.error("오디오 로드 실패:", e);
+      console.error("오디오 로드 실패", e);
     }
   }, []);
 
@@ -102,8 +110,13 @@ const ZombieMapApp = () => {
   const onMapClick = useCallback(async (latLng) => {
     if (isGameOver || !userPosition) return;
     
+    if (routePath.length > 0) {
+      const reconfirm = window.confirm("경로가 이미 존재합니다. 다시 설정 하시겠습니까?");
+      if (!reconfirm) return;
+    }
+
     initAudio();
-    if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
+    if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume(); // 오디오 컨텍스트 재개
     
     const dest = { lat: latLng.getLat(), lng: latLng.getLng() };
     let chasePath = [];
@@ -174,10 +187,31 @@ const ZombieMapApp = () => {
       setZombiePosition(startPos);
       zombiePosRef.current = startPos;
       setCountdown(0);
-      console.log("좀비 출현!");
+      console.log("좀비 출현!"); // 좀비 출현 로그
     }, selectedSpawnDelay * 1000);
 
-  }, [userPosition, isGameOver, initAudio, selectedSpawnDelay, TMAP_API_KEY]);
+  }, [userPosition, isGameOver, initAudio, selectedSpawnDelay, TMAP_API_KEY, routePath]);
+
+  /**
+   * 좀비를 다시 처음 위치로 되돌리는 초기화 함수
+   */
+  const handleResetZombie = useCallback(() => {
+    if (routePath.length === 0) return;
+    
+    // 스폰 타이머가 진행 중이라면 취소하고 즉시 생성 모드로 전환
+    if (spawnTimerRef.current) {
+      clearTimeout(spawnTimerRef.current);
+      spawnTimerRef.current = null;
+    }
+    setCountdown(0);
+
+    pathIndexRef.current = 0;
+    const startPos = routePath[0];
+    setZombiePosition(startPos);
+    zombiePosRef.current = startPos;
+    setIsGameOver(false);
+    setDistance(null);
+  }, [routePath]);
 
   const currentZombieSpeed = useMemo(() => (Number(selectedZombieSpeed) / 10) * ZOMBIE_SPEED_BASE, [selectedZombieSpeed]);
 
@@ -189,7 +223,7 @@ const ZombieMapApp = () => {
 
     // 좀비가 아직 생성되지 않았으면 루프만 유지
     const prevPos = zombiePosRef.current;
-    if (!prevPos) {
+    if (!prevPos) { // 좀비 생성 전 대기 루프
       requestRef.current = requestAnimationFrame(animate);
       return;
     }
@@ -254,10 +288,17 @@ const ZombieMapApp = () => {
   return (
     <div style={{ width: '100vw', height: '100dvh', position: 'relative' }}>
       <Map
-        center={userPosition || { lat: 37.5665, lng: 126.978 }}
+        center={mapCenter}
         style={{ width: "100%", height: "100%" }}
         level={3}
-        onClick={(_t, mouseEvent) => onMapClick(mouseEvent.latLng)}
+        onCreate={(map) => (mapRef.current = map)}
+        onDragStart={() => setIsFollowingUser(false)} // 드래그 시작 즉시 고정 해제
+        onCenterChanged={(map) => {
+          // 지도가 움직이면 현재 중심 좌표를 상태에 반영 (스냅백 방지)
+          const center = map.getCenter();
+          setMapCenter({ lat: center.getLat(), lng: center.getLng() });
+        }}
+        onClick={(_t, mouseEvent) => onMapClick(mouseEvent.latLng)} // 카카오맵의 latLng 객체를 직접 전달
       >
         {userPosition && (
           <CustomOverlayMap position={userPosition}>
@@ -270,13 +311,48 @@ const ZombieMapApp = () => {
           </CustomOverlayMap>
         )}
         <Polyline
+          // 좀비 추격 경로
           path={routePath}
           strokeWeight={5}
           strokeColor={"#FF0000"}
           strokeOpacity={0.8}
           strokeStyle={"solid"}
         />
+        {userPosition && (
+          <Circle
+            center={userPosition}
+            radius={5} // 5미터 반경
+            strokeWeight={1}
+            strokeColor={'#0000FF'}
+            strokeOpacity={0.5}
+            strokeStyle={'solid'}
+            fillColor={'#0000FF'}
+            fillOpacity={0.1} // 연하게 표시
+          />
+        )}
       </Map>
+
+      {/* 현재 위치로 이동 버튼 */}
+      {userPosition && !isFollowingUser && (
+        <button
+          onClick={() => setIsFollowingUser(true)}
+          style={{
+            position: 'absolute',
+            bottom: '20px',
+            right: '20px', // 버튼 위치를 우측 하단으로 변경
+            zIndex: 10,
+            padding: '10px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '24px'
+          }}
+        >
+          📍
+        </button>
+      )}
 
       {/* 상단 컨트롤 UI */}
       <div style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.8)', color: 'white', padding: '15px 25px', borderRadius: '25px', textAlign: 'center', minWidth: '280px' }}>
@@ -285,7 +361,7 @@ const ZombieMapApp = () => {
         </div>
         
         <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>좀비 케이던스 ({selectedZombieSpeed})</label>
+          <label style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>좀비 속도 ({selectedZombieSpeed})</label>
           <input type="range" min="1" max="10" value={selectedZombieSpeed} onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} style={{ flexGrow: 1 }} />
         </div>
         
@@ -298,6 +374,25 @@ const ZombieMapApp = () => {
             <option value={60}>60초</option>
           </select>
         </div>
+
+        {routePath.length > 0 && (
+          <button 
+            onClick={handleResetZombie}
+            style={{ 
+              marginTop: '15px', 
+              padding: '8px 20px', 
+              borderRadius: '15px', 
+              border: 'none', 
+              backgroundColor: '#555', 
+              color: 'white', 
+              cursor: 'pointer', 
+              fontSize: '13px', 
+              fontWeight: 'bold' 
+            }}
+          >
+            추격 재시작 (위치 초기화)
+          </button>
+        )}
       </div>
 
       {/* 중앙 카운트다운 */}

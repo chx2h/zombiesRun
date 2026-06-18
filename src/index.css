@@ -135,7 +135,7 @@ code {
   padding-top: 40px; /* 고정 여백으로 변경 */
   padding-bottom: 40px;
   flex-grow: 1; /* content가 남은 공간을 채우도록 */
-  justify-content: center; /* 요소들을 중앙에 배치 */
+  justify-content: flex-end; /* 요소들을 하단에 배치 */
 }
 
 .intro-menu {
@@ -144,6 +144,7 @@ code {
   gap: 20px;
   align-items: center; /* 메뉴 버튼 중앙 정렬 */
   margin-top: 20px; /* 경고 문구와의 간격 조정 */
+  margin-bottom: 240px; /* 경고 문구와의 간격 조정 */
 }
 
 .menu-btn {
@@ -162,6 +163,36 @@ code {
   background: #ff4444;
   border-color: #ff4444;
   transform: scale(1.05);
+}
+
+/* START 버튼 반짝이는 효과 */
+.menu-btn.start-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-btn.start-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: none; /* 기본 transition 무시 */
+  animation: shine 1.5s infinite;
+}
+
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+  50% {
+    left: 100%;
+  }
+  100% {
+    left: 100%;
+  }
 }
 
 /* 경고 문구 스타일 (새로운 클래스명 사용) */
