@@ -120,7 +120,7 @@ code {
   position: relative;
   overflow: hidden;
   /* 배경 이미지 스타일 */
-  background-size: cover;
+  background-size: 100% 100%;
   background-position: center;
   background-repeat: no-repeat;
 }
