@@ -35,7 +35,7 @@ const ZombieMapApp = () => {
 
   // API 키 설정 (Vite는 import.meta.env를 사용합니다)
   // .env.local 설정이 우선이며, 없을 경우 제공해주신 새 키를 사용합니다.
-  const TMAP_API_KEY = import.meta.env.VITE_TMAP_API_KEY || "wlG43VOavK4QZE8LSjaOU1zpy1sZ4myN7f8yVL0c";
+  const TMAP_API_KEY = import.meta.env.VITE_TMAP_API_KEY;
 
   // 애니메이션 및 오디오 제어용 Refs
   const requestRef = useRef();
@@ -108,7 +108,7 @@ const ZombieMapApp = () => {
     const dest = { lat: latLng.getLat(), lng: latLng.getLng() };
     let chasePath = [];
 
-    console.log("경로 탐색 시작 (TMAP Key 확인):", TMAP_API_KEY.substring(0, 5) + "...");
+    console.log("경로 탐색 시작 (TMAP Key 확인):", TMAP_API_KEY ? TMAP_API_KEY.substring(0, 5) + "..." : "Key 없음");
 
     try {
       if (!TMAP_API_KEY) {
