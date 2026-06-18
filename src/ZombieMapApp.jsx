@@ -20,7 +20,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return Math.round(R * c);
 };
 
-const ZombieMapApp = ({ gameMode }) => {
+const ZombieMapApp = ({ gameMode, onExit }) => {
   // 상태 관리
   const [userPosition, setUserPosition] = useState(null);
   const [zombiePosition, setZombiePosition] = useState(null);
@@ -31,6 +31,9 @@ const ZombieMapApp = ({ gameMode }) => {
   const [countdown, setCountdown] = useState(0);
   const [mapCenter, setMapCenter] = useState({ lat: 37.5665, lng: 126.978 }); // 지도의 현재 중심 좌표 (서울 시청)
   const [isFollowingUser, setIsFollowingUser] = useState(true); // 사용자를 따라갈지 여부
+  const [showExitConfirm, setShowExitConfirm] = useState(false); // 종료 확인 팝업 상태
+  const [showReconfirmPath, setShowReconfirmPath] = useState(false); // 경로 재설정 확인 팝업
+  const [pendingDest, setPendingDest] = useState(null); // 대기 중인 목적지
 
   // 설정 상태
   const [selectedZombieSpeed, setSelectedZombieSpeed] = useState(() => {
@@ -122,15 +125,9 @@ const ZombieMapApp = ({ gameMode }) => {
 
   /**
    * 지도 클릭 시 Tmap 경로 생성 및 좀비 출현 예약
+   * 실제 경로 탐색을 수행하는 함수
    */
-  const onMapClick = useCallback(async (latLng) => {
-    if (isGameOver || !userPosition) return;
-    
-    if (routePath.length > 0) {
-      const reconfirm = window.confirm("경로가 이미 존재합니다. 다시 설정 하시겠습니까?");
-      if (!reconfirm) return;
-    }
-
+  const startPathFinding = useCallback(async (latLng) => {
     initAudio();
     if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume(); // 오디오 컨텍스트 재개
     
@@ -206,7 +203,21 @@ const ZombieMapApp = ({ gameMode }) => {
       console.log("좀비 출현!"); // 좀비 출현 로그
     }, selectedSpawnDelay * 1000);
 
-  }, [userPosition, isGameOver, initAudio, selectedSpawnDelay, TMAP_API_KEY, routePath]);
+  }, [userPosition, initAudio, selectedSpawnDelay, TMAP_API_KEY]);
+
+  /**
+   * 지도 클릭 시 확인 창을 띄우거나 경로 탐색 시작
+   */
+  const onMapClick = useCallback((latLng) => {
+    if (isGameOver || !userPosition) return;
+    
+    if (routePath.length > 0) {
+      setPendingDest(latLng);
+      setShowReconfirmPath(true);
+    } else {
+      startPathFinding(latLng);
+    }
+  }, [isGameOver, userPosition, routePath.length, startPathFinding]);
 
   /**
    * 좀비를 다시 처음 위치로 되돌리는 초기화 함수
@@ -386,6 +397,39 @@ const ZombieMapApp = ({ gameMode }) => {
         )}
       </Map>
 
+      {/* 홈 버튼 */}
+      {/* 뒤로가기 버튼 */}
+      <button
+        onClick={() => {
+          if (routePath.length > 0 && !isGameOver) {
+            setShowExitConfirm(true);
+          } else {
+            onExit();
+          }
+        }}
+        style={{
+          position: 'absolute',
+          top: '20px',
+          left: '20px',
+          zIndex: 99999,
+          background: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(30, 41, 59, 0.8)',
+          borderRadius: '50%',
+          width: '60px',
+          height: '60px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '32px',
+          cursor: 'pointer',
+          color: 'white',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.5)'
+        }}
+      >
+        🔙
+      </button>
+
       {/* 현재 위치로 이동 버튼 */}
       {userPosition && !isFollowingUser && (
         <button
@@ -410,16 +454,20 @@ const ZombieMapApp = ({ gameMode }) => {
         </button>
       )}
 
-      {/* 상단 컨트롤 UI */}
-      <div style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.8)', color: 'white', padding: '15px 25px', borderRadius: '25px', textAlign: 'center', minWidth: '280px' }}>
-        <div style={{ fontSize: '20px', fontWeight: 'bold' }}>
+      {/* 상단 컨트롤 UI (HUD 디자인 적용) */}
+      <div className="hud-container">
+        <div className="hud-header">
+          <div className="hud-mode-tag">MODE: {gameMode.toUpperCase()}</div>
+          <div className="hud-status-dot"></div>
+        </div>
+
+        <div className="hud-main-display">
           {isGameOver ? (
-            <span style={{ color: gameResult === 'win' ? '#44ff44' : 'red' }}>
+            <span style={{ color: gameResult === 'win' ? '#44ff44' : '#ef4444', fontWeight: '900', fontSize: '1rem' }}>
               {gameResult === 'win' ? '탈출 성공!' : (gameMode === 'run' ? '좀비가 먼저 도착함!' : '잡혔습니다!')}
             </span>
           ) : (
-            <>
-              <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>Mode: {gameMode.toUpperCase()}</div>
+            <div className="hud-distance-text">
               {gameMode === 'run' ? ( // RUN 모드일 때
                 routePath.length > 0 ? ( // 경로가 설정되었으면 목적지까지의 거리 표시
                   (() => {
@@ -428,34 +476,36 @@ const ZombieMapApp = ({ gameMode }) => {
                     const zPos = zombiePosition || routePath[0];
                     const distZombieToDest = calculateDistance(zPos.lat, zPos.lng, destination.lat, destination.lng);
                     return (
-                      <>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <div>나의 목적지까지: {distUserToDest}m</div>
                         <div>좀비의 목적지까지: {distZombieToDest}m</div>
-                      </>
+                      </div>
                     );
                   })()
                 ) : ( // 경로가 설정되지 않았으면 안내 문구
-                  "지도를 클릭하세요"
+                  <span>지도를 클릭하세요</span>
                 )
               ) : ( // SURVIVAL 모드일 때
                 routePath.length > 0 ? ( // 경로가 설정되었으면 좀비와의 거리 표시
-                  `좀비와의 거리: ${distance !== null ? `${distance}m` : countdown}`
+                  <span>
+                    좀비와의 거리: {distance !== null ? `${distance}m` : countdown}
+                  </span>
                 ) : (
-                  "지도를 클릭하세요"
+                  <span>지도를 클릭하세요</span>
                 )
               )}
-            </>
+            </div>
           )}
         </div>
         
-        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>좀비 속도 ({selectedZombieSpeed})</label>
-          <input type="range" min="1" max="10" value={selectedZombieSpeed} onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} style={{ flexGrow: 1 }} />
+        <div className="hud-control-row">
+          <label className="hud-label">좀비 속도 ({selectedZombieSpeed})</label>
+          <input type="range" min="1" max="10" value={selectedZombieSpeed} onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} style={{ flexGrow: 1, accentColor: '#f43f5e' }} />
         </div>
         
-        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label style={{ fontSize: '12px' }}>좀비 발생 시간</label>
-          <select value={selectedSpawnDelay} onChange={(e) => setSelectedSpawnDelay(Number(e.target.value))} style={{ background: '#333', color: 'white', border: 'none', borderRadius: '5px' }}>
+        <div className="hud-control-row">
+          <label className="hud-label">좀비 발생 시간</label>
+          <select className="hud-select" value={selectedSpawnDelay} onChange={(e) => setSelectedSpawnDelay(Number(e.target.value))}>
             <option value={0}>즉시</option>
             <option value={10}>10초</option>
             <option value={30}>30초</option>
@@ -464,24 +514,106 @@ const ZombieMapApp = ({ gameMode }) => {
         </div>
 
         {routePath.length > 0 && (
-          <button 
-            onClick={handleResetZombie}
-            style={{ 
-              marginTop: '15px', 
-              padding: '8px 20px', 
-              borderRadius: '15px', 
-              border: 'none', 
-              backgroundColor: '#555', 
-              color: 'white', 
-              cursor: 'pointer', 
-              fontSize: '13px', 
-              fontWeight: 'bold' 
-            }}
-          >
-            추격 재시작 (위치 초기화)
+          <button onClick={handleResetZombie} className="hud-reset-btn">
+            RESTART PURSUIT
           </button>
         )}
       </div>
+
+      {/* 종료 확인 레이어 */}
+      {showExitConfirm && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100dvh',
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          zIndex: 200,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}>
+            <div className="hud-header">
+              <div className="hud-mode-tag">WARNING</div>
+              <div className="hud-status-dot"></div>
+            </div>
+            <div className="hud-main-display">
+              <div className="hud-distance-text" style={{ fontSize: '1.1rem' }}>
+                게임을 종료하고<br/>메인 화면으로 나갈까요?
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <button 
+                onClick={onExit}
+                className="hud-reset-btn" 
+                style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
+              >
+                YES
+              </button>
+              <button 
+                onClick={() => setShowExitConfirm(false)}
+                className="hud-reset-btn" 
+                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+              >
+                NO
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 경로 재설정 확인 레이어 */}
+      {showReconfirmPath && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100dvh',
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          zIndex: 200,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}>
+            <div className="hud-header">
+              <div className="hud-mode-tag">RECONFIRM</div>
+              <div className="hud-status-dot"></div>
+            </div>
+            <div className="hud-main-display">
+              <div className="hud-distance-text" style={{ fontSize: '1.1rem' }}>
+                경로가 이미 존재합니다.<br/>다시 설정 하시겠습니까?
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <button 
+                onClick={() => {
+                  setShowReconfirmPath(false);
+                  if (pendingDest) startPathFinding(pendingDest);
+                  setPendingDest(null);
+                }}
+                className="hud-reset-btn" 
+                style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
+              >
+                YES
+              </button>
+              <button 
+                onClick={() => {
+                  setShowReconfirmPath(false);
+                  setPendingDest(null);
+                }}
+                className="hud-reset-btn" 
+                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+              >
+                NO
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 중앙 카운트다운 */}
       {countdown > 0 && (

@@ -62,7 +62,7 @@ function App() {
   if (view === 'playing') {
     return (
       <div className="App">
-        <ZombieMapApp key={gameMode} gameMode={gameMode} />
+        <ZombieMapApp key={gameMode} gameMode={gameMode} onExit={() => setView('intro')} />
       </div>
     );
   }

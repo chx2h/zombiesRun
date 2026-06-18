@@ -595,4 +595,110 @@ code {
 
 .back-btn-main:hover { transform: scale(1.02); background: #f43f5e; }
 
+
+/* --- ZombieMapApp HUD Design --- */
+.hud-container {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  width: 70%;
+  max-width: 260px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(30, 41, 59, 0.8);
+  border-radius: 1rem;
+  padding: 0.4rem 0.6rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  color: #f1f5f9;
+}
+
+.hud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(244, 63, 94, 0.2);
+  padding-bottom: 0.4rem;
+}
+
+.hud-mode-tag {
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: #f43f5e;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.hud-status-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #f43f5e;
+  border-radius: 50%;
+  animation: ping 1.5s infinite;
+}
+
+.hud-main-display {
+  text-align: center;
+  margin: 0.3rem 0;
+  min-height: 25px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.hud-distance-text {
+  font-size: 0.8rem;
+  font-weight: 800;
+  font-family: var(--mono);
+  letter-spacing: -0.02em;
+}
+
+.hud-control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+}
+
+.hud-label {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.hud-select {
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  outline: none;
+}
+
+.hud-reset-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+  background: rgba(244, 63, 94, 0.1);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  padding: 0.3rem;
+  border-radius: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.2s;
+  text-transform: uppercase;
+}
+
+.hud-reset-btn:hover {
+  background: #f43f5e;
+  color: #020617;
+}
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
