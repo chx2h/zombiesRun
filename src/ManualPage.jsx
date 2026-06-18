@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 export default function ManualPage({ onBackToIntro }) {
   const [activeTab, setActiveTab] = useState('run'); // 'run' | 'survival' | 'gear'
   const [demoDistance, setDemoDistance] = useState(35); // 0m ~ 60m
-  const [isAudioRunning, setIsAudioRunning] = useState(false);
+  const [isAudioRunning, setIsAudioRunning] = useState(true); // 기본 활성화
   const [isVibrating, setIsVibrating] = useState(false);
 
   // Web Audio API를 위한 Ref
@@ -13,6 +13,13 @@ export default function ManualPage({ onBackToIntro }) {
   const ambientOscRef = useRef(null);
   const ambientGainRef = useRef(null);
   const intervalRef = useRef(null);
+
+  // 컴포넌트 마운트 시 오디오 데모 자동 시작
+  useEffect(() => {
+    if (isAudioRunning) {
+      startSyntheticZombieSound();
+    }
+  }, []); // 빈 배열로 한 번만 실행
 
   // 실시간 거리 값을 루프 내에서 참조하기 위한 Ref
   const demoDistanceRef = useRef(demoDistance);
@@ -207,31 +214,24 @@ export default function ManualPage({ onBackToIntro }) {
               <div className="pane-header">
                 <div className="pane-number text-rose">01</div>
                 <div>
-                  <h3 className="text-rose">RUN MODE: 탈출 게임</h3>
-                  <p className="pane-desc">좀비보다 빠르게 지정된 생존 목적지에 도달해야 합니다.</p>
+                  <h3 className="text-rose">RUN: 선착순 탈출</h3>
+                  <p className="pane-desc">좀비보다 빠르게 목적지에 도착하세요.</p>
                 </div>
               </div>
 
               <div className="info-grid">
                 <div className="info-card">
                   <h4 className="text-rose">핵심 룰</h4>
-                  <p>
-                    지도를 터치하면 출발지부터 <span className="highlight-green">Tmap 보행자 최적 경로</span>가 생성됩니다. 나와 좀비가 동시에 이 길을 따라 목적지로 질주합니다.
-                  </p>
+                  <p>클릭 시 생성되는 <span className="highlight-green">최적 경로</span>를 따라 나와 좀비가 동시에 질주합니다.</p>
                 </div>
                 <div className="info-card">
                   <h4 className="text-rose">승리 및 패배</h4>
-                  <p>
-                    오직 <span className="highlight-red">선착순 도달</span>로만 판가름납니다. 좀비와 부딪혀도 잡히지 않지만, 좀비가 먼저 도착하면 패배하게 됩니다.
-                  </p>
+                  <p>좀비와 부딪혀도 안전하지만, 좀비보다 <span className="highlight-red">먼저 도착</span>해야 승리합니다.</p>
                 </div>
               </div>
 
               <div className="advice-box border-rose">
-                <span className="advice-icon">⚡</span>
-                <p>
-                  <strong className="text-rose">전술 조언:</strong> 상단 HUD의 '나의 거리'를 수시로 확인하며, 지름길로 목적지를 우회 설정하는 민첩함이 필요합니다.
-                </p>
+                <p><strong className="text-rose">TIP:</strong> 목적지와의 거리를 확인하며 좀비보다 먼저 도착해서 승리를 쟁취하세요</p>
               </div>
             </div>
           )}
@@ -242,31 +242,24 @@ export default function ManualPage({ onBackToIntro }) {
               <div className="pane-header">
                 <div className="pane-number text-amber">02</div>
                 <div>
-                  <h3 className="text-amber">SURVIVAL MODE: 리얼 생존</h3>
-                  <p className="pane-desc">좀비를 도발하고 추격을 유도하여 최대한 오랫동안 살아남으세요.</p>
+                  <h3 className="text-amber">SURVIVAL: 무한 생존</h3>
+                  <p className="pane-desc">잡히지 않고 최대한 오래 버티세요.</p>
                 </div>
               </div>
 
               <div className="info-grid">
                 <div className="info-card">
                   <h4 className="text-amber">무자비한 추적</h4>
-                  <p>
-                    목적지를 지정하면 좀비가 나의 흔적을 밟으며 맹렬하게 추격합니다. 사용자가 멀어져도 멈추지 않고 나를 타겟하여 조여옵니다.
-                  </p>
+                  <p>좀비가 나의 흔적을 밟으며 끝까지 추격합니다. 거리가 벌어져도 추격은 멈추지 않습니다.</p>
                 </div>
                 <div className="info-card">
                   <h4 className="text-amber">생존 한계선</h4>
-                  <p>
-                    좀비와의 거리가 <span className="highlight-red">5미터 이내</span>로 좁혀지면 좀비에게 덮쳐져 즉시 <span className="highlight-red">GAME OVER</span> 처리됩니다.
-                  </p>
+                  <p>좀비와 <span className="highlight-red">5m 이내</span>로 가까워지면 즉시 <span className="highlight-red">GAME OVER</span> 됩니다.</p>
                 </div>
               </div>
 
               <div className="advice-box border-amber">
-                <span className="advice-icon">⚠️</span>
-                <p>
-                  <strong className="text-amber">서바이벌 공식:</strong> 정해진 탈출구는 없습니다. 쉬지 않고 달리는 체력과 전술적인 유도로 확보한 생존 시간만이 기록됩니다.
-                </p>
+                <p><strong className="text-amber">TIP:</strong> HUD의 '좀비와의 거리'를 확인하며 지그재그로 유인하세요.</p>
               </div>
             </div>
           )}
@@ -277,31 +270,25 @@ export default function ManualPage({ onBackToIntro }) {
               <div className="pane-header">
                 <div className="pane-number text-cyan">03</div>
                 <div>
-                  <h3 className="text-cyan">TACTICAL SENSOR: 전술 센서</h3>
-                  <p className="pane-desc">현장감이 살아있는 웹 브라우저 최첨단 피드백 도구를 가동합니다.</p>
+                  <h3 className="text-cyan">SENSOR: 전술 피드백</h3>
+                  <p className="pane-desc">소리와 진동으로 좀비의 접근을 감지합니다.</p>
                 </div>
               </div>
 
               <div className="info-grid">
                 <div className="info-card border-cyan">
-                  <div className="tech-badge">WEB AUDIO</div>
-                  <h4>📢 실시간 입체 청각 감지기</h4>
-                  <p>
-                    음악 앱과 동시에 사용할 수 있습니다. 좀비 사운드가 음악 위에 믹싱되며, <strong>거리가 가까워질수록 포효 소리가 강력해집니다.</strong>
-                  </p>
+                  <h4>📢 입체 사운드</h4>
+                  <p>음악과 동시 사용 가능. <strong>가까울수록 좀비 포효가 증폭</strong>됩니다.</p>
                 </div>
                 <div className="info-card border-cyan">
-                  <div className="tech-badge">VIBRATION</div>
-                  <h4>📳 촉각 햅틱 경보 레이더</h4>
-                  <p>
-                    진동만으로 거리를 짐작할 수 있습니다. <strong>20m 이내 주기적 진동, 5m 이내 극단적 위험 접근 시 강력한 연속 진동이 발생합니다.</strong>
-                  </p>
+                  <h4>📳 햅틱 레이더</h4>
+                  <p><strong>20m 주기적 진동, 5m 연속 진동</strong>으로 거리감을 전달합니다.</p>
                 </div>
               </div>
 
               <div className="compatibility-footer">
-                <span>✓ Web Audio: 전 기종 지원</span>
-                <span>✓ Vibration: 안드로이드 최적화</span>
+                <span>✓ Audio: 공통 지원</span>
+                <span>✓ Vibration: 안드로이드</span>
               </div>
             </div>
           )}
@@ -312,7 +299,7 @@ export default function ManualPage({ onBackToIntro }) {
               <div className="simulator-header">
                 <div className="simulator-info">
                   <span className="sim-badge">Tactical Simulator</span>
-                  <h4>좀비 거리별 피드백 모의 훈련</h4>
+                  <h4>피드백 모의 훈련</h4>
                 </div>
                 <button
                   onClick={toggleAudioDemo}
@@ -325,9 +312,9 @@ export default function ManualPage({ onBackToIntro }) {
               <div className="sim-controls">
                 <div className="sim-slider-wrapper">
                   <div className="slider-labels">
-                    <span>초근접 패닉 (0m)</span>
+                    <span>패닉 (0m)</span>
                     <span className="current-dist">{demoDistance}m</span>
-                    <span>안전 (60m)</span>
+                    <span>안전</span>
                   </div>
                   <input 
                     type="range" 
