@@ -89,7 +89,7 @@ function App() {
             setView('playing');
           }}>SURVIVAL</button>
           <button className="menu-btn" onClick={() => setView('manual')}>
-            INFO
+            TRAINING
           </button>
         </div>
       </div>

@@ -241,7 +241,7 @@ const ZombieMapApp = ({ gameMode, onExit }) => {
     setDistance(null);
   }, [routePath]);
 
-  const currentZombieSpeed = useMemo(() => (Number(selectedZombieSpeed) / 10) * ZOMBIE_SPEED_BASE, [selectedZombieSpeed]);
+  const currentZombieSpeed = useMemo(() => (Number(selectedZombieSpeed) / 50) * ZOMBIE_SPEED_BASE, [selectedZombieSpeed]);
 
   /**
    * 프레임별 애니메이션 루프
@@ -499,8 +499,8 @@ const ZombieMapApp = ({ gameMode, onExit }) => {
         </div>
         
         <div className="hud-control-row">
-          <label className="hud-label">좀비 속도 ({selectedZombieSpeed})</label>
-          <input type="range" min="1" max="10" value={selectedZombieSpeed} onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} style={{ flexGrow: 1, accentColor: '#f43f5e' }} />
+          <label className="hud-label">좀비 속도 ({selectedZombieSpeed}/50)</label>
+          <input type="range" min="1" max="50" value={selectedZombieSpeed} onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} style={{ flexGrow: 1, accentColor: '#f43f5e' }} />
         </div>
         
         <div className="hud-control-row">
