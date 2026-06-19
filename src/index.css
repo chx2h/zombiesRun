@@ -144,7 +144,7 @@ code {
   gap: 20px;
   align-items: flex-end; /* 메뉴 버튼들을 우측으로 정렬 */
   position: absolute; /* 절대 위치 사용 */
-  bottom: 20%; /* 화면 하단에서 25% 위치에 고정 */
+  bottom: 22%; /* 화면 하단에서 25% 위치에 고정 */
   right: 5%; /* intro-content의 padding을 고려하여 조정 */
 }
 
