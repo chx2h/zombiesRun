@@ -33,6 +33,7 @@ const ZombieMapApp = ({ gameMode, onExit }) => {
   const [isFollowingUser, setIsFollowingUser] = useState(true); // 사용자를 따라갈지 여부
   const [showExitConfirm, setShowExitConfirm] = useState(false); // 종료 확인 팝업 상태
   const [showReconfirmPath, setShowReconfirmPath] = useState(false); // 경로 재설정 확인 팝업
+  const [isFollowingZombie, setIsFollowingZombie] = useState(false); // 좀비 추적 모드 상태
   const [pendingDest, setPendingDest] = useState(null); // 대기 중인 목적지
 
   // 설정 상태
@@ -73,6 +74,13 @@ const ZombieMapApp = ({ gameMode, onExit }) => {
       setMapCenter(userPosition);
     }
   }, [userPosition, isFollowingUser]);
+
+  // "좀비 따라가기" 모드일 때 좀비 위치를 지도 중심에 동기화
+  useEffect(() => {
+    if (isFollowingZombie && zombiePosition) {
+      setMapCenter(zombiePosition);
+    }
+  }, [zombiePosition, isFollowingZombie]);
 
   // 카운트다운 타이머
   useEffect(() => {
@@ -368,7 +376,10 @@ const ZombieMapApp = ({ gameMode, onExit }) => {
         style={{ width: "100%", height: "100%" }}
         level={4} // 초기 줌 레벨을 4로 조정하여 좀 더 넓은 시야 제공
         onCreate={(map) => (mapRef.current = map)}
-        onDragStart={() => setIsFollowingUser(false)} // 드래그 시작 즉시 고정 해제
+        onDragStart={() => {
+          setIsFollowingUser(false);
+          setIsFollowingZombie(false);
+        }} // 드래그 시작 시 모든 추적 모드 해제
         onCenterChanged={(map) => {
           // 지도가 움직이면 현재 중심 좌표를 상태에 반영 (스냅백 방지)
           const center = map.getCenter();
@@ -441,27 +452,73 @@ const ZombieMapApp = ({ gameMode, onExit }) => {
         🔙
       </button>
 
-      {/* 현재 위치로 이동 버튼 */}
-      {userPosition && !isFollowingUser && (
+      {/* 좀비 추적 ON/OFF 버튼 */}
+      {routePath.length > 0 && !isGameOver && (
         <button
-          onClick={() => setIsFollowingUser(true)}
+          onClick={() => {
+            const nextState = !isFollowingZombie;
+            setIsFollowingZombie(nextState);
+            if (nextState) {
+              setIsFollowingUser(false); // 좀비 추적 시 사용자 추적은 해제
+            }
+          }}
+          style={{
+            position: 'absolute',
+            bottom: '20px',
+            left: '20px',
+            zIndex: 10,
+            background: isFollowingZombie ? '#f43f5e' : 'rgba(15, 23, 42, 0.85)',
+            color: 'white',
+            border: isFollowingZombie ? '2px solid #f43f5e' : '1px solid rgba(30, 41, 59, 0.8)',
+            borderRadius: '50%',
+            width: '60px',
+            height: '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '32px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+            transition: 'all 0.2s',
+            opacity: isFollowingZombie ? 1 : 0.6
+          }}
+        >
+          🧟
+        </button>
+      )}
+
+      {/* 현재 위치로 이동 버튼 */}
+      {userPosition && (
+        <button
+          onClick={() => {
+            const nextState = !isFollowingUser;
+            setIsFollowingUser(nextState);
+            if (nextState) {
+              setIsFollowingZombie(false); // 사용자 추적 시 좀비 추적은 해제
+            }
+          }}
           style={{
             position: 'absolute',
             bottom: '20px',
             right: '20px', // 버튼 위치를 우측 하단으로 변경
             zIndex: 10,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            width: '50px',
-            height: '50px',
+            background: isFollowingUser ? '#f43f5e' : 'rgba(15, 23, 42, 0.85)',
+            color: 'white',
+            border: isFollowingUser ? '2px solid #f43f5e' : '1px solid rgba(30, 41, 59, 0.8)',
+            borderRadius: '50%',
+            width: '60px',
+            height: '60px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '35px'
+            fontSize: '32px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+            transition: 'all 0.2s',
+            opacity: isFollowingUser ? 1 : 0.6
           }}
         >
-          📍
+          🏃
         </button>
       )}
 
