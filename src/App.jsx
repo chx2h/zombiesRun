@@ -8,6 +8,7 @@ function App() {
   const [view, setView] = useState('intro');
   const [gameMode, setGameMode] = useState('survival'); // 'survival' 또는 'run'
   const wakeLockSentinelRef = useRef(null); // WakeLockSentinel 객체를 저장할 Ref
+  const [showExitAppConfirm, setShowExitAppConfirm] = useState(false); // 앱 종료 확인 모달 상태
 
   // 화면 전환 및 브라우저 히스토리 관리
   const navigate = (newView) => {
@@ -18,6 +19,14 @@ function App() {
   useEffect(() => {
     // 뒤로가기/앞으로가기 버튼 처리
     const handlePopState = (event) => {
+      // 인트로 화면에서 뒤로가기를 시도하면, 커스텀 종료 확인창을 띄웁니다.
+      if (view === 'intro' && event.state === null) {
+        setShowExitAppConfirm(true);
+        // URL이 변경되는 것을 막기 위해 다시 intro 상태를 push합니다.
+        window.history.pushState({ view: 'intro' }, '', '#intro');
+        return;
+      }
+
       const newView = event.state?.view || 'intro';
       setView(newView);
     };
@@ -31,21 +40,6 @@ function App() {
 
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
-
-  // 인트로 화면에서 브라우저/탭 종료 또는 새로고침 시 확인 창
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      // 인트로 화면에 있을 때만 종료 확인 창을 띄웁니다.
-      if (view === 'intro') {
-        e.preventDefault();
-        e.returnValue = ''; // 대부분의 최신 브라우저에서는 사용자 정의 메시지를 무시합니다.
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [view]); // view가 변경될 때마다 리스너를 재평가
 
   // Wake Lock 요청 함수
   const requestWakeLock = async () => {
@@ -149,6 +143,50 @@ function App() {
         <div className="intro-warning-message">
           <p>※ 일반 도로에서 사용 시 횡단보도나 주위 사물에 주의하며 안전하게 이용해 주세요.</p>
         </div>
+
+        {/* 앱 종료 확인 레이어 */}
+        {showExitAppConfirm && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100dvh',
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}>
+              <div className="hud-header">
+                <div className="hud-mode-tag">EXIT APP</div>
+                <div className="hud-status-dot"></div>
+              </div>
+              <div className="hud-main-display">
+                <div className="hud-distance-text" style={{ fontSize: '1.1rem' }}>
+                  앱을 종료하시겠습니까?
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button 
+                  onClick={() => window.history.back()} // 실제 뒤로가기 실행
+                  className="hud-reset-btn" 
+                  style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
+                >
+                  YES
+                </button>
+                <button 
+                  onClick={() => setShowExitAppConfirm(false)}
+                  className="hud-reset-btn" 
+                  style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+                >
+                  NO
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
