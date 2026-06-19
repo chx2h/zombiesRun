@@ -299,8 +299,10 @@ const ZombieMapApp = ({ gameMode, onExit }) => {
 
       // 오디오 볼륨 제어 (50m 이내)
       if (gainNodeRef.current && audioCtxRef.current) {
-        const vol = d >= 50 ? 0 : (50 - d) / 50;
-        gainNodeRef.current.gain.setTargetAtTime(vol, audioCtxRef.current.currentTime, 0.1);
+        // 50m 이내부터 소리가 들리고, 거리에 따라 비선형적으로(제곱) 볼륨이 커지도록 수정
+        const rawVol = d >= 50 ? 0 : (50 - d) / 50;
+        const vol = Math.pow(rawVol, 2) * 1.5; // 제곱으로 볼륨을 키우고, 최대 볼륨을 1.5배로 설정
+        gainNodeRef.current.gain.setTargetAtTime(Math.min(1.5, vol), audioCtxRef.current.currentTime, 0.1);
       }
 
       // 진동 피드백 (25m 이내)

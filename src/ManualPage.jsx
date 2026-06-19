@@ -86,8 +86,8 @@ export default function ManualPage({ onBackToIntro }) {
         const oscGain = ctx.createGain();
         oscGain.gain.setValueAtTime(0, now);
         // 거리가 가까울수록 심박 소리가 강해짐
-        const volumeFactor = Math.max(0, 1 - (currentDist / 50));
-        oscGain.gain.linearRampToValueAtTime(volumeFactor * 0.8, now + 0.05);
+        const rawVol = currentDist >= 50 ? 0 : (50 - currentDist) / 50;
+        oscGain.gain.linearRampToValueAtTime(Math.min(1.2, Math.pow(rawVol, 2) * 1.5 * 0.8), now + 0.05); // 최대 1.2
         oscGain.gain.linearRampToValueAtTime(0, now + 0.3);
 
         osc.connect(oscGain);
@@ -140,9 +140,9 @@ export default function ManualPage({ onBackToIntro }) {
   useEffect(() => {
     if (isAudioRunning && ambientGainRef.current && audioCtxRef.current) {
       const now = audioCtxRef.current.currentTime;
-      // 거리가 가까워질수록 저음 노이즈 볼륨 커짐
-      const rawVolume = 1 - (demoDistance / 50);
-      const targetVolume = Math.max(0, Math.min(0.5, rawVolume));
+      // 거리가 가까워질수록 저음 노이즈 볼륨 커짐 (50m 기준, 제곱 비례)
+      const rawVol = demoDistance >= 50 ? 0 : (50 - demoDistance) / 50;
+      const targetVolume = Math.max(0, Math.min(0.5, Math.pow(rawVol, 2) * 1.5));
       ambientGainRef.current.gain.linearRampToValueAtTime(targetVolume, now + 0.1);
     }
   }, [demoDistance, isAudioRunning]);
