@@ -64,6 +64,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord }) => {
   const pathIndexRef = useRef(0);
   const audioCtxRef = useRef(null);
   const gainNodeRef = useRef(null);
+  const heartbeatGainRef = useRef(null); // 심장박동용 Gain
+  const ambientGainRef = useRef(null); // 배경노이즈용 Gain
+  const pulseIntervalRef = useRef(null); // 심장박동 인터벌
   const userPosRef = useRef(null);
   const zombiePosRef = useRef(null);
   const spawnTimerRef = useRef(null);
@@ -106,29 +109,57 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord }) => {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
+  // 컴포넌트 언마운트 시 오디오 및 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (pulseIntervalRef.current) clearTimeout(pulseIntervalRef.current);
+      if (audioCtxRef.current) audioCtxRef.current.close().catch(e => console.error("AudioContext close error:", e));
+    };
+  }, []);
+
   // 오디오 시스템 초기화
   const initAudio = useCallback(async () => {
     if (audioCtxRef.current) return;
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const ctx = new AudioContext();
     const gainNode = ctx.createGain();
-    gainNode.gain.value = 0;
     gainNode.connect(ctx.destination);
+    gainNodeRef.current = gainNode;
 
     try {
+      // 1. 좀비 비명 소리 로드 및 설정
       const response = await fetch(zombieSfx);
       const arrayBuffer = await response.arrayBuffer();
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
       source.loop = true;
-      source.connect(gainNode);
+      source.connect(gainNodeRef.current);
       source.start();
-      audioCtxRef.current = ctx;
-      gainNodeRef.current = gainNode;
     } catch (e) {
-      console.error("오디오 로드 실패", e);
+      console.error("좀비 비명 오디오 로드 실패", e);
     }
+
+    // 2. 음산한 배경 노이즈 생성
+    const ambGain = ctx.createGain();
+    const ambOsc = ctx.createOscillator();
+    ambOsc.type = 'sawtooth';
+    ambOsc.frequency.setValueAtTime(45, ctx.currentTime);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(120, ctx.currentTime);
+    ambOsc.connect(filter);
+    filter.connect(ambGain);
+    ambGain.connect(ctx.destination);
+    ambOsc.start();
+    ambientGainRef.current = ambGain;
+
+    // 3. 심장박동 효과 설정
+    const beatGain = ctx.createGain();
+    beatGain.connect(ctx.destination);
+    heartbeatGainRef.current = beatGain;
+
+    audioCtxRef.current = ctx;
   }, []);
 
   /**
@@ -299,10 +330,46 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord }) => {
 
       // 오디오 볼륨 제어 (50m 이내)
       if (gainNodeRef.current && audioCtxRef.current) {
-        // 50m 이내부터 소리가 들리고, 거리에 따라 비선형적으로(제곱) 볼륨이 커지도록 수정
         const rawVol = d >= 50 ? 0 : (50 - d) / 50;
-        const vol = Math.pow(rawVol, 2) * 1.5; // 제곱으로 볼륨을 키우고, 최대 볼륨을 1.5배로 설정
-        gainNodeRef.current.gain.setTargetAtTime(Math.min(1.5, vol), audioCtxRef.current.currentTime, 0.1);
+        const zombieVol = Math.pow(rawVol, 2) * 1.5;
+        const ambientVol = Math.max(0, Math.min(0.5, Math.pow(rawVol, 2) * 1.5));
+        
+        // 좀비 비명 소리 볼륨 조절
+        gainNodeRef.current.gain.setTargetAtTime(Math.min(1.5, zombieVol), audioCtxRef.current.currentTime, 0.1);
+        // 배경 노이즈 볼륨 조절
+        if (ambientGainRef.current) ambientGainRef.current.gain.setTargetAtTime(ambientVol, audioCtxRef.current.currentTime, 0.1);
+      }
+      
+      // 심장 박동 소리 및 주기 조절
+      if (heartbeatGainRef.current && audioCtxRef.current) {
+        if (!pulseIntervalRef.current) { // 인터벌이 없을 때만 새로 시작
+          const runPulse = () => {
+            const currentDist = distance; // 클로저 문제를 피하기 위해 지역 변수 사용
+            if (currentDist === null || currentDist >= 50) {
+              pulseIntervalRef.current = setTimeout(runPulse, 1200); // 멀리 있을 땐 1.2초 간격
+              return;
+            }
+
+            const now = audioCtxRef.current.currentTime;
+            const osc = audioCtxRef.current.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(60, now);
+            osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.3);
+            const oscGain = audioCtxRef.current.createGain();
+            const rawVol = (50 - currentDist) / 50;
+            oscGain.gain.setValueAtTime(0, now);
+            oscGain.gain.linearRampToValueAtTime(Math.min(1.2, Math.pow(rawVol, 2) * 1.5 * 0.8), now + 0.05);
+            oscGain.gain.linearRampToValueAtTime(0, now + 0.3);
+            osc.connect(oscGain);
+            oscGain.connect(heartbeatGainRef.current);
+            osc.start(now);
+            osc.stop(now + 0.35);
+            
+            const factor = Math.max(0.1, currentDist / 50);
+            pulseIntervalRef.current = setTimeout(runPulse, 1200 * factor);
+          };
+          runPulse();
+        }
       }
 
       // 진동 피드백 (25m 이내)
@@ -321,7 +388,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord }) => {
         if ("vibrate" in navigator) navigator.vibrate([1000, 500, 1000]);
         setIsGameOver(true);
         setGameResult('lose');
-        if (gainNodeRef.current) gainNodeRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+        if (audioCtxRef.current) {
+          gainNodeRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+          ambientGainRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+        }
         return;
       }
 
@@ -331,7 +401,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord }) => {
       if (distToFinish <= 15) { // 15미터 이내 도착 시 승리
         setIsGameOver(true);
         setGameResult('win');
-        if (gainNodeRef.current) gainNodeRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+        if (audioCtxRef.current) {
+          gainNodeRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+          ambientGainRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+        }
         return;
       }
     }
@@ -391,6 +464,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord }) => {
   useEffect(() => {
     return () => {
       if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current);
+      if (pulseIntervalRef.current) clearTimeout(pulseIntervalRef.current);
     };
   }, []);
 
