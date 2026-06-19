@@ -37,7 +37,7 @@ const HistoryPage = ({ onBackToIntro }) => {
         </p>
       </div>
 
-      <div className="history-list-container">
+      <div className="history-list-container history-content-animated">
         {records.length === 0 ? (
           <p className="no-records-message">아직 게임 기록이 없습니다.</p>
         ) : (
@@ -80,7 +80,7 @@ const HistoryPage = ({ onBackToIntro }) => {
         )}
       </div>
 
-      <button onClick={onBackToIntro} className="back-btn-main" style={{ marginTop: '1.5rem' }}>
+      <button onClick={onBackToIntro} className="back-btn-main history-content-animated" style={{ marginTop: '1.5rem', animationDelay: '0.2s' }}>
         돌아가기
       </button>
     </div>

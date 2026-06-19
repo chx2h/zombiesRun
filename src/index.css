@@ -120,9 +120,28 @@ code {
   position: relative;
   overflow: hidden;
   /* 배경 이미지 스타일 */
-  background-size: 100% 100%;
+  background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+}
+
+.intro-main-title {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 4rem;
+  font-weight: 900;
+  color: #fff;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-shadow: 
+    0 0 5px #f00, 
+    0 0 10px #f00, 
+    0 0 20px #f00, 
+    0 0 40px #f00;
+  animation: flicker 1.5s infinite alternate;
 }
 
 .intro-content {
@@ -144,7 +163,7 @@ code {
   gap: 20px;
   align-items: flex-end; /* 메뉴 버튼들을 우측으로 정렬 */
   position: absolute; /* 절대 위치 사용 */
-  bottom: 22%; /* 화면 하단에서 25% 위치에 고정 */
+  bottom: 15%; /* 화면 하단에서 25% 위치에 고정 */
   right: 5%; /* intro-content의 padding을 고려하여 조정 */
 }
 
@@ -180,6 +199,17 @@ code {
 @keyframes shine-text {
   to {
     background-position: -200% center;
+  }
+}
+
+@keyframes flicker {
+  0%, 18%, 22%, 25%, 53%, 57%, 100% {
+    text-shadow:
+      0 0 4px #f00, 0 0 11px #f00, 0 0 19px #f00, 0 0 40px #f00, 0 0 80px #f00;
+  }
+  20%, 24%, 55% {
+    text-shadow: none;
+    color: #ddd;
   }
 }
 
@@ -745,3 +775,9 @@ code {
 
 .mode-badge.run { background-color: #e11d48; }
 .mode-badge.survival { background-color: #d97706; }
+
+.history-content-animated {
+  opacity: 0; /* 애니메이션 시작 전에는 보이지 않도록 설정 */
+  animation: fadeIn 0.6s ease-out forwards;
+  animation-delay: 0.1s; /* 헤더가 나타난 후 콘텐츠가 나타나도록 지연 */
+}

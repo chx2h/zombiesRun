@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ZombieMapApp from './ZombieMapApp';
-import mainImg from './assets/main.png'; // 배경 이미지 임포트
+import mainImg from './assets/main2.jpg'; // 배경 이미지 임포트
 import ManualPage from './ManualPage'; // ManualPage 컴포넌트 임포트
 import HistoryPage from './HistoryPage'; // HistoryPage 컴포넌트 임포트
 
@@ -114,6 +114,7 @@ function App() {
 
   return (
     <div className="App intro-screen" style={{ backgroundImage: `url(${mainImg})` }}> {/* 배경 이미지 적용 */}
+      <h1 className="intro-main-title">Zombies Run</h1>
       <div className="intro-content">
         <div className="intro-menu">
           <button className="menu-btn start-button" onClick={() => {
