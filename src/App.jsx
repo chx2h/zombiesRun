@@ -9,6 +9,44 @@ function App() {
   const [gameMode, setGameMode] = useState('survival'); // 'survival' 또는 'run'
   const wakeLockSentinelRef = useRef(null); // WakeLockSentinel 객체를 저장할 Ref
 
+  // 화면 전환 및 브라우저 히스토리 관리
+  const navigate = (newView) => {
+    setView(newView);
+    window.history.pushState({ view: newView }, '', `#${newView}`);
+  };
+
+  useEffect(() => {
+    // 뒤로가기/앞으로가기 버튼 처리
+    const handlePopState = (event) => {
+      const newView = event.state?.view || 'intro';
+      setView(newView);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // 페이지 첫 로드 시 현재 해시값에 맞는 뷰를 보여주고, 없다면 #intro를 기본으로 설정
+    const initialView = window.location.hash.substring(1) || 'intro';
+    setView(initialView);
+    window.history.replaceState({ view: initialView }, '', `#${initialView}`);
+
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // 인트로 화면에서 브라우저/탭 종료 또는 새로고침 시 확인 창
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      // 인트로 화면에 있을 때만 종료 확인 창을 띄웁니다.
+      if (view === 'intro') {
+        e.preventDefault();
+        e.returnValue = ''; // 대부분의 최신 브라우저에서는 사용자 정의 메시지를 무시합니다.
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [view]); // view가 변경될 때마다 리스너를 재평가
+
   // Wake Lock 요청 함수
   const requestWakeLock = async () => {
     if ('wakeLock' in navigator) {
@@ -66,7 +104,7 @@ function App() {
         <ZombieMapApp 
           key={gameMode} 
           gameMode={gameMode} 
-          onExit={() => setView('intro')}
+          onExit={() => navigate('intro')}
           onSaveRecord={(record) => {
             const savedRecords = JSON.parse(localStorage.getItem('gameRecords') || '[]');
             savedRecords.push(record);
@@ -79,13 +117,13 @@ function App() {
 
   if (view === 'manual') {
     return (
-      <ManualPage onBackToIntro={() => setView('intro')} />
+      <ManualPage onBackToIntro={() => navigate('intro')} />
     );
   }
 
   if (view === 'history') {
     return (
-      <HistoryPage onBackToIntro={() => setView('intro')} />
+      <HistoryPage onBackToIntro={() => navigate('intro')} />
     );
   }
 
@@ -95,16 +133,16 @@ function App() {
         <div className="intro-menu">
           <button className="menu-btn start-button" onClick={() => {
             setGameMode('run');
-            setView('playing');
+            navigate('playing');
           }}>RUN</button>
           <button className="menu-btn start-button" onClick={() => {
             setGameMode('survival');
-            setView('playing');
+            navigate('playing');
           }}>SURVIVAL</button>
-          <button className="menu-btn start-button" onClick={() => setView('manual')}>
+          <button className="menu-btn start-button" onClick={() => navigate('manual')}>
             TRAINING
           </button>
-          <button className="menu-btn" onClick={() => setView('history')}>
+          <button className="menu-btn" onClick={() => navigate('history')}>
             기록
           </button>
         </div>
