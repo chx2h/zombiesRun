@@ -39,7 +39,7 @@ function App() {
     window.history.replaceState({ view: initialView }, '', `#${initialView}`);
 
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [view]); // view가 변경될 때마다 popstate 핸들러를 새로 등록하여 최신 view 상태를 참조하도록 합니다.
 
   // Wake Lock 요청 함수
   const requestWakeLock = async () => {
