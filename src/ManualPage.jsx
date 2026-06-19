@@ -275,10 +275,14 @@ export default function ManualPage({ onBackToIntro }) {
                 </div>
               </div>
 
-              <div className="info-grid">
+              <div className="info-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                 <div className="info-card border-cyan">
                   <h4>📢 입체 사운드</h4>
                   <p>음악과 동시 사용 가능. <strong>가까울수록 좀비 포효가 증폭</strong>됩니다.</p>
+                </div>
+                <div className="info-card border-cyan">
+                  <h4>🎯 추적 시스템</h4>
+                  <p>좌측 하단(🧟)과 우측 하단(🏃) 버튼으로 좀비 또는 나를 화면 중앙에 고정할 수 있습니다.</p>
                 </div>
                 <div className="info-card border-cyan">
                   <h4>📳 햅틱 레이더</h4>
