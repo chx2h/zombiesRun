@@ -394,6 +394,22 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord }) => {
     };
   }, []);
 
+  // 브라우저/탭 종료 또는 새로고침 시 확인 창
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      // 게임 진행 중에만 종료 확인 창을 띄웁니다.
+      if (routePath.length > 0 && !isGameOver) {
+        e.preventDefault();
+        // 대부분의 최신 브라우저에서는 사용자 정의 메시지를 무시하지만, 호환성을 위해 설정합니다.
+        e.returnValue = ''; 
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [routePath.length, isGameOver]); // 게임 진행 상태가 바뀔 때마다 리스너를 재평가
+
   return (
     <div style={{ width: '100vw', height: '100dvh', position: 'relative' }}>
       {/* 현재 위치 로딩 중 표시 */}
