@@ -177,7 +177,7 @@ export default function ManualPage({ onBackToIntro }) {
         {/* 타이틀 및 긴장감 유도 문구 */}
         <div className="title-section">
           <h1 className="manual-main-title">
-            ZOMBIES RUN : MANUAL
+            ZOMBIES RUN : TRAINING
           </h1>
           <p className="manual-subtitle">
             스마트폰 너머로 숨죽여 덮쳐오는 생존의 현장을 지휘하세요.
