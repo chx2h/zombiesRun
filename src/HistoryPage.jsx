@@ -11,18 +11,30 @@ const HistoryPage = ({ onBackToIntro }) => {
   }, []);
 
   const getResultStyle = (result) => {
-    if (result === '승') return { color: '#ef4444', fontWeight: 'bold' };
-    if (result === '패') return { color: '#3b82f6', fontWeight: 'bold' };
+    if (result === '탈출') return { color: '#ef4444', fontWeight: 'bold' };
+    if (result === '사망') return { color: '#3b82f6', fontWeight: 'bold' };
     return {};
   };
 
   return (
     <div className="history-page-container">
-      <div className="history-header">
-        <h1 className="history-title">게임 기록</h1>
-        <button onClick={onBackToIntro} className="back-to-intro-btn">
-          돌아가기
-        </button>
+      {/* 상단 장식 헤더 */}
+      <div className="manual-header">
+        <div className="status-indicator">
+          <span className="dot-ping"></span>
+          <p className="system-tag">Apocalypse Survival Guide</p>
+        </div>
+        <div className="version-tag">SYS.VER 2.5_KOR</div>
+      </div>
+
+      {/* 타이틀 및 부제 */}
+      <div className="title-section" style={{ marginBottom: '1.5rem' }}>
+        <h1 className="manual-main-title">
+          SURVIVAL RECORDS
+        </h1>
+        <p className="manual-subtitle">
+          치열했던 생존의 흔적을 확인하세요.
+        </p>
       </div>
 
       <div className="history-list-container">
@@ -67,6 +79,10 @@ const HistoryPage = ({ onBackToIntro }) => {
           </table>
         )}
       </div>
+
+      <button onClick={onBackToIntro} className="back-btn-main" style={{ marginTop: '1.5rem' }}>
+        돌아가기
+      </button>
     </div>
   );
 };

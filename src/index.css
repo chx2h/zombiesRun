@@ -704,37 +704,6 @@ code {
   box-sizing: border-box;
 }
 
-.history-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid rgba(244, 63, 94, 0.4);
-  padding-bottom: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.history-title {
-  font-size: 1.8rem;
-  font-weight: 900;
-  color: #f43f5e;
-  margin: 0;
-}
-
-.back-to-intro-btn {
-  background: #1e293b;
-  color: #f1f5f9;
-  border: 1px solid #334155;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.2s;
-}
-
-.back-to-intro-btn:hover {
-  background-color: #334155;
-}
-
 .history-list-container {
   flex: 1;
   overflow-y: auto;

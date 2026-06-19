@@ -343,8 +343,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord }) => {
   useEffect(() => {
     if (isGameOver && onSaveRecord) {
       let result = '-';
-      if (gameResult === 'win') result = '승';
-      if (gameResult === 'lose') result = '패';
+      if (gameResult === 'win') result = '탈출';
+      if (gameResult === 'lose') result = '사망';
 
       const destination = routePath.length > 0 ? routePath[routePath.length - 1] : null;
       const startPoint = routePath.length > 0 ? routePath[0] : null;

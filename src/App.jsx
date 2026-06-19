@@ -109,7 +109,7 @@ function App() {
           </button>
         </div>
         <div className="intro-warning-message">
-          <p>※ 일반 도로에서 사용 시 횡단보도나 주위 사물을 주의하며 안전하게 이용해 주세요.</p>
+          <p>※ 일반 도로에서 사용 시 횡단보도나 주위 사물에 주의하며 안전하게 이용해 주세요.</p>
         </div>
       </div>
     </div>
