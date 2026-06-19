@@ -104,7 +104,7 @@ function App() {
             setGameMode('survival');
             setView('playing');
           }}>SURVIVAL</button>
-          <button className="menu-btn" onClick={() => setView('manual')}>
+          <button className="menu-btn start-button" onClick={() => setView('manual')}>
             TRAINING
           </button>
           <button className="menu-btn" onClick={() => setView('history')}>
