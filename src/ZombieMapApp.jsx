@@ -295,6 +295,17 @@ const ZombieMapApp = ({ gameMode, onExit }) => {
         gainNodeRef.current.gain.setTargetAtTime(vol, audioCtxRef.current.currentTime, 0.1);
       }
 
+      // 진동 피드백 (25m 이내)
+      if (navigator.vibrate) {
+        if (d <= 10) {
+          // 10m 이내: 위험! 강한 진동
+          navigator.vibrate(200);
+        } else if (d <= 25) {
+          // 25m 이내: 경고. 짧은 진동
+          navigator.vibrate(50);
+        }
+      }
+
       // 잡힘 판정 (Survival 모드일 때만 5m 이내 종료)
       if (d <= 5 && gameMode === 'survival') {
         if ("vibrate" in navigator) navigator.vibrate([1000, 500, 1000]);
