@@ -361,6 +361,26 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord }) => {
     }
   }, [isGameOver, gameResult, gameMode, routePath, onSaveRecord, selectedZombieSpeed]);
 
+  // 중간 종료 시 기록 저장
+  const handleExitAndSave = () => {
+    if (onSaveRecord) {
+      const destination = routePath.length > 0 ? routePath[routePath.length - 1] : null;
+      const startPoint = routePath.length > 0 ? routePath[0] : null;
+      const totalDistance = destination && startPoint ? 
+        (calculateDistance(startPoint.lat, startPoint.lng, destination.lat, destination.lng) / 1000).toFixed(2) + 'km' : '-';
+
+      onSaveRecord({
+        date: new Date().toISOString(),
+        mode: gameMode,
+        distance: totalDistance,
+        zombieSpeed: selectedZombieSpeed,
+        result: '-', // 중간 종료는 '-'로 표시
+      });
+    }
+    // 기록 저장 후 인트로 화면으로 이동
+    onExit();
+  };
+
   useEffect(() => {
     if (routePath.length > 0 && !isGameOver) {
       requestRef.current = requestAnimationFrame(animate);
@@ -638,7 +658,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord }) => {
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
               <button 
-                onClick={onExit}
+                onClick={handleExitAndSave}
                 className="hud-reset-btn" 
                 style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
               >

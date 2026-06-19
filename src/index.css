@@ -143,8 +143,7 @@ code {
   flex-direction: column;
   gap: 20px;
   align-items: flex-end; /* 메뉴 버튼들을 우측으로 정렬 */
-  margin-top: 20px; /* 경고 문구와의 간격 조정 */
-  margin-bottom: 210px; /* 경고 문구와의 간격 조정 */
+  margin-bottom: 0px; /* 안내 문구와의 간격 조정 */
 }
 
 .menu-btn {
@@ -187,9 +186,11 @@ code {
   width: 100%;
   text-align: center;
   color: #aaa; /* 색상 조정 */
+  align-self: center; /* 우측 정렬된 컨테이너 안에서 스스로 중앙 정렬 */
   font-size: 14px;
   padding: 0 20px;
   max-width: 600px; /* 가독성을 위해 최대 너비 설정 */
+  margin-bottom: 220px;
 }
 
 /* 게임 오버 시 피 흐르는 효과 */

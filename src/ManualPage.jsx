@@ -131,6 +131,7 @@ export default function ManualPage({ onBackToIntro }) {
     }
     if (audioCtxRef.current) {
       try { audioCtxRef.current.close(); } catch(e){}
+      audioCtxRef.current = null;
     }
     setIsAudioRunning(false);
     setIsVibrating(false);
