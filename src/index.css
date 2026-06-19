@@ -702,3 +702,87 @@ code {
   color: #020617;
 }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* --- History Page --- */
+.history-page-container {
+  height: 100dvh;
+  background-color: #020617;
+  color: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(244, 63, 94, 0.4);
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.history-title {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #f43f5e;
+  margin: 0;
+}
+
+.back-to-intro-btn {
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.back-to-intro-btn:hover {
+  background-color: #334155;
+}
+
+.history-list-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.no-records-message {
+  text-align: center;
+  color: #94a3b8;
+  margin-top: 3rem;
+  font-size: 1.1rem;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.history-table th, .history-table td {
+  padding: 0.75rem;
+  text-align: center;
+  border-bottom: 1px solid #1e293b;
+}
+
+.history-table th {
+  color: #94a3b8;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.mode-badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: white;
+}
+
+.mode-badge.run { background-color: #e11d48; }
+.mode-badge.survival { background-color: #d97706; }

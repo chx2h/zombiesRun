@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ZombieMapApp from './ZombieMapApp';
 import mainImg from './assets/main.png'; // 배경 이미지 임포트
 import ManualPage from './ManualPage'; // ManualPage 컴포넌트 임포트
+import HistoryPage from './HistoryPage'; // HistoryPage 컴포넌트 임포트
 
 function App() {
   const [view, setView] = useState('intro');
@@ -62,7 +63,16 @@ function App() {
   if (view === 'playing') {
     return (
       <div className="App">
-        <ZombieMapApp key={gameMode} gameMode={gameMode} onExit={() => setView('intro')} />
+        <ZombieMapApp 
+          key={gameMode} 
+          gameMode={gameMode} 
+          onExit={() => setView('intro')}
+          onSaveRecord={(record) => {
+            const savedRecords = JSON.parse(localStorage.getItem('gameRecords') || '[]');
+            savedRecords.push(record);
+            localStorage.setItem('gameRecords', JSON.stringify(savedRecords));
+          }}
+        />
       </div>
     );
   }
@@ -70,6 +80,12 @@ function App() {
   if (view === 'manual') {
     return (
       <ManualPage onBackToIntro={() => setView('intro')} />
+    );
+  }
+
+  if (view === 'history') {
+    return (
+      <HistoryPage onBackToIntro={() => setView('intro')} />
     );
   }
 
@@ -90,6 +106,9 @@ function App() {
           }}>SURVIVAL</button>
           <button className="menu-btn" onClick={() => setView('manual')}>
             TRAINING
+          </button>
+          <button className="menu-btn" onClick={() => setView('history')}>
+            기록
           </button>
         </div>
       </div>

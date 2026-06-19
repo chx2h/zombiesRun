@@ -20,7 +20,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return Math.round(R * c);
 };
 
-const ZombieMapApp = ({ gameMode, onExit }) => {
+const ZombieMapApp = ({ gameMode, onExit, onSaveRecord }) => {
   // 상태 관리
   const [userPosition, setUserPosition] = useState(null);
   const [zombiePosition, setZombiePosition] = useState(null);
@@ -338,6 +338,28 @@ const ZombieMapApp = ({ gameMode, onExit }) => {
 
     requestRef.current = requestAnimationFrame(animate);
   }, [routePath, isGameOver, currentZombieSpeed, gameMode]);
+
+  // 게임 종료 시 기록 저장
+  useEffect(() => {
+    if (isGameOver && onSaveRecord) {
+      let result = '-';
+      if (gameResult === 'win') result = '승';
+      if (gameResult === 'lose') result = '패';
+
+      const destination = routePath.length > 0 ? routePath[routePath.length - 1] : null;
+      const startPoint = routePath.length > 0 ? routePath[0] : null;
+      const totalDistance = destination && startPoint ? 
+        (calculateDistance(startPoint.lat, startPoint.lng, destination.lat, destination.lng) / 1000).toFixed(2) + 'km' : '-';
+
+      onSaveRecord({
+        date: new Date().toISOString(),
+        mode: gameMode,
+        distance: totalDistance,
+        zombieSpeed: selectedZombieSpeed,
+        result: result,
+      });
+    }
+  }, [isGameOver, gameResult, gameMode, routePath, onSaveRecord, selectedZombieSpeed]);
 
   useEffect(() => {
     if (routePath.length > 0 && !isGameOver) {
