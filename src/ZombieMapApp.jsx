@@ -135,7 +135,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   };
 
 
-  // --- [추가] 생성된 경로를 '지금까지 했던 경로 리스트'에 자동 등록 ---
+  // --- [수정] 생성된 경로를 최신순으로 '지금까지 했던 경로 리스트'에 자동 등록 ---
   useEffect(() => {
     if (routePath && routePath.length > 0) {
       setFavorites(prev => {
@@ -154,13 +154,14 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         const now = new Date();
         const defaultTitle = `경로 ${prev.length + 1} (${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')})`;
 
+        // [변경 포인트] 최신 경로를 배열의 가장 앞에 배치하고, 기존 목록(...prev)을 뒤로 보냅니다.
         return [
-          ...prev,
           {
             id: Date.now(),
             title: defaultTitle,
             routePath: routePath
-          }
+          },
+          ...prev
         ];
       });
     }
@@ -964,7 +965,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             </div>
           ) : (
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {favorites.map((fav) => (
+              {/* 🔍 favorites 앞에 [...favorites].sort(...) 를 추가하여 ID(시간)가 큰 순서대로 정렬합니다. */}
+              {[...favorites].sort((a, b) => b.id - a.id).map((fav) => (
                 <li
                   key={fav.id}
                   onClick={() => loadFavoriteRoute(fav)}
