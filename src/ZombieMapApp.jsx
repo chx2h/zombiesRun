@@ -12,7 +12,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371e3; // 지구 반지름 (m)
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a = 
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
@@ -46,6 +46,125 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     const saved = localStorage.getItem(`${gameMode}_spawnDelay`);
     return saved !== null ? Number(saved) : 10;
   });
+
+  // --- [추가] 경로 즐겨찾기 및 히스토리 관리 상태 ---
+  const [favorites, setFavorites] = useState(() => {
+    const saved = localStorage.getItem('zombie_route_favorites');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [showFavorites, setShowFavorites] = useState(false); // 리스트 표시 여부
+  const [editingId, setEditingId] = useState(null);          // 현재 수정 중인 경로 ID
+  const [editingTitle, setEditingTitle] = useState('');      // 수정 중인 제목 텍스트
+
+  // 즐겨찾기 목록이 변경될 때마다 로컬 스토리지에 자동 저장
+  useEffect(() => {
+    localStorage.setItem('zombie_route_favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  // 즐겨찾기 경로를 클릭했을 때 해당 경로를 지도에 뿌리고 게임을 재시작하는 함수
+  const loadFavoriteRoute = (fav) => {
+    if (!fav.routePath || fav.routePath.length === 0) return;
+
+    // 게임 상태 초기화 및 새로운 경로 주입
+    setIsGameOver(false);
+    setGameResult(null);
+    setDangerLevel(0);
+    setRoutePath(fav.routePath);
+    setMapCenter(fav.routePath[0]);
+
+    // 좀비 스폰 타이머 재설정 (기존 타이머 클리어)
+    if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current);
+    setZombiePosition(null);
+    zombiePosRef.current = null;
+    setCountdown(selectedSpawnDelay);
+
+    // 지정된 딜레이 후 좀비 출현
+    spawnTimerRef.current = setTimeout(() => {
+      const startPos = fav.routePath[0];
+      pathIndexRef.current = 0;
+      setZombiePosition(startPos);
+      zombiePosRef.current = startPos;
+      setCountdown(0);
+      console.log("즐겨찾기 경로로 좀비 출현!");
+    }, selectedSpawnDelay * 1000);
+
+    setShowFavorites(false); // 리스트 창 닫기
+  };
+
+  // 제목 클릭 시 수정 모드로 전환하는 함수
+  const startEditing = (e, fav) => {
+    e.stopPropagation(); // 부모 항목의 '경로 로드 클릭 이벤트' 전파 방지
+    setEditingId(fav.id);
+    setEditingTitle(fav.title);
+  };
+
+  // 변경된 제목을 저장하는 함수
+  const saveTitle = (id) => {
+    setFavorites(prev => prev.map(item =>
+      item.id === id ? { ...item, title: editingTitle.trim() || item.title } : item
+    ));
+    setEditingId(null);
+  };
+
+  // 즐겨찾기 삭제 함수 (선택 사항)
+  const deleteFavorite = (e, id) => {
+    e.stopPropagation(); // 경로 로드 전파 방지
+    if (window.confirm("이 경로를 목록에서 삭제하시겠습니까?")) {
+      setFavorites(prev => prev.filter(item => item.id !== id));
+    }
+  };
+
+  // --- [확인 및 추가] 경로 요청 대기 상태 ---
+  const [showRouteConfirm, setShowRouteConfirm] = useState(false);
+  const [pendingCoords, setPendingCoords] = useState(null); // 클릭한 목적지 좌표 저장
+
+  // 지도를 클릭했을 때 실행되는 함수
+  const handleMapClick = (target, mouseEvent) => {
+    // 게임 오버 상태거나 이미 다른 연산 중일 때의 예외 처리가 있다면 유지
+    if (isGameOver) return;
+
+    const latLng = mouseEvent.latLng;
+    const coords = {
+      lat: latLng.getLat(),
+      lng: latLng.getLng()
+    };
+
+    // 즉시 길찾기를 하지 않고, 좌표를 예약한 뒤 팝업을 띄웁니다.
+    setPendingCoords(coords);
+    setShowRouteConfirm(true);
+  };
+
+
+  // --- [추가] 생성된 경로를 '지금까지 했던 경로 리스트'에 자동 등록 ---
+  useEffect(() => {
+    if (routePath && routePath.length > 0) {
+      setFavorites(prev => {
+        // 완전히 동일한 출발지/목적지를 가진 경로가 이미 있는지 체크
+        const isDuplicate = prev.some(fav =>
+          fav.routePath.length === routePath.length &&
+          fav.routePath[0]?.lat === routePath[0]?.lat &&
+          fav.routePath[0]?.lng === routePath[0]?.lng &&
+          fav.routePath[routePath.length - 1]?.lat === routePath[routePath.length - 1]?.lat &&
+          fav.routePath[routePath.length - 1]?.lng === routePath[routePath.length - 1]?.lng
+        );
+
+        if (isDuplicate) return prev; // 이미 있다면 추가하지 않음
+
+        // 현재 시간을 포함한 기본 제목 생성 (예: 경로 1 (6/22 15:30))
+        const now = new Date();
+        const defaultTitle = `경로 ${prev.length + 1} (${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')})`;
+
+        return [
+          ...prev,
+          {
+            id: Date.now(),
+            title: defaultTitle,
+            routePath: routePath
+          }
+        ];
+      });
+    }
+  }, [routePath]);
 
   // 설정값이 변경될 때마다 localStorage에 저장
   useEffect(() => {
@@ -192,12 +311,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     if (initialRoutePath && initialRoutePath.length > 0) {
       setRoutePath(initialRoutePath);
       setMapCenter(initialRoutePath[0]);
-      
+
       if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current);
       setZombiePosition(null);
       zombiePosRef.current = null;
       setCountdown(selectedSpawnDelay);
-      
+
       spawnTimerRef.current = setTimeout(() => {
         const startPos = initialRoutePath[0];
         pathIndexRef.current = 0;
@@ -232,7 +351,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const startPathFinding = useCallback(async (latLng) => {
     initAudio();
     if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume(); // 오디오 컨텍스트 재개
-    
+
     const dest = { lat: latLng.getLat(), lng: latLng.getLng() };
     let chasePath = [];
 
@@ -265,7 +384,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         throw new Error(`Tmap API 응답 에러 (${response.status}): ${errorDetail}`);
       }
       const data = await response.json();
-      
+
       // Tmap GeoJSON 좌표 [lng, lat] -> {lat, lng} 변환
       data.features.forEach((feature) => {
         const geometry = feature.geometry;
@@ -312,7 +431,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
    */
   const onMapClick = useCallback((latLng) => {
     if (isGameOver || !userPosition) return;
-    
+
     if (routePath.length > 0) {
       setPendingDest(latLng);
       setShowReconfirmPath(true);
@@ -328,7 +447,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     if (routePath.length === 0) return;
     initAudio();
     if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
-    
+
     // 스폰 타이머가 진행 중이라면 취소하고 즉시 생성 모드로 전환
     if (spawnTimerRef.current) {
       clearTimeout(spawnTimerRef.current);
@@ -408,13 +527,13 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         const rawVol = d >= 50 ? 0 : (50 - d) / 50;
         const zombieVol = Math.pow(rawVol, 2) * 1.5;
         const ambientVol = Math.max(0, Math.min(0.5, Math.pow(rawVol, 2) * 1.5));
-        
+
         // 좀비 비명 소리 볼륨 조절
         gainNodeRef.current.gain.setTargetAtTime(Math.min(1.5, zombieVol), audioCtxRef.current.currentTime, 0.1);
         // 배경 노이즈 볼륨 조절
         if (ambientGainRef.current) ambientGainRef.current.gain.setTargetAtTime(ambientVol, audioCtxRef.current.currentTime, 0.1);
       }
-      
+
       // 심장 박동 소리 + 거리 기반 진동 패턴 (ManualPage 시뮬레이터와 동일한 방식)
       if (heartbeatGainRef.current && audioCtxRef.current) {
         if (!pulseIntervalRef.current) { // 인터벌이 없을 때만 새로 시작
@@ -449,7 +568,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                 navigator.vibrate(100); // 경고: 인지 가능한 진동
               }
             }
-            
+
             // 거리가 가까울수록 펄스 간격이 짧아짐
             const factor = Math.max(0.1, currentDist / 50);
             pulseIntervalRef.current = setTimeout(runPulse, 1200 * factor);
@@ -496,7 +615,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
       const destination = routePath.length > 0 ? routePath[routePath.length - 1] : null;
       const startPoint = routePath.length > 0 ? routePath[0] : null;
-      const totalDistance = destination && startPoint ? 
+      const totalDistance = destination && startPoint ?
         (calculateDistance(startPoint.lat, startPoint.lng, destination.lat, destination.lng) / 1000).toFixed(2) + 'km' : '-';
 
       onSaveRecord({
@@ -515,7 +634,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     if (onSaveRecord) {
       const destination = routePath.length > 0 ? routePath[routePath.length - 1] : null;
       const startPoint = routePath.length > 0 ? routePath[0] : null;
-      const totalDistance = destination && startPoint ? 
+      const totalDistance = destination && startPoint ?
         (calculateDistance(startPoint.lat, startPoint.lng, destination.lat, destination.lng) / 1000).toFixed(2) + 'km' : '-';
 
       onSaveRecord({
@@ -552,7 +671,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       if (routePath.length > 0 && !isGameOver) {
         e.preventDefault();
         // 대부분의 최신 브라우저에서는 사용자 정의 메시지를 무시하지만, 호환성을 위해 설정합니다.
-        e.returnValue = ''; 
+        e.returnValue = '';
       }
     };
 
@@ -596,7 +715,18 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           const center = map.getCenter();
           setMapCenter({ lat: center.getLat(), lng: center.getLng() });
         }}
-        onClick={(_t, mouseEvent) => onMapClick(mouseEvent.latLng)} // 카카오맵의 latLng 객체를 직접 전달
+        onClick={(_t, mouseEvent) => {
+          if (isGameOver) return; // 게임 오버 상태일 때는 클릭 무시
+
+          // 클릭한 위치의 카카오 좌표 객체에서 위도/경도 숫자 추출
+          const coords = {
+            lat: mouseEvent.latLng.getLat(),
+            lng: mouseEvent.latLng.getLng()
+          };
+
+          setPendingDest(coords);     // 1. 목적지 좌표를 pendingDest에 임시 저장
+          setShowReconfirmPath(true); // 2. 화면 중앙의 경로 재확인 레이어 팝업 켜기
+        }} // 카카오맵의 latLng 객체를 직접 전달
       >
         {userPosition && (
           <CustomOverlayMap position={userPosition} zIndex={1}>
@@ -733,6 +863,302 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         </button>
       )}
 
+
+      {/* --- [수정] 우측 상단 경로 즐겨찾기 토글 버튼 --- */}
+      <div style={{ position: 'absolute', top: '15px', right: '15px', zIndex: 30 }}>
+        <button
+          onClick={() => setShowFavorites(!showFavorites)}
+          title={`경로 히스토리/즐겨찾기 목록 보기 (${favorites.length})`}
+          style={{
+            backgroundColor: showFavorites ? '#4ade80' : 'rgba(30, 41, 59, 0.9)',
+            color: showFavorites ? '#0f172a' : '#4ade80',
+
+            // 즐겨찾기만의 정체성을 위해 테두리 색상은 연두색(#4ade80) 유지
+            border: '2px solid #4ade80',
+            borderRadius: '50%',
+
+            // [변경] 뒤로가기 버튼과 동일하게 외부 버튼 크기를 50px로 확대
+            width: '60px',
+            height: '60px',
+
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            transition: 'all 0.2s',
+            padding: 0,
+            outline: 'none',
+          }}
+        >
+          {/* 북마크 리스트 SVG 아이콘 */}
+          <svg
+            // [변경] 내부 아이콘 크기를 22 -> 30으로 확대 (뒤로가기 이미지 크기와 맞춤)
+            width="30"
+            height="30"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            // 아이콘이 커진 만큼 선 두께(strokeWidth)를 살짝 조절(2.5 -> 2.2)하여 
+            // 뒤로가기 이미지와 시각적 무게감을 맞췄습니다.
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+            <line x1="9" y1="10" x2="15" y2="10"></line>
+            <line x1="9" y1="14" x2="13" y2="14"></line>
+          </svg>
+        </button>
+      </div>
+
+      {/* --- [수정] 화면 정중앙으로 이동된 즐겨찾기 레이어 팝업 (모달 스타일) --- */}
+      {showFavorites && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 50, // HUD나 다른 이펙트보다 확실하게 위에 오도록 zIndex를 높게 설정
+          backgroundColor: 'rgba(15, 23, 42, 0.98)', // 중앙 팝업 집중도를 위해 살짝 더 어둡고 불투명하게 조정
+          border: '2px solid #334155',
+          borderRadius: '12px',
+          width: '320px', // 화면 중앙 레이아웃에 맞춰 가로폭을 살짝 늘림
+          maxHeight: '420px',
+          overflowY: 'auto',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.7)',
+          padding: '16px',
+          color: 'white'
+        }}>
+          <h4 style={{
+            margin: '0 0 12px 0',
+            borderBottom: '1px solid #334155',
+            paddingBottom: '8px',
+            fontSize: '15px',
+            color: '#cbd5e1',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span>📋 저장된 탐색 경로</span>
+              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'normal' }}>이름 클릭 시 수정 가능</span>
+            </span>
+            {/* 팝업 닫기 버튼 추가 */}
+            <button
+              onClick={() => setShowFavorites(false)}
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                fontSize: '18px',
+                padding: '4px',
+                lineHeight: '1'
+              }}
+              title="닫기"
+            >
+              ✕
+            </button>
+          </h4>
+
+          {favorites.length === 0 ? (
+            <div style={{ color: '#64748b', fontSize: '13px', textAlign: 'center', padding: '30px 0', lineHeight: '1.5' }}>
+              아직 기록된 경로가 없습니다.<br />지도를 클릭하여 경로를 만들어보세요!
+            </div>
+          ) : (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {favorites.map((fav) => (
+                <li
+                  key={fav.id}
+                  onClick={() => loadFavoriteRoute(fav)}
+                  style={{
+                    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+                    border: '1px solid #475569',
+                    borderRadius: '6px',
+                    padding: '10px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    transition: 'background-color 0.2s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.8)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(30, 41, 59, 0.6)'}
+                >
+                  <div style={{ flex: 1, marginRight: '8px', display: 'flex', flexDirection: 'column' }}>
+                    {editingId === fav.id ? (
+                      <input
+                        type="text"
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onBlur={() => saveTitle(fav.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveTitle(fav.id);
+                          if (e.key === 'Escape') setEditingId(null);
+                        }}
+                        autoFocus
+                        onClick={(e) => e.stopPropagation()} // 인풋 클릭 시 경로 로드 방지
+                        style={{
+                          width: '100%',
+                          backgroundColor: '#1e293b',
+                          border: '1px solid #4ade80',
+                          color: 'white',
+                          borderRadius: '4px',
+                          padding: '2px 6px',
+                          fontSize: '13px',
+                          outline: 'none'
+                        }}
+                      />
+                    ) : (
+                      <span
+                        onClick={(e) => startEditing(e, fav)}
+                        title="클릭하여 이름 수정"
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: 'bold',
+                          color: '#f8fafc',
+                          borderBottom: '1px dashed #64748b',
+                          paddingBottom: '1px',
+                          alignSelf: 'flex-start'
+                        }}
+                      >
+                        {fav.title}
+                      </span>
+                    )}
+                    <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                      📍 웨이포인트: {fav.routePath.length}개 포인트
+                    </span>
+                  </div>
+
+                  {/* 삭제 버튼 */}
+                  <button
+                    onClick={(e) => deleteFavorite(e, fav.id)}
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      padding: '4px',
+                    }}
+                    title="삭제"
+                  >
+                    🗑️
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* --- [추가] 경로 탐색 최종 확인 레이어 팝업 --- */}
+      {showRouteConfirm && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)', // 뒷배경을 어둡게 가림
+          backdropFilter: 'blur(4px)',           // 지도 화면 살짝 블러 처리
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 60,                             // 모든 HUD 및 즐겨찾기보다 위에 위치
+        }}>
+          <div style={{
+            backgroundColor: 'rgba(15, 23, 42, 0.98)',
+            border: '2px solid #ef4444',          // 좀비 게임에 어울리는 경고 레드 테두리
+            borderRadius: '12px',
+            padding: '24px',
+            width: '300px',
+            textAlign: 'center',
+            boxShadow: '0 0 25px rgba(239, 68, 68, 0.4)', // 네온 레드 글로우 효과
+            color: 'white',
+            animation: 'fadeIn 0.2s ease-out'
+          }}>
+            {/* 팝업 헤더 */}
+            <h3 style={{
+              margin: '0 0 14px 0',
+              color: '#ff3366',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}>
+              🚨 작전 경로 탐색
+            </h3>
+
+            {/* 팝업 본문 */}
+            <p style={{ fontSize: '14px', color: '#cbd5e1', margin: '0 0 24px 0', lineHeight: '1.6' }}>
+              선택하신 지점으로 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>도보 탈출 경로</span>를<br />
+              분석하시겠습니까?
+              <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+                (확인 시 좀비 추격 시뮬레이션이 재시작됩니다)
+              </span>
+            </p>
+
+            {/* 팝업 버튼 영역 */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              {/* 수락 버튼 */}
+              <button
+                onClick={() => {
+                  if (pendingCoords) {
+                    // 원래 구현되어 있던 Tmap 길찾기 핵심 함수를 호출합니다.
+                    // (만약 기존 함수명이 다르면 startPathFinding 대신 해당 함수명을 적어주세요)
+                    startPathFinding(pendingCoords);
+                  }
+                  setShowRouteConfirm(false);
+                  setPendingCoords(null);
+                }}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#4ade80', // 안정적인 연두색 서바이벌 컬러
+                  color: '#0f172a',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(74, 222, 128, 0.2)',
+                  transition: 'transform 0.1s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                확인 (RUN)
+              </button>
+
+              {/* 거절 버튼 */}
+              <button
+                onClick={() => {
+                  setShowRouteConfirm(false);
+                  setPendingCoords(null); // 예약된 좌표 취소
+                }}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#334155',
+                  color: '#94a3b8',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 상단 컨트롤 UI (HUD 디자인 적용) */}
       <div className="hud-container">
         <div className="hud-header">
@@ -776,12 +1202,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             </div>
           )}
         </div>
-        
+
         <div className="hud-control-row">
           <label className="hud-label">좀비 속도 ({selectedZombieSpeed}/50)</label>
           <input type="range" min="1" max="50" value={selectedZombieSpeed} onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} style={{ flexGrow: 1, accentColor: '#f43f5e' }} />
         </div>
-        
+
         <div className="hud-control-row">
           <label className="hud-label">좀비 발생 시간</label>
           <select className="hud-select" value={selectedSpawnDelay} onChange={(e) => setSelectedSpawnDelay(Number(e.target.value))}>
@@ -820,20 +1246,20 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             </div>
             <div className="hud-main-display">
               <div className="hud-distance-text" style={{ fontSize: '1.1rem' }}>
-                게임을 종료하고<br/>메인 화면으로 나갈까요?
+                게임을 종료하고<br />메인 화면으로 나갈까요?
               </div>
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-              <button 
+              <button
                 onClick={handleExitAndSave}
-                className="hud-reset-btn" 
+                className="hud-reset-btn"
                 style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
               >
                 YES
               </button>
-              <button 
+              <button
                 onClick={() => setShowExitConfirm(false)}
-                className="hud-reset-btn" 
+                className="hud-reset-btn"
                 style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
               >
                 NO
@@ -864,27 +1290,27 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             </div>
             <div className="hud-main-display">
               <div className="hud-distance-text" style={{ fontSize: '1.1rem' }}>
-                경로가 이미 존재합니다.<br/>다시 설정 하시겠습니까?
+                해당 경로로<br />설정 하시겠습니까?
               </div>
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-              <button 
+              <button
                 onClick={() => {
                   setShowReconfirmPath(false);
                   if (pendingDest) startPathFinding(pendingDest);
                   setPendingDest(null);
                 }}
-                className="hud-reset-btn" 
+                className="hud-reset-btn"
                 style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
               >
                 YES
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setShowReconfirmPath(false);
                   setPendingDest(null);
                 }}
-                className="hud-reset-btn" 
+                className="hud-reset-btn"
                 style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
               >
                 NO
