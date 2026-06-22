@@ -353,7 +353,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     initAudio();
     if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume(); // 오디오 컨텍스트 재개
 
-    const dest = { lat: latLng.getLat(), lng: latLng.getLng() };
+    // [수정] 카카오 객체(.getLat())와 일반 {lat, lng} 객체를 모두 지원하도록 방어 코드를 작성합니다.
+    const targetLat = typeof latLng.getLat === 'function' ? latLng.getLat() : latLng.lat;
+    const targetLng = typeof latLng.getLng === 'function' ? latLng.getLng() : latLng.lng;
+    const dest = { lat: targetLat, lng: targetLng };
     let chasePath = [];
 
     console.log("경로 탐색 시작 (TMAP Key 확인):", TMAP_API_KEY ? TMAP_API_KEY.substring(0, 5) + "..." : "Key 없음");
@@ -719,10 +722,18 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         onClick={(_t, mouseEvent) => {
           if (isGameOver) return; // 게임 오버 상태일 때는 클릭 무시
 
-          // [수정] 자바스크립트 객체로 변환하지 않고, 카카오 고유의 latLng 객체 원본을 그대로 전달합니다.
-          setPendingDest(mouseEvent.latLng);
+          // [조건 체크] 이미 선택된 경로(routePath)가 존재하는지 확인
+          if (routePath && routePath.length > 0) {
+            // [수정] 자바스크립트 객체로 변환하지 않고, 카카오 고유의 latLng 객체 원본을 그대로 전달합니다.
+            setPendingDest(mouseEvent.latLng);
 
-          setShowReconfirmPath(true); // 경로 재확인 레이어 팝업 켜기
+            setShowReconfirmPath(true); // 경로 재확인 레이어 팝업 켜기
+          } else {
+            // 2. 처음 경로를 탐색하는 상태라면 ➔ 팝업 없이 바로 경로 찾기 실행
+            // 기존에 쓰시던 함수명이 onMapClick 이라면 아래 그대로 두시면 되고,
+            // 별도로 handleMapClick 함수를 만드셨다면 handleMapClick(mouseEvent.latLng) 으로 바꿔주세요!
+            handleMapClick(_t, mouseEvent);
+          }
         }} // 카카오맵의 latLng 객체를 직접 전달
       >
         {userPosition && (
@@ -1186,7 +1197,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                     );
                   })()
                 ) : ( // 경로가 설정되지 않았으면 안내 문구
-                  <span>지도를 클릭하세요</span>
+                  <span>경로를 지정하세요</span>
                 )
               ) : ( // SURVIVAL 모드일 때
                 routePath.length > 0 ? ( // 경로가 설정되었으면 좀비와의 거리 표시
@@ -1194,7 +1205,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                     좀비와의 거리: {distance !== null ? `${distance}m` : countdown}
                   </span>
                 ) : (
-                  <span>지도를 클릭하세요</span>
+                  <span>경로를 지정하세요</span>
                 )
               )}
             </div>
@@ -1288,7 +1299,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             </div>
             <div className="hud-main-display">
               <div className="hud-distance-text" style={{ fontSize: '1.1rem' }}>
-                해당 경로로<br />설정 하시겠습니까?
+                해당 경로로<br />변경 하시겠습니까?
               </div>
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>

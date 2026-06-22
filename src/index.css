@@ -28,8 +28,11 @@
 }
 
 @media (max-width: 1024px) {
-  :root { font-size: 16px; }
+  :root {
+    font-size: 16px;
+  }
 }
+
 @media (prefers-color-scheme: dark) {
   :root {
     --text: #9ca3af;
@@ -56,7 +59,8 @@ body {
 
 #root {
   width: 100%;
-  height: 100dvh; /* 모바일 주소창을 고려한 동적 높이 */
+  height: 100dvh;
+  /* 모바일 주소창을 고려한 동적 높이 */
   margin: 0;
   padding: 0;
   text-align: left;
@@ -76,20 +80,24 @@ h1 {
   font-size: 56px;
   letter-spacing: -1.68px;
   margin: 32px 0;
+
   @media (max-width: 1024px) {
     font-size: 36px;
     margin: 20px 0;
   }
 }
+
 h2 {
   font-size: 24px;
   line-height: 118%;
   letter-spacing: -0.24px;
   margin: 0 0 8px;
+
   @media (max-width: 1024px) {
     font-size: 20px;
   }
 }
+
 p {
   margin: 0;
 }
@@ -114,7 +122,8 @@ code {
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* 제목을 상단으로 */
+  justify-content: flex-start;
+  /* 제목을 상단으로 */
   align-items: center;
   color: #fff;
   position: relative;
@@ -136,10 +145,10 @@ code {
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  text-shadow: 
-    0 0 5px #f00, 
-    0 0 10px #f00, 
-    0 0 20px #f00, 
+  text-shadow:
+    0 0 5px #f00,
+    0 0 10px #f00,
+    0 0 20px #f00,
     0 0 40px #f00;
   animation: flicker 1.5s infinite alternate;
 }
@@ -148,28 +157,40 @@ code {
   display: flex;
   width: 90%;
   max-width: 1000px;
-  flex-direction: column; /* 모바일 최적화를 위해 세로로 쌓기 */
-  align-items: flex-end; /* 버튼들을 우측으로 정렬 */
-  gap: 20px; /* 간격 축소 */
-  padding-top: 40px; /* 고정 여백으로 변경 */
+  flex-direction: column;
+  /* 모바일 최적화를 위해 세로로 쌓기 */
+  align-items: flex-end;
+  /* 버튼들을 우측으로 정렬 */
+  gap: 20px;
+  /* 간격 축소 */
+  padding-top: 40px;
+  /* 고정 여백으로 변경 */
   padding-bottom: 40px;
-  flex-grow: 1; /* content가 남은 공간을 채우도록 */
-  justify-content: flex-end; /* 요소들을 하단에 배치 */
+  flex-grow: 1;
+  /* content가 남은 공간을 채우도록 */
+  justify-content: flex-end;
+  /* 요소들을 하단에 배치 */
 }
 
 .intro-menu {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  align-items: flex-end; /* 메뉴 버튼들을 우측으로 정렬 */
-  position: absolute; /* 절대 위치 사용 */
-  bottom: 15%; /* 화면 하단에서 25% 위치에 고정 */
-  right: 5%; /* intro-content의 padding을 고려하여 조정 */
+  align-items: flex-end;
+  /* 메뉴 버튼들을 우측으로 정렬 */
+  position: absolute;
+  /* 절대 위치 사용 */
+  bottom: 15%;
+  /* 화면 하단에서 25% 위치에 고정 */
+  right: 5%;
+  /* intro-content의 padding을 고려하여 조정 */
 }
 
 .menu-btn {
-  background: transparent; /* 배경을 투명하게 */
-  border: none; /* 테두리 없음 명시 */
+  background: transparent;
+  /* 배경을 투명하게 */
+  border: none;
+  /* 테두리 없음 명시 */
   color: #fff;
   padding: 12px 40px;
   font-size: 22px;
@@ -177,7 +198,8 @@ code {
   font-weight: 700;
   transition: all 0.2s;
   width: 200px;
-  text-align: right; /* 텍스트를 오른쪽으로 정렬 */
+  text-align: right;
+  /* 텍스트를 오른쪽으로 정렬 */
 }
 
 .menu-btn:hover {
@@ -203,11 +225,21 @@ code {
 }
 
 @keyframes flicker {
-  0%, 18%, 22%, 25%, 53%, 57%, 100% {
+
+  0%,
+  18%,
+  22%,
+  25%,
+  53%,
+  57%,
+  100% {
     text-shadow:
       0 0 4px #f00, 0 0 11px #f00, 0 0 19px #f00, 0 0 40px #f00, 0 0 80px #f00;
   }
-  20%, 24%, 55% {
+
+  20%,
+  24%,
+  55% {
     text-shadow: none;
     color: #ddd;
   }
@@ -217,11 +249,14 @@ code {
 .intro-warning-message {
   width: 100%;
   text-align: center;
-  color: #aaa; /* 색상 조정 */
-  align-self: center; /* 우측 정렬된 컨테이너 안에서 스스로 중앙 정렬 */
+  color: #aaa;
+  /* 색상 조정 */
+  align-self: center;
+  /* 우측 정렬된 컨테이너 안에서 스스로 중앙 정렬 */
   font-size: 14px;
   padding: 0 20px;
-  max-width: 600px; /* 가독성을 위해 최대 너비 설정 */
+  max-width: 600px;
+  /* 가독성을 위해 최대 너비 설정 */
   margin-bottom: 0px;
 }
 
@@ -261,6 +296,7 @@ code {
   0% {
     transform: translateY(-100%);
   }
+
   100% {
     transform: translateY(0);
   }
@@ -275,7 +311,8 @@ code {
   align-items: center;
   color: #fff;
   position: relative;
-  overflow-y: auto; /* 내용이 길어지면 스크롤 가능 */
+  overflow-y: auto;
+  /* 내용이 길어지면 스크롤 가능 */
   padding: 20px;
   box-sizing: border-box;
 }
@@ -299,13 +336,16 @@ code {
 }
 
 .manual-section h2 {
-  color: #c084fc; /* 강조 색상 */
+  color: #c084fc;
+  /* 강조 색상 */
   margin-bottom: 10px;
 }
 
 .manual-screen .back-button {
-  margin: 20px auto; /* 가운데 정렬 및 상단 여백 */
-  display: block; /* margin: auto가 작동하도록 블록 요소로 설정 */
+  margin: 20px auto;
+  /* 가운데 정렬 및 상단 여백 */
+  display: block;
+  /* margin: auto가 작동하도록 블록 요소로 설정 */
 }
 
 /* --- Manual Page Custom Design --- */
@@ -327,7 +367,7 @@ code {
 .grid-overlay {
   position: absolute;
   inset: 0;
-  background-image: 
+  background-image:
     linear-gradient(to right, #1e293b 1px, transparent 1px),
     linear-gradient(to bottom, #1e293b 1px, transparent 1px);
   background-size: 4rem 4rem;
@@ -438,9 +478,23 @@ code {
   color: #f1f5f9;
 }
 
-.tab-btn.active-run { background: #e11d48; color: white; box-shadow: 0 0 12px rgba(225, 29, 72, 0.35); }
-.tab-btn.active-survival { background: #d97706; color: white; box-shadow: 0 0 12px rgba(217, 119, 6, 0.35); }
-.tab-btn.active-gear { background: #1e293b; color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); }
+.tab-btn.active-run {
+  background: #e11d48;
+  color: white;
+  box-shadow: 0 0 12px rgba(225, 29, 72, 0.35);
+}
+
+.tab-btn.active-survival {
+  background: #d97706;
+  color: white;
+  box-shadow: 0 0 12px rgba(217, 119, 6, 0.35);
+}
+
+.tab-btn.active-gear {
+  background: #1e293b;
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
 
 .manual-content-box {
   width: 100%;
@@ -531,18 +585,49 @@ code {
   border: 1px solid rgba(127, 29, 29, 0.3);
 }
 
-.advice-icon { font-size: 1.5rem; }
-.advice-box p { font-size: 0.8rem; color: #cbd5e1; margin: 0; }
+.advice-icon {
+  font-size: 1.5rem;
+}
 
-.text-rose { color: #f43f5e; }
-.text-amber { color: #f59e0b; }
-.text-cyan { color: #22d3ee; }
-.border-rose { border-color: rgba(244, 63, 94, 0.3); }
-.border-amber { border-color: rgba(245, 158, 11, 0.3); }
-.border-cyan { border-color: rgba(34, 211, 238, 0.3); }
+.advice-box p {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  margin: 0;
+}
 
-.highlight-red { color: #ef4444; font-weight: bold; }
-.highlight-green { color: #10b981; font-weight: bold; }
+.text-rose {
+  color: #f43f5e;
+}
+
+.text-amber {
+  color: #f59e0b;
+}
+
+.text-cyan {
+  color: #22d3ee;
+}
+
+.border-rose {
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.border-amber {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.border-cyan {
+  border-color: rgba(34, 211, 238, 0.3);
+}
+
+.highlight-red {
+  color: #ef4444;
+  font-weight: bold;
+}
+
+.highlight-green {
+  color: #10b981;
+  font-weight: bold;
+}
 
 .simulator-section {
   margin-top: 0.5rem;
@@ -612,7 +697,10 @@ code {
   margin-bottom: 0.5rem;
 }
 
-.current-dist { color: #ef4444; font-weight: bold; }
+.current-dist {
+  color: #ef4444;
+  font-weight: bold;
+}
 
 .back-btn-main {
   width: 100%;
@@ -632,7 +720,10 @@ code {
   margin: 0.5rem auto 0;
 }
 
-.back-btn-main:hover { transform: scale(1.02); background: #f43f5e; }
+.back-btn-main:hover {
+  transform: scale(1.02);
+  background: #f43f5e;
+}
 
 
 /* --- ZombieMapApp HUD Design --- */
@@ -740,7 +831,18 @@ code {
   background: #f43f5e;
   color: #020617;
 }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* --- History Page --- */
 .history-page-container {
@@ -771,7 +873,8 @@ code {
   font-size: 0.9rem;
 }
 
-.history-table th, .history-table td {
+.history-table th,
+.history-table td {
   padding: 0.75rem;
   text-align: center;
   border-bottom: 1px solid #1e293b;
@@ -792,13 +895,20 @@ code {
   color: white;
 }
 
-.mode-badge.run { background-color: #e11d48; }
-.mode-badge.survival { background-color: #d97706; }
+.mode-badge.run {
+  background-color: #e11d48;
+}
+
+.mode-badge.survival {
+  background-color: #d97706;
+}
 
 .history-content-animated {
-  opacity: 0; /* 애니메이션 시작 전에는 보이지 않도록 설정 */
+  opacity: 0;
+  /* 애니메이션 시작 전에는 보이지 않도록 설정 */
   animation: fadeIn 0.6s ease-out forwards;
-  animation-delay: 0.1s; /* 헤더가 나타난 후 콘텐츠가 나타나도록 지연 */
+  animation-delay: 0.1s;
+  /* 헤더가 나타난 후 콘텐츠가 나타나도록 지연 */
 }
 
 .history-row {
