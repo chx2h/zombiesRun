@@ -20,7 +20,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return Math.round(R * c);
 };
 
-const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTriggerExitConfirm }) => {
+const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTriggerExitConfirm, initialRoutePath }) => {
   // 상태 관리
   const [userPosition, setUserPosition] = useState(null);
   const [zombiePosition, setZombiePosition] = useState(null);
@@ -184,6 +184,44 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     audioCtxRef.current = ctx;
   }, []);
 
+  // 재사용 경로(initialRoutePath)가 주어지면 초기 경로로 설정
+  useEffect(() => {
+    if (initialRoutePath && initialRoutePath.length > 0) {
+      setRoutePath(initialRoutePath);
+      setMapCenter(initialRoutePath[0]);
+      
+      if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current);
+      setZombiePosition(null);
+      zombiePosRef.current = null;
+      setCountdown(selectedSpawnDelay);
+      
+      spawnTimerRef.current = setTimeout(() => {
+        const startPos = initialRoutePath[0];
+        pathIndexRef.current = 0;
+        setZombiePosition(startPos);
+        zombiePosRef.current = startPos;
+        setCountdown(0);
+        console.log("좀비 출현 (재사용 경로)!");
+      }, selectedSpawnDelay * 1000);
+    }
+  }, [initialRoutePath, selectedSpawnDelay]);
+
+  // 첫 사용자 상호작용 시 오디오 시작/재개 처리
+  useEffect(() => {
+    const resumeAudio = () => {
+      initAudio();
+      if (audioCtxRef.current?.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+    };
+    window.addEventListener('click', resumeAudio);
+    window.addEventListener('touchstart', resumeAudio);
+    return () => {
+      window.removeEventListener('click', resumeAudio);
+      window.removeEventListener('touchstart', resumeAudio);
+    };
+  }, [initAudio]);
+
   /**
    * 지도 클릭 시 Tmap 경로 생성 및 좀비 출현 예약
    * 실제 경로 탐색을 수행하는 함수
@@ -285,6 +323,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
    */
   const handleResetZombie = useCallback(() => {
     if (routePath.length === 0) return;
+    initAudio();
+    if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
     
     // 스폰 타이머가 진행 중이라면 취소하고 즉시 생성 모드로 전환
     if (spawnTimerRef.current) {
@@ -452,6 +492,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         distance: totalDistance,
         zombieSpeed: selectedZombieSpeed,
         result: result,
+        routePath: routePath,
       });
     }
   }, [isGameOver, gameResult, gameMode, routePath, onSaveRecord, selectedZombieSpeed]);
@@ -470,6 +511,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         distance: totalDistance,
         zombieSpeed: selectedZombieSpeed,
         result: '-', // 중간 종료는 '-'로 표시
+        routePath: routePath,
       });
     }
     // 기록 저장 후 인트로 화면으로 이동

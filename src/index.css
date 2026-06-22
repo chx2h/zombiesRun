@@ -794,3 +794,11 @@ code {
   animation: fadeIn 0.6s ease-out forwards;
   animation-delay: 0.1s; /* 헤더가 나타난 후 콘텐츠가 나타나도록 지연 */
 }
+
+.history-row {
+  transition: background-color 0.2s;
+}
+
+.history-row:hover {
+  background-color: rgba(30, 41, 59, 0.6);
+}

@@ -6,6 +6,7 @@ import HistoryPage from './HistoryPage'; // HistoryPage 컴포넌트 임포트
 
 function App() {
   const [view, setView] = useState('intro');
+  const [reusedRoutePath, setReusedRoutePath] = useState(null);
   const [gameMode, setGameMode] = useState('survival'); // 'survival' 또는 'run'
   const wakeLockSentinelRef = useRef(null); // WakeLockSentinel 객체를 저장할 Ref
   const viewRef = useRef('intro');
@@ -103,9 +104,13 @@ function App() {
     return (
       <div className="App">
         <ZombieMapApp 
-          key={gameMode} 
+          key={gameMode + (reusedRoutePath ? '-reused' : '')} 
           gameMode={gameMode} 
-          onExit={() => navigate('intro')}
+          initialRoutePath={reusedRoutePath}
+          onExit={() => {
+            setReusedRoutePath(null);
+            navigate('intro');
+          }}
           onSaveRecord={(record) => {
             const savedRecords = JSON.parse(localStorage.getItem('gameRecords') || '[]');
             savedRecords.push(record);
@@ -130,7 +135,14 @@ function App() {
 
   if (view === 'history') {
     return (
-      <HistoryPage onBackToIntro={() => navigate('intro')} />
+      <HistoryPage 
+        onBackToIntro={() => navigate('intro')} 
+        onReplayRecord={(record) => {
+          setReusedRoutePath(record.routePath);
+          setGameMode(record.mode);
+          navigate('playing');
+        }}
+      />
     );
   }
 
@@ -140,10 +152,12 @@ function App() {
       <div className="intro-content">
         <div className="intro-menu">
           <button className="menu-btn start-button" onClick={() => {
+            setReusedRoutePath(null);
             setGameMode('run');
             navigate('playing');
           }}>RUN</button>
           <button className="menu-btn start-button" onClick={() => {
+            setReusedRoutePath(null);
             setGameMode('survival');
             navigate('playing');
           }}>SURVIVAL</button>

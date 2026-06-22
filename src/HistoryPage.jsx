@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const HistoryPage = ({ onBackToIntro }) => {
+const HistoryPage = ({ onBackToIntro, onReplayRecord }) => {
   const [records, setRecords] = useState([]);
 
   useEffect(() => {
@@ -49,11 +49,23 @@ const HistoryPage = ({ onBackToIntro }) => {
                 <th>거리</th>
                 <th>좀비 속도</th>
                 <th>결과</th>
+                <th>경로</th>
               </tr>
             </thead>
             <tbody>
               {records.map((record, index) => (
-                <tr key={index}>
+                <tr 
+                  key={index}
+                  onClick={() => {
+                    if (record.routePath && record.routePath.length > 0) {
+                      if (onReplayRecord) onReplayRecord(record);
+                    } else {
+                      alert("이 기록은 저장된 도보 경로 정보가 없습니다.");
+                    }
+                  }}
+                  className="history-row"
+                  style={{ cursor: record.routePath && record.routePath.length > 0 ? 'pointer' : 'default' }}
+                >
                   <td>
                     {new Date(record.date).toLocaleString('ko-KR', {
                       year: 'numeric',
@@ -72,6 +84,13 @@ const HistoryPage = ({ onBackToIntro }) => {
                   <td>{record.zombieSpeed}/50</td>
                   <td style={getResultStyle(record.result)}>
                     {record.result}
+                  </td>
+                  <td>
+                    {record.routePath && record.routePath.length > 0 ? (
+                      <span style={{ fontSize: '1rem' }} title="경로 재사용 가능">🔁</span>
+                    ) : (
+                      <span style={{ color: '#64748b' }}>-</span>
+                    )}
                   </td>
                 </tr>
               ))}
