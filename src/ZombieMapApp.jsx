@@ -824,8 +824,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord }) => {
         </div>
       )}
 
-      {/* 잡혔을 때 피 효과 */}
-      {isGameOver && <div className="blood-screen" />}
+      {/* 잡혔을 때 피 효과 / 탈출 성공 시 파란 화면 효과 */}
+      {isGameOver && (
+        <div className={gameResult === 'win' ? 'escape-screen' : 'blood-screen'} />
+      )}
     </div>
   );
 };
