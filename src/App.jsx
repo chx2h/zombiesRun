@@ -24,14 +24,15 @@ function App() {
     // 뒤로가기/앞으로가기 버튼 처리
     const handlePopState = (event) => {
       const newView = event.state?.view || 'intro';
-      
-      // 게임 진행 중일 때 뒤로 가기를 시도하는 경우 차단하고 경고창 표시
-      if (viewRef.current === 'playing' && newView !== 'playing' && isGameActiveRef.current) {
-        window.history.pushState({ view: 'playing' }, '', '#playing');
-        if (triggerExitConfirmRef.current) {
-          triggerExitConfirmRef.current();
-        }
-        return;
+
+      // ──────────────────────────────────────────────────────────────
+      // ✨ [추가] 인트로(메인) 화면에서 뒤로가기 시 sub-page 역주행 전면 차단
+      // ──────────────────────────────────────────────────────────────
+      if (viewRef.current === 'intro') {
+        // 현재 화면이 인트로인데 뒤로 가려고 하면, 
+        // 히스토리 스택에 다시 인트로를 밀어 넣어 화면 이동을 물리적으로 무력화합니다.
+        window.history.pushState({ view: 'intro' }, '', '#intro');
+        return; // 더 이상 아래 view 업데이트 로직이 실행되지 않도록 리턴
       }
 
       setView(newView);
@@ -103,9 +104,9 @@ function App() {
   if (view === 'playing') {
     return (
       <div className="App">
-        <ZombieMapApp 
-          key={gameMode + (reusedRoutePath ? '-reused' : '')} 
-          gameMode={gameMode} 
+        <ZombieMapApp
+          key={gameMode + (reusedRoutePath ? '-reused' : '')}
+          gameMode={gameMode}
           initialRoutePath={reusedRoutePath}
           onExit={() => {
             setReusedRoutePath(null);
@@ -135,8 +136,8 @@ function App() {
 
   if (view === 'history') {
     return (
-      <HistoryPage 
-        onBackToIntro={() => navigate('intro')} 
+      <HistoryPage
+        onBackToIntro={() => navigate('intro')}
         onReplayRecord={(record) => {
           setReusedRoutePath(record.routePath);
           setGameMode(record.mode);
