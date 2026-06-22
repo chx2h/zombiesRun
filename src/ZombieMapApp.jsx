@@ -35,6 +35,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const [showReconfirmPath, setShowReconfirmPath] = useState(false); // 경로 재설정 확인 팝업
   const [isFollowingZombie, setIsFollowingZombie] = useState(false); // 좀비 추적 모드 상태
   const [pendingDest, setPendingDest] = useState(null); // 대기 중인 목적지
+  const [dangerLevel, setDangerLevel] = useState(0); // 0: 안전, 1: 경고(25m), 2: 위험(10m)
 
   // 설정 상태
   const [selectedZombieSpeed, setSelectedZombieSpeed] = useState(() => {
@@ -70,6 +71,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const userPosRef = useRef(null);
   const zombiePosRef = useRef(null);
   const spawnTimerRef = useRef(null);
+  const distanceRef = useRef(null); // 심장박동 펄스 루프에서 최신 거리값을 참조하기 위한 ref
+  const vibrationTimerRef = useRef(null); // 진동 간격 제어용 타이머
 
   // "따라가기" 모드일 때 사용자 위치를 지도 중심에 동기화
   useEffect(() => {
@@ -389,6 +392,16 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     if (userPosRef.current) {
       const d = calculateDistance(userPosRef.current.lat, userPosRef.current.lng, newPos.lat, newPos.lng);
       setDistance(d);
+      distanceRef.current = d; // 펄스 루프에서 최신 거리 참조용
+
+      // 위험 레벨 갱신 (화면 번쩍임 효과 제어)
+      if (d <= 10) {
+        setDangerLevel(2); // 극도 위험
+      } else if (d <= 25) {
+        setDangerLevel(1); // 경고
+      } else {
+        setDangerLevel(0); // 안전
+      }
 
       // 오디오 볼륨 제어 (50m 이내)
       if (gainNodeRef.current && audioCtxRef.current) {
@@ -402,16 +415,17 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         if (ambientGainRef.current) ambientGainRef.current.gain.setTargetAtTime(ambientVol, audioCtxRef.current.currentTime, 0.1);
       }
       
-      // 심장 박동 소리 및 주기 조절
+      // 심장 박동 소리 + 거리 기반 진동 패턴 (ManualPage 시뮬레이터와 동일한 방식)
       if (heartbeatGainRef.current && audioCtxRef.current) {
         if (!pulseIntervalRef.current) { // 인터벌이 없을 때만 새로 시작
           const runPulse = () => {
-            const currentDist = distance; // 클로저 문제를 피하기 위해 지역 변수 사용
+            const currentDist = distanceRef.current; // ref로 최신 거리값 참조
             if (currentDist === null || currentDist >= 50) {
               pulseIntervalRef.current = setTimeout(runPulse, 1200); // 멀리 있을 땐 1.2초 간격
               return;
             }
 
+            // 심장 박동 사운드 생성
             const now = audioCtxRef.current.currentTime;
             const osc = audioCtxRef.current.createOscillator();
             osc.type = 'sine';
@@ -426,22 +440,21 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             oscGain.connect(heartbeatGainRef.current);
             osc.start(now);
             osc.stop(now + 0.35);
+
+            // 거리 기반 진동 패턴 (심장박동과 동기화)
+            if (navigator.vibrate) {
+              if (currentDist <= 10) {
+                navigator.vibrate([200, 100, 200]); // 극도 위험: 강한 더블 진동 패턴
+              } else if (currentDist <= 25) {
+                navigator.vibrate(100); // 경고: 인지 가능한 진동
+              }
+            }
             
+            // 거리가 가까울수록 펄스 간격이 짧아짐
             const factor = Math.max(0.1, currentDist / 50);
             pulseIntervalRef.current = setTimeout(runPulse, 1200 * factor);
           };
           runPulse();
-        }
-      }
-
-      // 진동 피드백 (25m 이내)
-      if (navigator.vibrate) {
-        if (d <= 10) {
-          // 10m 이내: 위험! 강한 진동
-          navigator.vibrate(200);
-        } else if (d <= 25) {
-          // 25m 이내: 경고. 짧은 진동
-          navigator.vibrate(50);
         }
       }
 
@@ -886,6 +899,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 20, fontSize: '120px', fontWeight: 'bold', color: 'rgba(255, 0, 0, 0.7)', pointerEvents: 'none' }}>
           {countdown}
         </div>
+      )}
+
+      {/* 위험 경고 빨간 화면 번쩍임 효과 (25m 이내) */}
+      {!isGameOver && dangerLevel > 0 && (
+        <div className={dangerLevel >= 2 ? 'danger-flash-critical' : 'danger-flash-warning'} />
       )}
 
       {/* 잡혔을 때 피 효과 / 탈출 성공 시 파란 화면 효과 */}

@@ -232,8 +232,11 @@ code {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: linear-gradient(to bottom, rgba(139, 0, 0, 0.9) 0%, rgba(139, 0, 0, 0.4) 100%);
-  z-index: 9999;
+  background-image: linear-gradient(to bottom, rgba(139, 0, 0, 0.75) 0%, rgba(139, 0, 0, 0.45) 100%), url('./assets/caught_failure.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 50;
   pointer-events: none;
   animation: bloodDrip 1.5s ease-in forwards;
 }
@@ -245,8 +248,11 @@ code {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: linear-gradient(to bottom, rgba(30, 58, 138, 0.9) 0%, rgba(59, 130, 246, 0.4) 100%);
-  z-index: 9999;
+  background-image: linear-gradient(to bottom, rgba(30, 58, 138, 0.75) 0%, rgba(59, 130, 246, 0.45) 100%), url('./assets/escape_success.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 50;
   pointer-events: none;
   animation: bloodDrip 1.5s ease-in forwards;
 }
