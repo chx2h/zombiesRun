@@ -718,14 +718,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         onClick={(_t, mouseEvent) => {
           if (isGameOver) return; // 게임 오버 상태일 때는 클릭 무시
 
-          // 클릭한 위치의 카카오 좌표 객체에서 위도/경도 숫자 추출
-          const coords = {
-            lat: mouseEvent.latLng.getLat(),
-            lng: mouseEvent.latLng.getLng()
-          };
+          // [수정] 자바스크립트 객체로 변환하지 않고, 카카오 고유의 latLng 객체 원본을 그대로 전달합니다.
+          setPendingDest(mouseEvent.latLng);
 
-          setPendingDest(coords);     // 1. 목적지 좌표를 pendingDest에 임시 저장
-          setShowReconfirmPath(true); // 2. 화면 중앙의 경로 재확인 레이어 팝업 켜기
+          setShowReconfirmPath(true); // 경로 재확인 레이어 팝업 켜기
         }} // 카카오맵의 latLng 객체를 직접 전달
       >
         {userPosition && (
