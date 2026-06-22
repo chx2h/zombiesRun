@@ -20,7 +20,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return Math.round(R * c);
 };
 
-const ZombieMapApp = ({ gameMode, onExit, onSaveRecord }) => {
+const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTriggerExitConfirm }) => {
   // 상태 관리
   const [userPosition, setUserPosition] = useState(null);
   const [zombiePosition, setZombiePosition] = useState(null);
@@ -116,6 +116,28 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord }) => {
       if (audioCtxRef.current) audioCtxRef.current.close().catch(e => console.error("AudioContext close error:", e));
     };
   }, []);
+
+  // 게임이 활성 상태인지 부모 컴포넌트에 알림
+  const isGameActive = routePath.length > 0 && !isGameOver;
+  useEffect(() => {
+    if (setIsGameActive) {
+      setIsGameActive(isGameActive);
+    }
+  }, [isGameActive, setIsGameActive]);
+
+  // 뒤로가기 시 팝업을 띄우는 함수를 부모 컴포넌트에 노출
+  useEffect(() => {
+    if (setTriggerExitConfirm) {
+      setTriggerExitConfirm(() => {
+        setShowExitConfirm(true);
+      });
+    }
+    return () => {
+      if (setTriggerExitConfirm) {
+        setTriggerExitConfirm(null);
+      }
+    };
+  }, [setTriggerExitConfirm]);
 
   // 오디오 시스템 초기화
   const initAudio = useCallback(async () => {

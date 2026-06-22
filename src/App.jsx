@@ -8,10 +8,14 @@ function App() {
   const [view, setView] = useState('intro');
   const [gameMode, setGameMode] = useState('survival'); // 'survival' 또는 'run'
   const wakeLockSentinelRef = useRef(null); // WakeLockSentinel 객체를 저장할 Ref
+  const viewRef = useRef('intro');
+  const isGameActiveRef = useRef(false);
+  const triggerExitConfirmRef = useRef(null);
 
   // 화면 전환 및 브라우저 히스토리 관리
   const navigate = (newView) => {
     setView(newView);
+    viewRef.current = newView;
     window.history.pushState({ view: newView }, '', `#${newView}`);
   };
 
@@ -19,7 +23,18 @@ function App() {
     // 뒤로가기/앞으로가기 버튼 처리
     const handlePopState = (event) => {
       const newView = event.state?.view || 'intro';
+      
+      // 게임 진행 중일 때 뒤로 가기를 시도하는 경우 차단하고 경고창 표시
+      if (viewRef.current === 'playing' && newView !== 'playing' && isGameActiveRef.current) {
+        window.history.pushState({ view: 'playing' }, '', '#playing');
+        if (triggerExitConfirmRef.current) {
+          triggerExitConfirmRef.current();
+        }
+        return;
+      }
+
       setView(newView);
+      viewRef.current = newView;
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -27,6 +42,7 @@ function App() {
     // 페이지 첫 로드 시 현재 해시값에 맞는 뷰를 보여주고, 없다면 #intro를 기본으로 설정
     const initialView = window.location.hash.substring(1) || 'intro';
     setView(initialView);
+    viewRef.current = initialView;
     window.history.replaceState({ view: initialView }, '', `#${initialView}`);
 
     return () => window.removeEventListener('popstate', handlePopState);
@@ -94,6 +110,12 @@ function App() {
             const savedRecords = JSON.parse(localStorage.getItem('gameRecords') || '[]');
             savedRecords.push(record);
             localStorage.setItem('gameRecords', JSON.stringify(savedRecords));
+          }}
+          setIsGameActive={(active) => {
+            isGameActiveRef.current = active;
+          }}
+          setTriggerExitConfirm={(trigger) => {
+            triggerExitConfirmRef.current = trigger;
           }}
         />
       </div>
