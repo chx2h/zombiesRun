@@ -268,6 +268,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const ctx = new AudioContext();
     const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(0, ctx.currentTime); // 초기 볼륨 0
     gainNode.connect(ctx.destination);
     gainNodeRef.current = gainNode;
 
@@ -287,6 +288,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
     // 2. 음산한 배경 노이즈 생성
     const ambGain = ctx.createGain();
+    ambGain.gain.setValueAtTime(0, ctx.currentTime); // 초기 볼륨 0
     const ambOsc = ctx.createOscillator();
     ambOsc.type = 'sawtooth';
     ambOsc.frequency.setValueAtTime(45, ctx.currentTime);
@@ -301,6 +303,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
     // 3. 심장박동 효과 설정
     const beatGain = ctx.createGain();
+    beatGain.gain.setValueAtTime(0, ctx.currentTime); // 초기 볼륨 0
     beatGain.connect(ctx.destination);
     heartbeatGainRef.current = beatGain;
 
@@ -479,6 +482,13 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     // 좀비가 아직 생성되지 않았으면 루프만 유지
     const prevPos = zombiePosRef.current;
     if (!prevPos) { // 좀비 생성 전 대기 루프
+      // 좀비가 아직 소환되지 않았으므로 비명 소리 및 배경 노이즈 볼륨을 0으로 강제 설정
+      if (gainNodeRef.current && audioCtxRef.current) {
+        gainNodeRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.1);
+      }
+      if (ambientGainRef.current && audioCtxRef.current) {
+        ambientGainRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.1);
+      }
       requestRef.current = requestAnimationFrame(animate);
       return;
     }
