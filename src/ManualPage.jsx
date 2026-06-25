@@ -77,7 +77,8 @@ export default function ManualPage({ onBackToIntro }) {
         const now = ctx.currentTime;
         const currentDist = demoDistanceRef.current;
         
-        // 심장 소리 합성
+        // 심장 소리 합성 (비활성화)
+        /*
         const osc = ctx.createOscillator();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(60, now);
@@ -94,6 +95,7 @@ export default function ManualPage({ onBackToIntro }) {
         oscGain.connect(beatGain);
         osc.start();
         osc.stop(now + 0.35);
+        */
 
         // 안드로이드 기기이고 진동 패턴 조건일 때 진동 발생
         if (navigator.vibrate) {

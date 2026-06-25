@@ -548,7 +548,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
               return;
             }
 
-            // 심장 박동 사운드 생성
+            // 심장 박동 사운드 생성 (비활성화)
+            /*
             const now = audioCtxRef.current.currentTime;
             const osc = audioCtxRef.current.createOscillator();
             osc.type = 'sine';
@@ -563,6 +564,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             oscGain.connect(heartbeatGainRef.current);
             osc.start(now);
             osc.stop(now + 0.35);
+            */
 
             // 거리 기반 진동 패턴 (심장박동과 동기화)
             if (navigator.vibrate) {
