@@ -37,6 +37,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const [pendingDest, setPendingDest] = useState(null); // 대기 중인 목적지
   const [dangerLevel, setDangerLevel] = useState(0); // 0: 안전, 1: 경고(25m), 2: 위험(10m)
 
+  // --- 경로 기록 전용 상태 ---
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedPath, setRecordedPath] = useState([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [customRouteTitle, setCustomRouteTitle] = useState('');
+
   // 설정 상태
   const [selectedZombieSpeed, setSelectedZombieSpeed] = useState(() => {
     const saved = localStorage.getItem(`${gameMode}_zombieSpeed`);
@@ -200,6 +206,25 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       setMapCenter(userPosition);
     }
   }, [userPosition, isFollowingUser]);
+
+  // 실시간 사용자 경로 기록 로직 (gameMode가 record이고 기록 중일 때 작동)
+  useEffect(() => {
+    if (gameMode === 'record' && isRecording && userPosition) {
+      setRecordedPath(prev => {
+        if (prev.length === 0) {
+          return [userPosition];
+        }
+        const lastPos = prev[prev.length - 1];
+        const dist = calculateDistance(lastPos.lat, lastPos.lng, userPosition.lat, userPosition.lng);
+        // GPS 신호 튐으로 인한 미세 진동 차단 (최소 3미터 이상 이동 시 기록)
+        if (dist >= 3) {
+          console.log(`경로 추가: ${dist}m 이동`, userPosition);
+          return [...prev, userPosition];
+        }
+        return prev;
+      });
+    }
+  }, [userPosition, isRecording, gameMode]);
 
   // "좀비 따라가기" 모드일 때 좀비 위치를 지도 중심에 동기화
   useEffect(() => {
@@ -732,7 +757,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           setMapCenter({ lat: center.getLat(), lng: center.getLng() });
         }}
         onClick={(_t, mouseEvent) => {
-          if (isGameOver) return; // 게임 오버 상태일 때는 클릭 무시
+          if (isGameOver || gameMode === 'record') return; // 게임 오버 상태이거나 경로 기록 모드일 때는 클릭 무시
 
           // [조건 체크] 이미 선택된 경로(routePath)가 존재하는지 확인
           if (routePath && routePath.length > 0) {
@@ -759,8 +784,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           </CustomOverlayMap>
         )}
         <Polyline
-          // 좀비 추격 경로
-          path={routePath}
+          // 좀비 추격 경로 또는 도보 기록 경로
+          path={gameMode === 'record' ? recordedPath : routePath}
           strokeWeight={5}
           strokeColor={"#FF0000"}
           strokeOpacity={0.8}
@@ -1181,70 +1206,146 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       )}
 
       {/* 상단 컨트롤 UI (HUD 디자인 적용) */}
-      <div className="hud-container">
-        <div className="hud-header">
-          <div className="hud-mode-tag">MODE: {gameMode.toUpperCase()}</div>
-          <div className="hud-status-dot"></div>
-        </div>
+      {gameMode === 'record' ? (
+        <div className="hud-container">
+          <div className="hud-header">
+            <div className="hud-mode-tag">MODE: RECORD</div>
+            <div className="hud-status-dot" style={{ backgroundColor: isRecording ? '#ef4444' : '#64748b', animation: isRecording ? 'ping 1.5s infinite' : 'none' }}></div>
+          </div>
 
-        <div className="hud-main-display">
-          {isGameOver ? (
-            <span style={{ color: gameResult === 'win' ? '#44ff44' : '#ef4444', fontWeight: '900', fontSize: '1rem' }}>
-              {gameResult === 'win' ? '탈출 성공!' : (gameMode === 'run' ? '좀비가 먼저 도착함!' : '잡혔습니다!')}
-            </span>
-          ) : (
+          <div className="hud-main-display">
             <div className="hud-distance-text">
-              {gameMode === 'run' ? ( // RUN 모드일 때
-                routePath.length > 0 ? ( // 경로가 설정되었으면 목적지까지의 거리 표시
-                  (() => {
-                    const destination = routePath[routePath.length - 1];
-                    const distUserToDest = userPosition ? calculateDistance(userPosition.lat, userPosition.lng, destination.lat, destination.lng) : '...';
-                    const zPos = zombiePosition || routePath[0];
-                    const distZombieToDest = calculateDistance(zPos.lat, zPos.lng, destination.lat, destination.lng);
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <div>나의 목적지까지: {distUserToDest}m</div>
-                        <div>좀비의 목적지까지: {distZombieToDest}m</div>
-                      </div>
-                    );
-                  })()
-                ) : ( // 경로가 설정되지 않았으면 안내 문구
-                  <span>경로를 지정하세요</span>
-                )
-              ) : ( // SURVIVAL 모드일 때
-                routePath.length > 0 ? ( // 경로가 설정되었으면 좀비와의 거리 표시
-                  <span>
-                    좀비와의 거리: {distance !== null ? `${distance}m` : countdown}
-                  </span>
-                ) : (
-                  <span>경로를 지정하세요</span>
-                )
-              )}
+              {isRecording ? '🚶 실시간 경로 기록 중...' : (recordedPath.length > 0 ? '⏸ 기록 일시정지됨' : '⏱ 기록 시작 대기 중')}
+              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '2px', fontWeight: 'normal' }}>
+                <span>포인트 수집: {recordedPath.length}개</span>
+                <span>총 거리: {(() => {
+                  let total = 0;
+                  for (let i = 0; i < recordedPath.length - 1; i++) {
+                    total += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i+1].lat, recordedPath[i+1].lng);
+                  }
+                  return total;
+                })()}m</span>
+              </div>
             </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+            <button
+              onClick={() => setIsRecording(!isRecording)}
+              className="hud-reset-btn"
+              style={{
+                backgroundColor: isRecording ? 'rgba(239, 68, 68, 0.15)' : 'rgba(74, 222, 128, 0.15)',
+                color: isRecording ? '#ef4444' : '#4ade80',
+                borderColor: isRecording ? 'rgba(239, 68, 68, 0.4)' : 'rgba(74, 222, 128, 0.4)',
+                margin: 0
+              }}
+            >
+              {isRecording ? '기록 일시정지' : (recordedPath.length > 0 ? '기록 다시 시작' : '기록 시작')}
+            </button>
+            
+            {recordedPath.length > 0 && (
+              <button
+                onClick={() => {
+                  setIsRecording(false);
+                  setCustomRouteTitle(`기록 경로 (${new Date().getMonth() + 1}/${new Date().getDate()} ${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')})`);
+                  setShowSaveModal(true);
+                }}
+                className="hud-reset-btn"
+                style={{
+                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                  color: '#60a5fa',
+                  borderColor: 'rgba(59, 130, 246, 0.4)',
+                  margin: 0
+                }}
+              >
+                기록 완료 & 저장
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                if (window.confirm("기록을 취소하고 나가시겠습니까?")) {
+                  onExit();
+                }
+              }}
+              className="hud-reset-btn"
+              style={{
+                backgroundColor: 'rgba(100, 116, 139, 0.15)',
+                color: '#94a3b8',
+                borderColor: 'rgba(100, 116, 139, 0.4)',
+                margin: 0
+              }}
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="hud-container">
+          <div className="hud-header">
+            <div className="hud-mode-tag">MODE: {gameMode.toUpperCase()}</div>
+            <div className="hud-status-dot"></div>
+          </div>
+
+          <div className="hud-main-display">
+            {isGameOver ? (
+              <span style={{ color: gameResult === 'win' ? '#44ff44' : '#ef4444', fontWeight: '900', fontSize: '1rem' }}>
+                {gameResult === 'win' ? '탈출 성공!' : (gameMode === 'run' ? '좀비가 먼저 도착함!' : '잡혔습니다!')}
+              </span>
+            ) : (
+              <div className="hud-distance-text">
+                {gameMode === 'run' ? ( // RUN 모드일 때
+                  routePath.length > 0 ? ( // 경로가 설정되었으면 목적지까지의 거리 표시
+                    (() => {
+                      const destination = routePath[routePath.length - 1];
+                      const distUserToDest = userPosition ? calculateDistance(userPosition.lat, userPosition.lng, destination.lat, destination.lng) : '...';
+                      const zPos = zombiePosition || routePath[0];
+                      const distZombieToDest = calculateDistance(zPos.lat, zPos.lng, destination.lat, destination.lng);
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <div>나의 목적지까지: {distUserToDest}m</div>
+                          <div>좀비의 목적지까지: {distZombieToDest}m</div>
+                        </div>
+                      );
+                    })()
+                  ) : ( // 경로가 설정되지 않았으면 안내 문구
+                    <span>경로를 지정하세요</span>
+                  )
+                ) : ( // SURVIVAL 모드일 때
+                  routePath.length > 0 ? ( // 경로가 설정되었으면 좀비와의 거리 표시
+                    <span>
+                      좀비와의 거리: {distance !== null ? `${distance}m` : countdown}
+                    </span>
+                  ) : (
+                    <span>경로를 지정하세요</span>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="hud-control-row">
+            <label className="hud-label">좀비 속도 ({selectedZombieSpeed}/50)</label>
+            <input type="range" min="1" max="50" value={selectedZombieSpeed} onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} style={{ flexGrow: 1, accentColor: '#f43f5e' }} />
+          </div>
+
+          <div className="hud-control-row">
+            <label className="hud-label">좀비 발생 시간</label>
+            <select className="hud-select" value={selectedSpawnDelay} onChange={(e) => setSelectedSpawnDelay(Number(e.target.value))}>
+              <option value={0}>즉시</option>
+              <option value={10}>10초</option>
+              <option value={30}>30초</option>
+              <option value={60}>60초</option>
+            </select>
+          </div>
+
+          {routePath.length > 0 && (
+            <button onClick={handleResetZombie} className="hud-reset-btn">
+              RESTART PURSUIT
+            </button>
           )}
         </div>
-
-        <div className="hud-control-row">
-          <label className="hud-label">좀비 속도 ({selectedZombieSpeed}/50)</label>
-          <input type="range" min="1" max="50" value={selectedZombieSpeed} onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} style={{ flexGrow: 1, accentColor: '#f43f5e' }} />
-        </div>
-
-        <div className="hud-control-row">
-          <label className="hud-label">좀비 발생 시간</label>
-          <select className="hud-select" value={selectedSpawnDelay} onChange={(e) => setSelectedSpawnDelay(Number(e.target.value))}>
-            <option value={0}>즉시</option>
-            <option value={10}>10초</option>
-            <option value={30}>30초</option>
-            <option value={60}>60초</option>
-          </select>
-        </div>
-
-        {routePath.length > 0 && (
-          <button onClick={handleResetZombie} className="hud-reset-btn">
-            RESTART PURSUIT
-          </button>
-        )}
-      </div>
+      )}
 
       {/* 종료 확인 레이어 */}
       {showExitConfirm && (
@@ -1356,6 +1457,77 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       {/* 잡혔을 때 피 효과 / 탈출 성공 시 파란 화면 효과 */}
       {isGameOver && (
         <div className={gameResult === 'win' ? 'escape-screen' : 'blood-screen'} />
+      )}
+
+      {/* 경로 저장 확인 모달 */}
+      {showSaveModal && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100dvh',
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          zIndex: 200,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
+            <div className="hud-header">
+              <div className="hud-mode-tag">SAVE ROUTE</div>
+              <div className="hud-status-dot"></div>
+            </div>
+            <div className="hud-main-display" style={{ textAlign: 'left', padding: '10px 0' }}>
+              <label style={{ fontSize: '13px', color: '#cbd5e1', display: 'block', marginBottom: '8px' }}>저장할 경로 이름</label>
+              <input
+                type="text"
+                value={customRouteTitle}
+                onChange={(e) => setCustomRouteTitle(e.target.value)}
+                placeholder="경로 이름을 입력하세요"
+                style={{
+                  width: '100%',
+                  backgroundColor: '#1e293b',
+                  border: '1px solid #475569',
+                  color: 'white',
+                  borderRadius: '6px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <button
+                onClick={() => {
+                  const finalTitle = customRouteTitle.trim() || `기록 경로 (${new Date().toLocaleDateString()})`;
+                  const newFav = {
+                    id: Date.now(),
+                    title: finalTitle,
+                    routePath: recordedPath
+                  };
+                  // 로컬스토리지에 저장
+                  setFavorites(prev => [newFav, ...prev]);
+                  setShowSaveModal(false);
+                  alert("경로가 저장되었습니다. 즐겨찾기 목록에서 확인하세요!");
+                  onExit();
+                }}
+                className="hud-reset-btn"
+                style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
+              >
+                저장
+              </button>
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="hud-reset-btn"
+                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

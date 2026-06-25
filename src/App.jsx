@@ -162,6 +162,11 @@ function App() {
             setGameMode('survival');
             navigate('playing');
           }}>SURVIVAL</button>
+          <button className="menu-btn start-button" onClick={() => {
+            setReusedRoutePath(null);
+            setGameMode('record');
+            navigate('playing');
+          }}>경로 만들기</button>
           <button className="menu-btn start-button" onClick={() => navigate('manual')}>
             TRAINING
           </button>
