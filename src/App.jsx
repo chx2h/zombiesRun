@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ZombieMapApp from './ZombieMapApp';
 import mainImg from './assets/main.jpg'; // 배경 이미지 임포트
 import ManualPage from './ManualPage'; // ManualPage 컴포넌트 임포트
-import HistoryPage from './HistoryPage'; // HistoryPage 컴포넌트 임포트
+import FavoritesPage from './FavoritesPage'; // FavoritesPage 컴포넌트 임포트
 
 function App() {
   const [view, setView] = useState('intro');
@@ -134,13 +134,13 @@ function App() {
     );
   }
 
-  if (view === 'history') {
+  if (view === 'favorites') {
     return (
-      <HistoryPage
+      <FavoritesPage
         onBackToIntro={() => navigate('intro')}
         onReplayRecord={(record) => {
           setReusedRoutePath(record.routePath);
-          setGameMode(record.mode);
+          setGameMode('run'); // 즐겨찾기 경로를 클릭하면 무조건 RUN 모드로 진행
           navigate('playing');
         }}
       />
@@ -154,24 +154,24 @@ function App() {
         <div className="intro-menu">
           <button className="menu-btn start-button" onClick={() => {
             setReusedRoutePath(null);
-            setGameMode('run');
-            navigate('playing');
-          }}>RUN</button>
-          <button className="menu-btn start-button" onClick={() => {
-            setReusedRoutePath(null);
             setGameMode('survival');
             navigate('playing');
           }}>SURVIVAL</button>
+          <button className="menu-btn start-button" onClick={() => {
+            setReusedRoutePath(null);
+            setGameMode('run');
+            navigate('playing');
+          }}>RUN</button>
           <button className="menu-btn start-button" onClick={() => {
             setReusedRoutePath(null);
             setGameMode('record');
             navigate('playing');
           }}>경로 만들기</button>
           <button className="menu-btn start-button" onClick={() => navigate('manual')}>
-            TRAINING
+            생존설명서
           </button>
-          <button className="menu-btn" onClick={() => navigate('history')}>
-            기록
+          <button className="menu-btn" onClick={() => navigate('favorites')}>
+            즐겨찾기
           </button>
         </div>
         <div className="intro-warning-message">

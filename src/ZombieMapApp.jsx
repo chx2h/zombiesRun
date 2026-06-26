@@ -503,7 +503,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
    * 좀비를 다시 처음 위치로 되돌리는 초기화 함수
    */
   const handleResetZombie = useCallback(() => {
-    if (routePath.length === 0) return;
+    const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
+    if (activePath.length === 0) return;
     initAudio();
     if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
 
@@ -515,13 +516,13 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     setCountdown(0);
 
     pathIndexRef.current = 0;
-    const startPos = routePath[0];
+    const startPos = activePath[0];
     setZombiePosition(startPos);
     zombiePosRef.current = startPos;
     setIsGameOver(false);
     setGameResult(null);
     setDistance(null);
-  }, [routePath]);
+  }, [routePath, recordedPath, gameMode, initAudio]);
 
   const currentZombieSpeed = useMemo(() => (Number(selectedZombieSpeed) / 50) * ZOMBIE_SPEED_BASE, [selectedZombieSpeed]);
 
@@ -828,14 +829,26 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             <div style={{ fontSize: '30px' }}>🧟</div>
           </CustomOverlayMap>
         )}
-        <Polyline
-          // 좀비 추격 경로 또는 도보 기록 경로
-          path={(gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath}
-          strokeWeight={5}
-          strokeColor={"#FF0000"}
-          strokeOpacity={0.8}
-          strokeStyle={"solid"}
-        />
+        {/* 가이드 경로 (RUN 모드의 목표 경로 또는 서바이벌 모드에서 즐겨찾기로 불러온 가이드 경로) */}
+        {routePath && routePath.length > 0 && (
+          <Polyline
+            path={routePath}
+            strokeWeight={5}
+            strokeColor={gameMode === 'survival' ? "#10b981" : "#FF0000"} // 서바이벌 가이드는 초록색, RUN 모드는 빨간색
+            strokeOpacity={gameMode === 'survival' ? 0.5 : 0.8}
+            strokeStyle={"solid"}
+          />
+        )}
+        {/* 실제 도보 기록 경로 (기록 모드 또는 서바이벌 모드의 이동 궤적) */}
+        {(gameMode === 'record' || gameMode === 'survival') && recordedPath && recordedPath.length > 0 && (
+          <Polyline
+            path={recordedPath}
+            strokeWeight={5}
+            strokeColor={"#FF0000"} // 좀비가 쫓아오는 빨간 실시간 경로
+            strokeOpacity={0.8}
+            strokeStyle={"solid"}
+          />
+        )}
         {userPosition && (
           <Circle
             center={userPosition}
@@ -884,41 +897,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         🔙
       </button>
 
-      {/* 좀비 추적 ON/OFF 버튼 */}
-      {((gameMode === 'record' || gameMode === 'survival') ? recordedPath.length > 0 : routePath.length > 0) && !isGameOver && (
-        <button
-          onClick={() => {
-            const nextState = !isFollowingZombie;
-            setIsFollowingZombie(nextState);
-            if (nextState) {
-              setIsFollowingUser(false); // 좀비 추적 시 사용자 추적은 해제
-            }
-          }}
-          style={{
-            position: 'absolute',
-            bottom: '20px',
-            left: '20px',
-            zIndex: 10,
-            background: isFollowingZombie ? '#f43f5e' : 'rgba(15, 23, 42, 0.85)',
-            color: 'white',
-            border: isFollowingZombie ? '2px solid #f43f5e' : '1px solid rgba(30, 41, 59, 0.8)',
-            borderRadius: '50%',
-            width: '60px',
-            height: '60px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '32px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
-            transition: 'all 0.2s',
-            opacity: isFollowingZombie ? 1 : 0.6
-          }}
-        >
-          🧟
-        </button>
-      )}
-
       {/* 현재 위치로 이동 버튼 */}
       {userPosition && (
         <button
@@ -951,6 +929,78 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           }}
         >
           🏃
+        </button>
+      )}
+
+      {/* 좀비 추적 ON/OFF 버튼 */}
+      {((gameMode === 'record' || gameMode === 'survival') ? recordedPath.length > 0 : routePath.length > 0) && !isGameOver && (
+        <button
+          onClick={() => {
+            const nextState = !isFollowingZombie;
+            setIsFollowingZombie(nextState);
+            if (nextState) {
+              setIsFollowingUser(false); // 좀비 추적 시 사용자 추적은 해제
+            }
+          }}
+          style={{
+            position: 'absolute',
+            bottom: '95px', // 사용자 추적 버튼 위에 배치 (20px + 60px + 15px)
+            right: '20px',  // 우측으로 배치 변경
+            zIndex: 10,
+            background: isFollowingZombie ? '#f43f5e' : 'rgba(15, 23, 42, 0.85)',
+            color: 'white',
+            border: isFollowingZombie ? '2px solid #f43f5e' : '1px solid rgba(30, 41, 59, 0.8)',
+            borderRadius: '50%',
+            width: '60px',
+            height: '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '32px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+            transition: 'all 0.2s',
+            opacity: isFollowingZombie ? 1 : 0.6
+          }}
+        >
+          🧟
+        </button>
+      )}
+
+      {/* 경로 시작점으로 이동 버튼 */}
+      {((routePath && routePath.length > 0) || (recordedPath && recordedPath.length > 0)) && (
+        <button
+          onClick={() => {
+            const targetPath = routePath.length > 0 ? routePath : recordedPath;
+            if (targetPath && targetPath.length > 0) {
+              setMapCenter(targetPath[0]);
+              setIsFollowingUser(false);
+              setIsFollowingZombie(false);
+            }
+          }}
+          style={{
+            position: 'absolute',
+            bottom: '170px', // 좀비 추적 버튼 위에 배치 (95px + 60px + 15px)
+            right: '20px',
+            zIndex: 10,
+            background: 'rgba(15, 23, 42, 0.85)',
+            color: 'white',
+            border: '1px solid rgba(30, 41, 59, 0.8)',
+            borderRadius: '50%',
+            width: '60px',
+            height: '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '32px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+            transition: 'all 0.2s',
+            opacity: 0.8
+          }}
+          title="경로 시작점으로 이동"
+        >
+          🚩
         </button>
       )}
 
@@ -1406,7 +1456,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             </select>
           </div>
 
-          {routePath.length > 0 && gameMode !== 'survival' && (
+          {((gameMode === 'survival' && recordedPath.length > 0) || (gameMode !== 'survival' && routePath.length > 0)) && (
             <button onClick={handleResetZombie} className="hud-reset-btn">
               RESTART PURSUIT
             </button>

@@ -179,7 +179,7 @@ export default function ManualPage({ onBackToIntro }) {
         {/* 타이틀 및 긴장감 유도 문구 */}
         <div className="title-section">
           <h1 className="manual-main-title">
-            ZOMBIES RUN : TRAINING
+            ZOMBIES RUN : 생존설명서
           </h1>
           <p className="manual-subtitle">
             스마트폰 너머로 숨죽여 덮쳐오는 생존의 현장을 지휘하세요.
@@ -201,10 +201,17 @@ export default function ManualPage({ onBackToIntro }) {
             <span>🧟 SURVIVAL 모드</span>
           </button>
           <button
+            onClick={() => setActiveTab('record')}
+            className={`tab-btn ${activeTab === 'record' ? 'active-record' : ''}`}
+            style={activeTab === 'record' ? { borderColor: '#10b981', color: '#10b981' } : {}}
+          >
+            <span>🗺️ 경로 만들기</span>
+          </button>
+          <button
             onClick={() => setActiveTab('gear')}
             className={`tab-btn ${activeTab === 'gear' ? 'active-gear' : ''}`}
           >
-            <span>📡 전술 장비</span>
+            <span>📡 전술 피드백</span>
           </button>
         </div>
 
@@ -217,24 +224,24 @@ export default function ManualPage({ onBackToIntro }) {
               <div className="pane-header">
                 <div className="pane-number text-rose">01</div>
                 <div>
-                  <h3 className="text-rose">RUN: 선착순 탈출</h3>
+                  <h3 className="text-rose">RUN: 도보 탈출</h3>
                   <p className="pane-desc">좀비보다 빠르게 목적지에 도착하세요.</p>
                 </div>
               </div>
 
               <div className="info-grid">
                 <div className="info-card">
-                  <h4 className="text-rose">핵심 룰</h4>
-                  <p>클릭 시 생성되는 <span className="highlight-green">최적 경로</span>를 따라 나와 좀비가 동시에 질주합니다.</p>
+                  <h4 className="text-rose">작전 설정</h4>
+                  <p>지도 클릭 시 생성되는 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>최적의 도보 경로</span>를 따라 탈출합니다.</p>
                 </div>
                 <div className="info-card">
-                  <h4 className="text-rose">승리 및 패배</h4>
-                  <p>좀비와 부딪혀도 안전하지만, 좀비보다 <span className="highlight-red">먼저 도착</span>해야 승리합니다.</p>
+                  <h4 className="text-rose">탈출 규칙</h4>
+                  <p>좀비가 출발점에서 시작해 최적 경로를 따라 추격합니다. 좀비보다 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>먼저 목적지(15m 이내)</span>에 도착해야 합니다.</p>
                 </div>
               </div>
 
               <div className="advice-box border-rose">
-                <p><strong className="text-rose">TIP:</strong> 목적지와의 거리를 확인하며 좀비보다 먼저 도착해서 승리를 쟁취하세요</p>
+                <p><strong className="text-rose">TIP:</strong> 좀비가 내 뒤를 쫓아오며, 먼저 목적지에 다다르면 사망하므로 한 발 앞서 도망치세요.</p>
               </div>
             </div>
           )}
@@ -245,58 +252,82 @@ export default function ManualPage({ onBackToIntro }) {
               <div className="pane-header">
                 <div className="pane-number text-amber">02</div>
                 <div>
-                  <h3 className="text-amber">SURVIVAL: 무한 생존</h3>
-                  <p className="pane-desc">잡히지 않고 최대한 오래 버티세요.</p>
+                  <h3 className="text-amber">SURVIVAL: 실시간 추격</h3>
+                  <p className="pane-desc">직접 밟은 궤적을 쫓아오는 좀비로부터 생존하세요.</p>
                 </div>
               </div>
 
               <div className="info-grid">
                 <div className="info-card">
-                  <h4 className="text-amber">무자비한 추적</h4>
-                  <p>좀비가 나의 흔적을 밟으며 끝까지 추격합니다. 거리가 벌어져도 추격은 멈추지 않습니다.</p>
+                  <h4 className="text-amber">이동 궤적 추적</h4>
+                  <p>미리 그려진 경로 없이, <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>사용자가 실제 걸어간 붉은 라인</span>을 따라 좀비가 소환되어 뒤쫓습니다.</p>
                 </div>
                 <div className="info-card">
-                  <h4 className="text-amber">생존 한계선</h4>
-                  <p>좀비와 <span className="highlight-red">5m 이내</span>로 가까워지면 즉시 <span className="highlight-red">GAME OVER</span> 됩니다.</p>
+                  <h4 className="text-amber">경로 어시스트</h4>
+                  <p>즐겨찾기 버튼을 눌러 미리 생성해 둔 경로를 <span style={{ color: '#10b981', fontWeight: 'bold' }}>초록색 가이드선</span>으로 띄워 참고하며 생존할 수 있습니다.</p>
                 </div>
               </div>
 
               <div className="advice-box border-amber">
-                <p><strong className="text-amber">TIP:</strong> HUD의 '좀비와의 거리'를 확인하며 지그재그로 유인하세요.</p>
+                <p><strong className="text-amber">TIP:</strong> 좀비가 사용자 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>5m 이내</span>로 도달하면 사망하므로 좀비를 지그재그로 따돌리며 탈출구를 찾으세요.</p>
               </div>
             </div>
           )}
 
-          {/* TAB 3: GEAR GUIDE (Web API) */}
-          {activeTab === 'gear' && (
+          {/* TAB 3: RECORD MODE */}
+          {activeTab === 'record' && (
             <div className="tab-pane-content">
               <div className="pane-header">
-                <div className="pane-number text-cyan">03</div>
+                <div className="pane-number" style={{ color: '#10b981' }}>03</div>
                 <div>
-                  <h3 className="text-cyan">SENSOR: 전술 피드백</h3>
-                  <p className="pane-desc">소리와 진동으로 좀비의 접근을 감지합니다.</p>
+                  <h3 style={{ color: '#10b981' }}>RECORD: 경로 제작</h3>
+                  <p className="pane-desc">나만의 안전한 도보 탈출 경로를 개척하고 기록합니다.</p>
                 </div>
               </div>
 
-              <div className="info-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+              <div className="info-grid">
+                <div className="info-card" style={{ borderColor: '#10b981' }}>
+                  <h4 style={{ color: '#10b981' }}>GPS 실시간 기록</h4>
+                  <p>GPS 신호를 실시간 수집하여 지도에 표시합니다. 최소 3미터 이상 이동 시 포인트가 누적되어 기록을 완성합니다.</p>
+                </div>
+                <div className="info-card" style={{ borderColor: '#10b981' }}>
+                  <h4 style={{ color: '#10b981' }}>즐겨찾기 보관</h4>
+                  <p>기록이 완료되면 이름을 지어 <span style={{ color: '#10b981', fontWeight: 'bold' }}>즐겨찾기</span>에 저장합니다. 저장된 경로는 언제든 RUN 모드로 플레이 가능합니다.</p>
+                </div>
+              </div>
+
+              <div className="advice-box" style={{ borderColor: '#10b981' }}>
+                <p><strong style={{ color: '#10b981' }}>TIP:</strong> 기록 화면 HUD의 조작기를 이용하면 기록 중에도 실시간으로 좀비 속도 및 출현 대기시간을 조절할 수 있습니다.</p>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: GEAR GUIDE */}
+          {activeTab === 'gear' && (
+            <div className="tab-pane-content">
+              <div className="pane-header">
+                <div className="pane-number text-cyan">04</div>
+                <div>
+                  <h3 className="text-cyan">SENSOR: 다차원 피드백</h3>
+                  <p className="pane-desc">청각, 촉각, 시각 정보를 이용해 좀비의 근접을 본능적으로 감지합니다.</p>
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                 <div className="info-card border-cyan">
-                  <h4>📢 입체 사운드</h4>
-                  <p>음악과 동시 사용 가능. <strong>가까울수록 좀비 포효가 증폭</strong>됩니다.</p>
+                  <h4>📢 포효 사운드 & 비주얼 경고</h4>
+                  <p>50m 이내로 들어오면 소리가 증폭되며, <strong>25m 이내 근접 시 화면 테두리가 붉은색으로 번쩍</strong>이며 경고합니다.</p>
                 </div>
                 <div className="info-card border-cyan">
-                  <h4>🎯 추적 시스템</h4>
-                  <p>좌측 하단(🧟)과 우측 하단(🏃) 버튼으로 좀비 또는 나를 화면 중앙에 고정할 수 있습니다.</p>
-                </div>
-                <div className="info-card border-cyan">
-                  <h4>📳 햅틱 레이더</h4>
-                  <p><strong>20m 주기적 진동, 5m 연속 진동</strong>으로 거리감을 전달합니다.</p>
+                  <h4>📳 햅틱 감지 & 뷰 컨트롤</h4>
+                  <p><strong>25m 이내 약한 진동, 10m 이내 강렬한 더블 진동</strong>이 발생합니다. 우측 하단의 🏃, 🧟, 🚩 버튼으로 손쉽게 시점을 고정할 수 있습니다.</p>
                 </div>
               </div>
 
               <div className="compatibility-footer">
                 <p>
-                  <span>✓ Audio: 공통 지원</span>
-                  <span>✓ Vibration: 안드로이드</span>
+                  <span>✓ Audio: 전체 기기 지원</span>
+                  <span>✓ Vibration: 안드로이드 OS 전용</span>
                 </p>
               </div>
             </div>
