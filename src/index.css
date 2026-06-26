@@ -187,9 +187,12 @@ code {
 }
 
 .menu-btn {
-  background: rgba(15, 23, 42, 0.8); /* 가독성을 위한 어두운 반투명 배경 */
-  backdrop-filter: blur(4px); /* 뒤 배경 살짝 흐리게 */
-  border: 1px solid rgba(255, 255, 255, 0.1); /* 얇은 테두리 */
+  background: rgba(15, 23, 42, 0.8);
+  /* 가독성을 위한 어두운 반투명 배경 */
+  backdrop-filter: blur(4px);
+  /* 뒤 배경 살짝 흐리게 */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* 얇은 테두리 */
   color: #fff;
   padding: 12px 24px;
   font-size: 20px;
@@ -197,15 +200,20 @@ code {
   font-weight: 700;
   transition: all 0.2s;
   width: 220px;
-  text-align: center; /* 텍스트 정렬을 가독성에 좋은 중앙 정렬로 변경 */
-  border-radius: 8px; /* 모서리 둥글게 */
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6); /* 그림자 추가 */
+  text-align: center;
+  /* 텍스트 정렬을 가독성에 좋은 중앙 정렬로 변경 */
+  border-radius: 8px;
+  /* 모서리 둥글게 */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+  /* 그림자 추가 */
 }
 
 .menu-btn:hover {
   transform: scale(1.05);
-  background: rgba(244, 63, 94, 0.2); /* 호버 시 붉은 톤 강조 */
-  border-color: #f43f5e; /* 호버 시 테두리 색상 강조 */
+  background: rgba(244, 63, 94, 0.2);
+  /* 호버 시 붉은 톤 강조 */
+  border-color: #f43f5e;
+  /* 호버 시 테두리 색상 강조 */
   box-shadow: 0 0 15px rgba(244, 63, 94, 0.5);
 }
 
@@ -337,6 +345,7 @@ code {
     opacity: 0.2;
     box-shadow: inset 0 0 20px rgba(239, 68, 68, 0.3);
   }
+
   100% {
     opacity: 1;
     box-shadow: inset 0 0 50px rgba(239, 68, 68, 0.7);
@@ -349,6 +358,7 @@ code {
     box-shadow: inset 0 0 40px rgba(220, 38, 38, 0.4);
     background-color: rgba(220, 38, 38, 0.05);
   }
+
   100% {
     opacity: 1;
     box-shadow: inset 0 0 100px rgba(220, 38, 38, 0.9);
@@ -492,6 +502,8 @@ code {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0;
+  padding-bottom: 6px;
+  line-height: 1.3;
   letter-spacing: -0.02em;
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
@@ -533,15 +545,15 @@ code {
 }
 
 .tab-btn.active-run {
-  background: #e11d48;
+  background: #60a5fa;
   color: white;
-  box-shadow: 0 0 12px rgba(225, 29, 72, 0.35);
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.35);
 }
 
 .tab-btn.active-survival {
-  background: #d97706;
+  background: #ef4444;
   color: white;
-  box-shadow: 0 0 12px rgba(217, 119, 6, 0.35);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);
 }
 
 .tab-btn.active-gear {

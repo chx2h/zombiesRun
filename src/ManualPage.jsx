@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 export default function ManualPage({ onBackToIntro }) {
-  const [activeTab, setActiveTab] = useState('run'); // 'run' | 'survival' | 'gear'
+  const [activeTab, setActiveTab] = useState('survival'); // 'survival' | 'run' | 'record' | 'gear'
   const [demoDistance, setDemoDistance] = useState(35); // 0m ~ 60m
   const [isAudioRunning, setIsAudioRunning] = useState(true); // 기본 활성화
   const [isVibrating, setIsVibrating] = useState(false);
@@ -189,16 +189,16 @@ export default function ManualPage({ onBackToIntro }) {
         {/* 탭 네비게이션 */}
         <div className="tab-nav">
           <button
-            onClick={() => setActiveTab('run')}
-            className={`tab-btn ${activeTab === 'run' ? 'active-run' : ''}`}
-          >
-            <span>🏃 RUN 모드</span>
-          </button>
-          <button
             onClick={() => setActiveTab('survival')}
             className={`tab-btn ${activeTab === 'survival' ? 'active-survival' : ''}`}
           >
             <span>🧟 SURVIVAL 모드</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('run')}
+            className={`tab-btn ${activeTab === 'run' ? 'active-run' : ''}`}
+          >
+            <span>🏃 RUN 모드</span>
           </button>
           <button
             onClick={() => setActiveTab('record')}
@@ -218,39 +218,11 @@ export default function ManualPage({ onBackToIntro }) {
         {/* 컨텐츠 박스 */}
         <div className="manual-content-box">
 
-          {/* TAB 1: RUN MODE */}
-          {activeTab === 'run' && (
-            <div className="tab-pane-content">
-              <div className="pane-header">
-                <div className="pane-number text-rose">01</div>
-                <div>
-                  <h3 className="text-rose">RUN: 도보 탈출</h3>
-                  <p className="pane-desc">좀비보다 빠르게 목적지에 도착하세요.</p>
-                </div>
-              </div>
-
-              <div className="info-grid">
-                <div className="info-card">
-                  <h4 className="text-rose">작전 설정</h4>
-                  <p>지도 클릭 시 생성되는 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>최적의 도보 경로</span>를 따라 탈출합니다.</p>
-                </div>
-                <div className="info-card">
-                  <h4 className="text-rose">탈출 규칙</h4>
-                  <p>좀비가 출발점에서 시작해 최적 경로를 따라 추격합니다. 좀비보다 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>먼저 목적지(15m 이내)</span>에 도착해야 합니다.</p>
-                </div>
-              </div>
-
-              <div className="advice-box border-rose">
-                <p><strong className="text-rose">TIP:</strong> 좀비가 내 뒤를 쫓아오며, 먼저 목적지에 다다르면 사망하므로 한 발 앞서 도망치세요.</p>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: SURVIVAL MODE */}
+          {/* TAB 1: SURVIVAL MODE */}
           {activeTab === 'survival' && (
             <div className="tab-pane-content">
               <div className="pane-header">
-                <div className="pane-number text-amber">02</div>
+                <div className="pane-number text-amber">01</div>
                 <div>
                   <h3 className="text-amber">SURVIVAL: 실시간 추격</h3>
                   <p className="pane-desc">직접 밟은 궤적을 쫓아오는 좀비로부터 생존하세요.</p>
@@ -270,6 +242,34 @@ export default function ManualPage({ onBackToIntro }) {
 
               <div className="advice-box border-amber">
                 <p><strong className="text-amber">TIP:</strong> 좀비가 사용자 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>5m 이내</span>로 도달하면 사망하므로 좀비를 지그재그로 따돌리며 탈출구를 찾으세요.</p>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: RUN MODE */}
+          {activeTab === 'run' && (
+            <div className="tab-pane-content">
+              <div className="pane-header">
+                <div className="pane-number text-rose">02</div>
+                <div>
+                  <h3 className="text-rose">RUN: 도보 탈출</h3>
+                  <p className="pane-desc">좀비보다 빠르게 목적지에 도착하세요.</p>
+                </div>
+              </div>
+
+              <div className="info-grid">
+                <div className="info-card">
+                  <h4 className="text-rose">작전 설정</h4>
+                  <p>지도 클릭 시 생성되는 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>최적의 도보 경로</span>를 따라 탈출합니다.</p>
+                </div>
+                <div className="info-card">
+                  <h4 className="text-rose">탈출 규칙</h4>
+                  <p>좀비가 출발점에서 시작해 최적 경로를 따라 추격합니다. 좀비보다 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>먼저 목적지(15m 이내)</span>에 도착해야 합니다.</p>
+                </div>
+              </div>
+
+              <div className="advice-box border-rose">
+                <p><strong className="text-rose">TIP:</strong> 좀비가 내 뒤를 쫓아오며, 먼저 목적지에 다다르면 사망하므로 한 발 앞서 도망치세요.</p>
               </div>
             </div>
           )}
@@ -326,7 +326,7 @@ export default function ManualPage({ onBackToIntro }) {
 
               <div className="compatibility-footer">
                 <p>
-                  <span>✓ Audio: 전체 기기 지원</span>
+                  <span>✓ Audio: 전체 기기 지원</span><br />
                   <span>✓ Vibration: 안드로이드 OS 전용</span>
                 </p>
               </div>
