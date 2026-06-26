@@ -228,6 +228,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     }
   }, [userPosition, isRecording, gameMode]);
 
+
+
   // "좀비 따라가기" 모드일 때 좀비 위치를 지도 중심에 동기화
   useEffect(() => {
     if (isFollowingZombie && zombiePosition) {
@@ -336,6 +338,27 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
     audioCtxRef.current = ctx;
   }, []);
+
+  // 경로 기록 모드일 때 첫 좌표가 들어오면 좀비 스폰 타이머 작동
+  useEffect(() => {
+    if (gameMode === 'record' && recordedPath.length === 1 && isRecording) {
+      // 오디오 활성화
+      initAudio();
+      if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
+
+      if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current);
+      setCountdown(selectedSpawnDelay);
+
+      spawnTimerRef.current = setTimeout(() => {
+        const startPos = recordedPath[0];
+        pathIndexRef.current = 0;
+        setZombiePosition(startPos);
+        zombiePosRef.current = startPos;
+        setCountdown(0);
+        console.log("좀비 출현 (경로 기록 모드)!");
+      }, selectedSpawnDelay * 1000);
+    }
+  }, [recordedPath.length, gameMode, isRecording, selectedSpawnDelay, initAudio]);
 
   // 재사용 경로(initialRoutePath)가 주어지면 초기 경로로 설정
   useEffect(() => {
@@ -504,7 +527,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
    * 프레임별 애니메이션 루프
    */
   const animate = useCallback(() => {
-    if (isGameOver || routePath.length === 0) return;
+    const activePath = gameMode === 'record' ? recordedPath : routePath;
+    if (isGameOver || activePath.length === 0) return;
 
     // 좀비가 아직 생성되지 않았으면 루프만 유지
     const prevPos = zombiePosRef.current;
@@ -520,8 +544,13 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       return;
     }
 
-    const target = routePath[pathIndexRef.current + 1];
+    const target = activePath[pathIndexRef.current + 1];
     if (!target) {
+      if (gameMode === 'record') {
+        // 기록 모드에서는 좀비가 현재 궤적 끝에 도달하면 다음 경로 수집 시까지 대기
+        requestRef.current = requestAnimationFrame(animate);
+        return;
+      }
       // 좀비가 목적지에 도달했을 때 (잡힌 것과 동일하게 처리)
       if ("vibrate" in navigator) navigator.vibrate([1000, 500, 1000]);
       setIsGameOver(true);
@@ -647,7 +676,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     }
 
     requestRef.current = requestAnimationFrame(animate);
-  }, [routePath, isGameOver, currentZombieSpeed, gameMode]);
+  }, [routePath, recordedPath, isGameOver, currentZombieSpeed, gameMode]);
 
   // 게임 종료 시 기록 저장
   useEffect(() => {
@@ -694,11 +723,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   };
 
   useEffect(() => {
-    if (routePath.length > 0 && !isGameOver) {
+    const activePathLength = gameMode === 'record' ? recordedPath.length : routePath.length;
+    if (activePathLength > 0 && !isGameOver) {
       requestRef.current = requestAnimationFrame(animate);
     }
     return () => cancelAnimationFrame(requestRef.current);
-  }, [animate, routePath, isGameOver]);
+  }, [animate, routePath.length, recordedPath.length, isGameOver, gameMode]);
 
   useEffect(() => {
     return () => {
@@ -1287,6 +1317,22 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             >
               취소
             </button>
+
+            {/* 좀비 속도 조절 및 시간 설정 (경로 만들기 시 좀비 추격을 위해 추가) */}
+            <div className="hud-control-row" style={{ marginTop: '8px' }}>
+              <label className="hud-label">좀비 속도 ({selectedZombieSpeed}/50)</label>
+              <input type="range" min="1" max="50" value={selectedZombieSpeed} onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} style={{ flexGrow: 1, accentColor: '#f43f5e' }} />
+            </div>
+
+            <div className="hud-control-row">
+              <label className="hud-label">좀비 발생 시간</label>
+              <select className="hud-select" value={selectedSpawnDelay} onChange={(e) => setSelectedSpawnDelay(Number(e.target.value))}>
+                <option value={0}>즉시</option>
+                <option value={10}>10초</option>
+                <option value={30}>30초</option>
+                <option value={60}>60초</option>
+              </select>
+            </div>
           </div>
         </div>
       ) : (
