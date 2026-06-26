@@ -143,6 +143,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
   // --- [수정] 생성된 경로를 최신순으로 '지금까지 했던 경로 리스트'에 자동 등록 ---
   useEffect(() => {
+    if (gameMode === 'record') return; // 기록 모드일 때는 자동 추가 방지
     if (routePath && routePath.length > 0) {
       setFavorites(prev => {
         // 완전히 동일한 출발지/목적지를 가진 경로가 이미 있는지 체크
@@ -165,13 +166,14 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           {
             id: Date.now(),
             title: defaultTitle,
-            routePath: routePath
+            routePath: routePath,
+            isCustom: false // 일반 조회 경로 플래그 추가
           },
           ...prev
         ];
       });
     }
-  }, [routePath]);
+  }, [routePath, gameMode]);
 
   // 설정값이 변경될 때마다 localStorage에 저장
   useEffect(() => {
@@ -1057,20 +1059,27 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                         }}
                       />
                     ) : (
-                      <span
-                        onClick={(e) => startEditing(e, fav)}
-                        title="클릭하여 이름 수정"
-                        style={{
-                          fontSize: '13px',
-                          fontWeight: 'bold',
-                          color: '#f8fafc',
-                          borderBottom: '1px dashed #64748b',
-                          paddingBottom: '1px',
-                          alignSelf: 'flex-start'
-                        }}
-                      >
-                        {fav.title}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span
+                          onClick={(e) => startEditing(e, fav)}
+                          title="클릭하여 이름 수정"
+                          style={{
+                            fontSize: '13px',
+                            fontWeight: 'bold',
+                            color: '#f8fafc',
+                            borderBottom: '1px dashed #64748b',
+                            paddingBottom: '1px',
+                            alignSelf: 'flex-start'
+                          }}
+                        >
+                          {fav.title}
+                        </span>
+                        {fav.isCustom ? (
+                          <span style={{ fontSize: '9px', backgroundColor: '#2563eb', color: 'white', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>직접 기록</span>
+                        ) : (
+                          <span style={{ fontSize: '9px', backgroundColor: '#334155', color: '#94a3b8', padding: '1px 4px', borderRadius: '4px', fontWeight: 'normal', whiteSpace: 'nowrap' }}>조회 경로</span>
+                        )}
+                      </div>
                     )}
                     <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
                       📍 웨이포인트: {fav.routePath.length}개 포인트
@@ -1505,10 +1514,17 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                   const newFav = {
                     id: Date.now(),
                     title: finalTitle,
-                    routePath: recordedPath
+                    routePath: recordedPath,
+                    isCustom: true // 직접 제작 경로 플래그 설정
                   };
-                  // 로컬스토리지에 저장
-                  setFavorites(prev => [newFav, ...prev]);
+                  
+                  // 비동기 상태 업데이트 지연 및 언마운트로 인한 유실 방지를 위해 로컬 스토리지 즉시 동기 쓰기 진행
+                  const saved = localStorage.getItem('zombie_route_favorites');
+                  const currentFavs = saved ? JSON.parse(saved) : [];
+                  const updatedFavs = [newFav, ...currentFavs];
+                  localStorage.setItem('zombie_route_favorites', JSON.stringify(updatedFavs));
+
+                  setFavorites(updatedFavs);
                   setShowSaveModal(false);
                   alert("경로가 저장되었습니다. 즐겨찾기 목록에서 확인하세요!");
                   onExit();
