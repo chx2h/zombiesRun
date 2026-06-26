@@ -42,6 +42,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const [recordedPath, setRecordedPath] = useState([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [customRouteTitle, setCustomRouteTitle] = useState('');
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
 
   // 설정 상태
   const [selectedZombieSpeed, setSelectedZombieSpeed] = useState(() => {
@@ -1303,9 +1305,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
             <button
               onClick={() => {
-                if (window.confirm("기록을 취소하고 나가시겠습니까?")) {
-                  onExit();
-                }
+                setShowCancelConfirm(true);
               }}
               className="hud-reset-btn"
               style={{
@@ -1571,9 +1571,29 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                   localStorage.setItem('zombie_route_favorites', JSON.stringify(updatedFavs));
 
                   setFavorites(updatedFavs);
+                  
+                  // 게임 기록(History)에도 저장 연동
+                  if (onSaveRecord) {
+                    let totalDistance = 0;
+                    for (let i = 0; i < recordedPath.length - 1; i++) {
+                      totalDistance += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i+1].lat, recordedPath[i+1].lng);
+                    }
+                    const formattedDistance = (totalDistance / 1000).toFixed(2) + 'km';
+
+                    onSaveRecord({
+                      date: new Date().toISOString(),
+                      mode: 'record',
+                      distance: formattedDistance,
+                      zombieSpeed: selectedZombieSpeed,
+                      result: '생성',
+                      routePath: recordedPath
+                    });
+                  }
+
                   setShowSaveModal(false);
-                  alert("경로가 저장되었습니다. 즐겨찾기 목록에서 확인하세요!");
-                  onExit();
+                  
+                  // [수정] 시스템 얼럿 대신 성공 모달 띄우기
+                  setShowSaveSuccess(true);
                 }}
                 className="hud-reset-btn"
                 style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
@@ -1586,6 +1606,96 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                 style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
               >
                 취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 경로 기록 취소 확인 모달 */}
+      {showCancelConfirm && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100dvh',
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          zIndex: 250,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
+            <div className="hud-header">
+              <div className="hud-mode-tag">CANCEL RECORD</div>
+              <div className="hud-status-dot" style={{ backgroundColor: '#f43f5e' }}></div>
+            </div>
+            <div className="hud-main-display" style={{ padding: '10px 0' }}>
+              <div className="hud-distance-text" style={{ fontSize: '1rem', lineHeight: '1.5' }}>
+                경로 기록을 취소하고<br />메인 화면으로 나갈까요?
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <button
+                onClick={() => {
+                  setShowCancelConfirm(false);
+                  onExit();
+                }}
+                className="hud-reset-btn"
+                style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
+              >
+                YES
+              </button>
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="hud-reset-btn"
+                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+              >
+                NO
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 경로 저장 성공 모달 */}
+      {showSaveSuccess && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100dvh',
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          zIndex: 250,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
+            <div className="hud-header">
+              <div className="hud-mode-tag">SUCCESS</div>
+              <div className="hud-status-dot" style={{ backgroundColor: '#4ade80' }}></div>
+            </div>
+            <div className="hud-main-display" style={{ padding: '10px 0' }}>
+              <div className="hud-distance-text" style={{ fontSize: '1rem', color: '#4ade80', lineHeight: '1.5' }}>
+                경로가 성공적으로<br />저장되었습니다!
+                <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginTop: '6px', fontWeight: 'normal' }}>
+                  즐겨찾기 목록에서 확인하실 수 있습니다.
+                </span>
+              </div>
+            </div>
+            <div style={{ marginTop: '10px' }}>
+              <button
+                onClick={() => {
+                  setShowSaveSuccess(false);
+                  onExit();
+                }}
+                className="hud-reset-btn"
+                style={{ width: '100%', backgroundColor: '#4ade80', color: '#0f172a', border: 'none', fontWeight: 'bold' }}
+              >
+                확인
               </button>
             </div>
           </div>
