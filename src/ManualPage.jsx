@@ -43,7 +43,7 @@ export default function ManualPage({ onBackToIntro }) {
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
-      
+
       const ctx = new AudioContext();
       audioCtxRef.current = ctx;
 
@@ -52,7 +52,7 @@ export default function ManualPage({ onBackToIntro }) {
       const ambOsc = ctx.createOscillator();
       ambOsc.type = 'sawtooth';
       ambOsc.frequency.setValueAtTime(45, ctx.currentTime); // 아주 낮은 저음좀비 신음 느낌
-      
+
       // 저주파 필터로 웅웅거리게 조절
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
@@ -61,7 +61,7 @@ export default function ManualPage({ onBackToIntro }) {
       ambOsc.connect(filter);
       filter.connect(ambGain);
       ambGain.connect(ctx.destination);
-      
+
       ambOsc.start();
       ambientOscRef.current = ambOsc;
       ambientGainRef.current = ambGain;
@@ -76,7 +76,7 @@ export default function ManualPage({ onBackToIntro }) {
       const triggerHeartbeat = () => {
         const now = ctx.currentTime;
         const currentDist = demoDistanceRef.current;
-        
+
         // 심장 소리 합성 (비활성화)
         /*
         const osc = ctx.createOscillator();
@@ -129,10 +129,10 @@ export default function ManualPage({ onBackToIntro }) {
       clearTimeout(intervalRef.current);
     }
     if (ambientOscRef.current) {
-      try { ambientOscRef.current.stop(); } catch(e){}
+      try { ambientOscRef.current.stop(); } catch (e) { }
     }
     if (audioCtxRef.current) {
-      try { audioCtxRef.current.close(); } catch(e){}
+      try { audioCtxRef.current.close(); } catch (e) { }
       audioCtxRef.current = null;
     }
     setIsAudioRunning(false);
@@ -155,7 +155,7 @@ export default function ManualPage({ onBackToIntro }) {
     return () => {
       if (intervalRef.current) clearTimeout(intervalRef.current);
       if (audioCtxRef.current) {
-        try { audioCtxRef.current.close(); } catch(e){}
+        try { audioCtxRef.current.close(); } catch (e) { }
       }
     };
   }, []);
@@ -188,19 +188,19 @@ export default function ManualPage({ onBackToIntro }) {
 
         {/* 탭 네비게이션 */}
         <div className="tab-nav">
-          <button 
+          <button
             onClick={() => setActiveTab('run')}
             className={`tab-btn ${activeTab === 'run' ? 'active-run' : ''}`}
           >
             <span>🏃 RUN 모드</span>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('survival')}
             className={`tab-btn ${activeTab === 'survival' ? 'active-survival' : ''}`}
           >
             <span>🧟 SURVIVAL 모드</span>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('gear')}
             className={`tab-btn ${activeTab === 'gear' ? 'active-gear' : ''}`}
           >
@@ -210,7 +210,7 @@ export default function ManualPage({ onBackToIntro }) {
 
         {/* 컨텐츠 박스 */}
         <div className="manual-content-box">
-          
+
           {/* TAB 1: RUN MODE */}
           {activeTab === 'run' && (
             <div className="tab-pane-content">
@@ -294,8 +294,10 @@ export default function ManualPage({ onBackToIntro }) {
               </div>
 
               <div className="compatibility-footer">
-                <span>✓ Audio: 공통 지원</span>
-                <span>✓ Vibration: 안드로이드</span>
+                <p>
+                  <span>✓ Audio: 공통 지원</span>
+                  <span>✓ Vibration: 안드로이드</span>
+                </p>
               </div>
             </div>
           )}
@@ -323,11 +325,11 @@ export default function ManualPage({ onBackToIntro }) {
                     <span className="current-dist">{demoDistance}m</span>
                     <span>안전</span>
                   </div>
-                  <input 
-                    type="range" 
-                    min="0" 
-                    max="60" 
-                    value={demoDistance} 
+                  <input
+                    type="range"
+                    min="0"
+                    max="60"
+                    value={demoDistance}
                     onChange={(e) => setDemoDistance(Number(e.target.value))}
                     className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500"
                   />
@@ -359,7 +361,7 @@ export default function ManualPage({ onBackToIntro }) {
 
       {/* 하단 시작하기 전용 메인 액션 버튼 */}
       <div className="manual-footer">
-        <button 
+        <button
           onClick={() => {
             stopSyntheticZombieSound();
             onBackToIntro();
