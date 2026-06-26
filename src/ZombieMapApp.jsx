@@ -211,9 +211,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     }
   }, [userPosition, isFollowingUser]);
 
-  // 실시간 사용자 경로 기록 로직 (gameMode가 record이고 기록 중일 때 작동)
+  // 실시간 사용자 경로 기록 로직 (gameMode가 record이고 기록 중일 때, 또는 survival 모드일 때 작동)
   useEffect(() => {
-    if (gameMode === 'record' && isRecording && userPosition) {
+    if (((gameMode === 'record' && isRecording) || gameMode === 'survival') && userPosition) {
       setRecordedPath(prev => {
         if (prev.length === 0) {
           return [userPosition];
@@ -272,7 +272,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   }, []);
 
   // 게임이 활성 상태인지 부모 컴포넌트에 알림
-  const isGameActive = routePath.length > 0 && !isGameOver;
+  const isGameActive = ((gameMode === 'record' || gameMode === 'survival') ? recordedPath.length > 0 : routePath.length > 0) && !isGameOver;
   useEffect(() => {
     if (setIsGameActive) {
       setIsGameActive(isGameActive);
@@ -341,9 +341,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     audioCtxRef.current = ctx;
   }, []);
 
-  // 경로 기록 모드일 때 첫 좌표가 들어오면 좀비 스폰 타이머 작동
+  // 경로 기록 모드 또는 서바이벌 모드일 때 첫 좌표가 들어오면 좀비 스폰 타이머 작동
   useEffect(() => {
-    if (gameMode === 'record' && recordedPath.length === 1 && isRecording) {
+    if (((gameMode === 'record' && isRecording) || gameMode === 'survival') && recordedPath.length === 1) {
       // 오디오 활성화
       initAudio();
       if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
@@ -357,7 +357,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         setZombiePosition(startPos);
         zombiePosRef.current = startPos;
         setCountdown(0);
-        console.log("좀비 출현 (경로 기록 모드)!");
+        console.log(`좀비 출현 (${gameMode} 모드)!`);
       }, selectedSpawnDelay * 1000);
     }
   }, [recordedPath.length, gameMode, isRecording, selectedSpawnDelay, initAudio]);
@@ -529,7 +529,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
    * 프레임별 애니메이션 루프
    */
   const animate = useCallback(() => {
-    const activePath = gameMode === 'record' ? recordedPath : routePath;
+    const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
     if (isGameOver || activePath.length === 0) return;
 
     // 좀비가 아직 생성되지 않았으면 루프만 유지
@@ -548,8 +548,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
     const target = activePath[pathIndexRef.current + 1];
     if (!target) {
-      if (gameMode === 'record') {
-        // 기록 모드에서는 좀비가 현재 궤적 끝에 도달하면 다음 경로 수집 시까지 대기
+      if (gameMode === 'record' || gameMode === 'survival') {
+        // 기록/서바이벌 모드에서는 좀비가 현재 궤적 끝에 도달하면 다음 경로 수집 시까지 대기
         requestRef.current = requestAnimationFrame(animate);
         return;
       }
@@ -687,37 +687,47 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       if (gameResult === 'win') result = '탈출';
       if (gameResult === 'lose') result = '사망';
 
-      const destination = routePath.length > 0 ? routePath[routePath.length - 1] : null;
-      const startPoint = routePath.length > 0 ? routePath[0] : null;
-      const totalDistance = destination && startPoint ?
-        (calculateDistance(startPoint.lat, startPoint.lng, destination.lat, destination.lng) / 1000).toFixed(2) + 'km' : '-';
+      const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
+      let totalDistanceStr = '-';
+      if (activePath.length > 0) {
+        let dist = 0;
+        for (let i = 0; i < activePath.length - 1; i++) {
+          dist += calculateDistance(activePath[i].lat, activePath[i].lng, activePath[i+1].lat, activePath[i+1].lng);
+        }
+        totalDistanceStr = (dist / 1000).toFixed(2) + 'km';
+      }
 
       onSaveRecord({
         date: new Date().toISOString(),
         mode: gameMode,
-        distance: totalDistance,
+        distance: totalDistanceStr,
         zombieSpeed: selectedZombieSpeed,
         result: result,
-        routePath: routePath,
+        routePath: activePath,
       });
     }
-  }, [isGameOver, gameResult, gameMode, routePath, onSaveRecord, selectedZombieSpeed]);
+  }, [isGameOver, gameResult, gameMode, routePath, recordedPath, onSaveRecord, selectedZombieSpeed]);
 
   // 중간 종료 시 기록 저장
   const handleExitAndSave = () => {
     if (onSaveRecord) {
-      const destination = routePath.length > 0 ? routePath[routePath.length - 1] : null;
-      const startPoint = routePath.length > 0 ? routePath[0] : null;
-      const totalDistance = destination && startPoint ?
-        (calculateDistance(startPoint.lat, startPoint.lng, destination.lat, destination.lng) / 1000).toFixed(2) + 'km' : '-';
+      const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
+      let totalDistanceStr = '-';
+      if (activePath.length > 0) {
+        let dist = 0;
+        for (let i = 0; i < activePath.length - 1; i++) {
+          dist += calculateDistance(activePath[i].lat, activePath[i].lng, activePath[i+1].lat, activePath[i+1].lng);
+        }
+        totalDistanceStr = (dist / 1000).toFixed(2) + 'km';
+      }
 
       onSaveRecord({
         date: new Date().toISOString(),
         mode: gameMode,
-        distance: totalDistance,
+        distance: totalDistanceStr,
         zombieSpeed: selectedZombieSpeed,
         result: '-', // 중간 종료는 '-'로 표시
-        routePath: routePath,
+        routePath: activePath,
       });
     }
     // 기록 저장 후 인트로 화면으로 이동
@@ -743,7 +753,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       // 게임 진행 중에만 종료 확인 창을 띄웁니다.
-      if (routePath.length > 0 && !isGameOver) {
+      const isActive = (gameMode === 'record' || gameMode === 'survival') ? recordedPath.length > 0 : routePath.length > 0;
+      if (isActive && !isGameOver) {
         e.preventDefault();
         // 대부분의 최신 브라우저에서는 사용자 정의 메시지를 무시하지만, 호환성을 위해 설정합니다.
         e.returnValue = '';
@@ -791,7 +802,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           setMapCenter({ lat: center.getLat(), lng: center.getLng() });
         }}
         onClick={(_t, mouseEvent) => {
-          if (isGameOver || gameMode === 'record') return; // 게임 오버 상태이거나 경로 기록 모드일 때는 클릭 무시
+          if (isGameOver || gameMode === 'record' || gameMode === 'survival') return; // 게임 오버 상태이거나 경로 기록/서바이벌 모드일 때는 클릭 무시
 
           // [조건 체크] 이미 선택된 경로(routePath)가 존재하는지 확인
           if (routePath && routePath.length > 0) {
@@ -819,7 +830,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         )}
         <Polyline
           // 좀비 추격 경로 또는 도보 기록 경로
-          path={gameMode === 'record' ? recordedPath : routePath}
+          path={(gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath}
           strokeWeight={5}
           strokeColor={"#FF0000"}
           strokeOpacity={0.8}
@@ -843,7 +854,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       {/* 뒤로가기 버튼 */}
       <button
         onClick={() => {
-          if (routePath.length > 0 && !isGameOver) {
+          const isActive = (gameMode === 'record' || gameMode === 'survival') ? recordedPath.length > 0 : routePath.length > 0;
+          if (isActive && !isGameOver) {
             setShowExitConfirm(true);
           } else {
             onExit();
@@ -873,7 +885,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       </button>
 
       {/* 좀비 추적 ON/OFF 버튼 */}
-      {routePath.length > 0 && !isGameOver && (
+      {((gameMode === 'record' || gameMode === 'survival') ? recordedPath.length > 0 : routePath.length > 0) && !isGameOver && (
         <button
           onClick={() => {
             const nextState = !isFollowingZombie;
@@ -1367,12 +1379,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                     <span>경로를 지정하세요</span>
                   )
                 ) : ( // SURVIVAL 모드일 때
-                  routePath.length > 0 ? ( // 경로가 설정되었으면 좀비와의 거리 표시
+                  recordedPath.length > 0 ? ( // 경로가 설정되었으면 좀비와의 거리 표시
                     <span>
                       좀비와의 거리: {distance !== null ? `${distance}m` : countdown}
                     </span>
                   ) : (
-                    <span>경로를 지정하세요</span>
+                    <span>탈출구 찾는 중...</span>
                   )
                 )}
               </div>
@@ -1394,7 +1406,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             </select>
           </div>
 
-          {routePath.length > 0 && (
+          {routePath.length > 0 && gameMode !== 'survival' && (
             <button onClick={handleResetZombie} className="hud-reset-btn">
               RESTART PURSUIT
             </button>
