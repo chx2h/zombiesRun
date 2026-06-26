@@ -341,9 +341,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     audioCtxRef.current = ctx;
   }, []);
 
-  // 경로 기록 모드 또는 서바이벌 모드일 때 첫 좌표가 들어오면 좀비 스폰 타이머 작동
+  // 경로 기록 모드 또는 서바이벌 모드일 때 첫 궤적이 형성되면(길이 2) 좀비 스폰 타이머 작동
   useEffect(() => {
-    if (((gameMode === 'record' && isRecording) || gameMode === 'survival') && recordedPath.length === 1) {
+    if (((gameMode === 'record' && isRecording) || gameMode === 'survival') && recordedPath.length === 2) {
       // 오디오 활성화
       initAudio();
       if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
