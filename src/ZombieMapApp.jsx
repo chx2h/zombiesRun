@@ -7,11 +7,11 @@ const getZombieEmoji = (level) => {
   const emojis = [
     "🦠", "🐛", "🐌", "🍄", "💀", "👻", "👽", "🎃", "🦇", "🐺",  // 1 ~ 10
     "🐗", "🕷️", "🦂", "🐍", "🦎", "🐊", "🐅", "🐆", "🦍", "🧟‍♀️", // 11 ~ 20
-    "🧟‍♂️", "🧟", "🧟‍♀️🏃", "🧟‍♂️🏃", "🧛‍♀️", "🧛‍♂️", "🧛", "🧙‍♀️", "🧙‍♂️", "🧙", // 21 ~ 30
+    "🧟‍♂️", "🧟", "🧟‍♀️", "🧟‍♂️", "🧛‍♀️", "🧛‍♂️", "🧛", "🧙‍♀️", "🧙‍♂️", "🧙", // 21 ~ 30
     "👹", "👺", "👾", "🤖", "🦖", "🦕", "🐉", "🐊🔥", "👹🔥", "👺🔥", // 31 ~ 40
     "⚡🧟", "🔥🧟", "❄️🧟", "☠️🧟", "👿🧟", "🌋🧟", "☣️🧟", "🌀🧟", "👑🧟", "👹👑🧟" // 41 ~ 50
   ];
-  
+
   const idx = Math.min(Math.max(1, Number(level)), 50) - 1;
   return emojis[idx] || "🧟";
 };
@@ -118,8 +118,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         setZombiePosition(startPos);
         zombiePosRef.current = startPos;
         setCountdown(0);
-      console.log("즐겨찾기 경로로 좀비 출현!");
-    }, selectedSpawnDelay * 1000);
+        console.log("즐겨찾기 경로로 좀비 출현!");
+      }, selectedSpawnDelay * 1000);
     }
 
     setShowFavorites(false); // 리스트 창 닫기
@@ -233,7 +233,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       setMapCenter({ lat: targetLat, lng: targetLng });
       return;
     }
-    
+
     const center = mapRef.current.getCenter();
     const startLat = center.getLat();
     const startLng = center.getLng();
@@ -242,7 +242,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     const step = (now) => {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      
+
       // easeOutCubic 이징
       const easeProgress = 1 - Math.pow(1 - progress, 3);
 
@@ -468,8 +468,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           setZombiePosition(startPos);
           zombiePosRef.current = startPos;
           setCountdown(0);
-        console.log("좀비출현 (복사된 경로)!");
-      }, selectedSpawnDelay * 1000);
+          console.log("좀비출현 (복사된 경로)!");
+        }, selectedSpawnDelay * 1000);
       }
     }
   }, [initialRoutePath, selectedSpawnDelay, gameMode]);
@@ -824,7 +824,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       if (activePath.length > 0) {
         let dist = 0;
         for (let i = 0; i < activePath.length - 1; i++) {
-          dist += calculateDistance(activePath[i].lat, activePath[i].lng, activePath[i+1].lat, activePath[i+1].lng);
+          dist += calculateDistance(activePath[i].lat, activePath[i].lng, activePath[i + 1].lat, activePath[i + 1].lng);
         }
         totalDistanceStr = (dist / 1000).toFixed(2) + 'km';
       }
@@ -848,7 +848,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       if (activePath.length > 0) {
         let dist = 0;
         for (let i = 0; i < activePath.length - 1; i++) {
-          dist += calculateDistance(activePath[i].lat, activePath[i].lng, activePath[i+1].lat, activePath[i+1].lng);
+          dist += calculateDistance(activePath[i].lat, activePath[i].lng, activePath[i + 1].lat, activePath[i + 1].lng);
         }
         totalDistanceStr = (dist / 1000).toFixed(2) + 'km';
       }
@@ -1464,7 +1464,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                 <span>총 거리: {(() => {
                   let total = 0;
                   for (let i = 0; i < recordedPath.length - 1; i++) {
-                    total += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i+1].lat, recordedPath[i+1].lng);
+                    total += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i + 1].lat, recordedPath[i + 1].lng);
                   }
                   return total;
                 })()}m</span>
@@ -1485,7 +1485,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             >
               {isRecording ? '기록 일시정지' : (recordedPath.length > 0 ? '기록 다시 시작' : '기록 시작')}
             </button>
-            
+
             {recordedPath.length > 0 && (
               <button
                 onClick={() => {
@@ -1595,13 +1595,13 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             /* 다른 모드는 기존 슬라이더 유지 */
             <div className="hud-control-row">
               <label className="hud-label">좀비 속도 ({selectedZombieSpeed}/50)</label>
-              <input 
-                type="range" 
-                min="1" 
-                max="50" 
-                value={selectedZombieSpeed} 
-                onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} 
-                style={{ flexGrow: 1, accentColor: '#f43f5e' }} 
+              <input
+                type="range"
+                min="1"
+                max="50"
+                value={selectedZombieSpeed}
+                onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))}
+                style={{ flexGrow: 1, accentColor: '#f43f5e' }}
               />
             </div>
           )}
@@ -1785,7 +1785,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                     routePath: recordedPath,
                     isCustom: true // 직접 제작 경로 플래그 설정
                   };
-                  
+
                   // 비동기 상태 업데이트 지연 및 언마운트로 인한 유실 방지를 위해 로컬 스토리지 즉시 동기 쓰기 진행
                   const saved = localStorage.getItem('zombie_route_favorites');
                   const currentFavs = saved ? JSON.parse(saved) : [];
@@ -1793,12 +1793,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                   localStorage.setItem('zombie_route_favorites', JSON.stringify(updatedFavs));
 
                   setFavorites(updatedFavs);
-                  
+
                   // 게임 기록(History)에도 저장 연동
                   if (onSaveRecord) {
                     let totalDistance = 0;
                     for (let i = 0; i < recordedPath.length - 1; i++) {
-                      totalDistance += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i+1].lat, recordedPath[i+1].lng);
+                      totalDistance += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i + 1].lat, recordedPath[i + 1].lng);
                     }
                     const formattedDistance = (totalDistance / 1000).toFixed(2) + 'km';
 
@@ -1813,7 +1813,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                   }
 
                   setShowSaveModal(false);
-                  
+
                   // [수정] 시스템 얼럿 대신 성공 모달 띄우기
                   setShowSaveSuccess(true);
                 }}

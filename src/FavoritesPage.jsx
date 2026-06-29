@@ -497,6 +497,8 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                 onClick={() => handleSelectBestRecordDate(bestSurvivalRecord.date)}
                 style={{
                   marginTop: '15px',
+                  marginLeft: '8px',
+                  marginRight: '8px',
                   backgroundColor: 'rgba(234, 179, 8, 0.1)',
                   border: '1.5px solid #eab308',
                   borderRadius: '10px',
@@ -504,16 +506,18 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                   textAlign: 'center',
                   cursor: 'pointer',
                   boxShadow: '0 0 12px rgba(234, 179, 8, 0.2)',
-                  transition: 'transform 0.2s, background-color 0.2s',
+                  transition: 'transform 0.2s, background-color 0.2s, box-shadow 0.2s',
                   color: '#fef08a'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.02)';
+                  e.currentTarget.style.transform = 'scale(1.01)';
                   e.currentTarget.style.backgroundColor = 'rgba(234, 179, 8, 0.18)';
+                  e.currentTarget.style.boxShadow = '0 0 18px rgba(234, 179, 8, 0.4)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'scale(1)';
                   e.currentTarget.style.backgroundColor = 'rgba(234, 179, 8, 0.1)';
+                  e.currentTarget.style.boxShadow = '0 0 12px rgba(234, 179, 8, 0.2)';
                 }}
               >
                 <strong style={{ color: '#eab308', display: 'block', fontSize: '0.9rem', marginBottom: '3px' }}>
