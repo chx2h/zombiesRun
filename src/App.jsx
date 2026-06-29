@@ -168,7 +168,7 @@ function App() {
             navigate('playing');
           }}>경로 만들기</button>
           <button className="menu-btn start-button" onClick={() => navigate('manual')}>
-            생존 설명서
+            생존 매뉴얼
           </button>
           <button className="menu-btn" onClick={() => navigate('favorites')}>
             즐겨찾기
