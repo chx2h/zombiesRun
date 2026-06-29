@@ -243,7 +243,6 @@ export default function ManualPage({ onBackToIntro }) {
           <button
             onClick={() => setActiveTab('record')}
             className={`tab-btn ${activeTab === 'record' ? 'active-record' : ''}`}
-            style={activeTab === 'record' ? { borderColor: '#10b981', color: '#10b981' } : {}}
           >
             <span>🗺️ 경로 만들기</span>
           </button>
