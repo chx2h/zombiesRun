@@ -199,7 +199,7 @@ code {
   cursor: pointer;
   font-weight: 700;
   transition: all 0.2s;
-  width: 220px;
+  width: 180px;
   text-align: center;
   /* 텍스트 정렬을 가독성에 좋은 중앙 정렬로 변경 */
   border-radius: 8px;
