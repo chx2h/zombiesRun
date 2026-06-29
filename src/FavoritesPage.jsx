@@ -201,7 +201,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
           className={`tab-btn ${activeTab === 'favorites' ? 'active-run' : ''}`}
           style={{ padding: '10px' }}
         >
-          <span>⭐ 즐겨찾기 경로</span>
+          <span>⭐ 경로 생성</span>
         </button>
         <button
           onClick={() => setActiveTab('history')}
@@ -516,7 +516,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
             {/* 모달 바디 (리스트) */}
             <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
               <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 12px 0' }}>
-                ※ 경로를 터치하면 해당 코스로 복습 훈련(RUN 모드)을 기동합니다.
+                ※ 경로를 터치하면 해당 코스로 복습 훈련(RUN 모드)을 시작 합니다.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {selectedDateRecords.map((record, index) => {

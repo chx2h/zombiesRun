@@ -261,7 +261,6 @@ export default function ManualPage({ onBackToIntro }) {
           {activeTab === 'survival' && (
             <div className="tab-pane-content">
               <div className="pane-header">
-                <div className="pane-number" style={{ color: '#ef4444' }}>01</div>
                 <div>
                   <h3 style={{ color: '#ef4444' }}>SURVIVAL: 실시간 추격</h3>
                   <p className="pane-desc">내 실제 발자취를 추격해오는 좀비로부터 무한히 생존하세요.</p>
@@ -271,7 +270,7 @@ export default function ManualPage({ onBackToIntro }) {
               <div className="info-grid">
                 <div className="info-card" style={{ borderColor: '#ef4444' }}>
                   <h4 style={{ color: '#ef4444' }}>👣 이동 궤적 추적 (발자국 따라오기)</h4>
-                  <p>미리 그려진 루트는 없습니다. 사용자가 실제 거리를 이동하며 남긴 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>붉은색 발자국 라인</span>을 따라 좀비가 소환되어 그대로 뒤따라옵니다.</p>
+                  <p>정해진 탈출구는 없습니다. 사용자가 실제 거리를 이동하며 남긴 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>붉은색 발자국 라인</span>을 따라 좀비가 소환되어 그대로 뒤따라옵니다.</p>
                 </div>
                 <div className="info-card" style={{ borderColor: '#ef4444' }}>
                   <h4 style={{ color: '#ef4444' }}>⚡ 실시간 레벨 성장 (방심 금지)</h4>
@@ -279,8 +278,36 @@ export default function ManualPage({ onBackToIntro }) {
                 </div>
               </div>
 
-              <div className="advice-box" style={{ borderColor: '#ef4444' }}>
-                <p><strong style={{ color: '#ef4444' }}>💀 사망 및 승리 규칙:</strong> 별도의 목적지 없이 버티는 모드입니다. 좀비가 사용자 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>5m 이내로 들어오면 사망</span>합니다. 골목길을 꺾어 따돌리거나 가볍게 제동해 거리를 좁혀(20m 이내) 좀비 속도를 통제하며 오래 생존하세요. 최종 생존 레벨이 일지에 남습니다.</p>
+              {/* <div className="advice-box" style={{ borderColor: '#ef4444' }}>
+                <p><strong style={{ color: '#ef4444' }}>🚨 사망 및 관리 규칙:</strong> 별도의 목적지 없이 버티는 모드이며, 좀비가 사용자 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>5m 이내로 들어오면 사망</span>합니다. 골목길을 꺾어 따돌리거나 가볍게 이동해 거리를 좁혀(20m 이내) 좀비 속도를 억제하며 오래 생존하세요. 최종 생존 레벨이 기록에 보관됩니다.</p>
+              </div> */}
+
+              <div className="simulator-section" style={{ borderTop: '1px solid rgba(239, 68, 68, 0.3)', marginTop: '0.75rem', paddingTop: '0.75rem' }}>
+                <h4 style={{ color: '#ef4444', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: 'bold' }}>🧟 실시간 좀비 진화 단계 도감</h4>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '0.5rem 1rem',
+                  fontSize: '0.8rem',
+                  color: '#cbd5e1',
+                  background: 'rgba(2, 6, 23, 0.8)',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  maxHeight: '150px',
+                  overflowY: 'auto'
+                }}>
+                  <div><strong style={{ color: '#ef4444' }}>Lv.1~10:</strong> 🦠 애벌레/유령/해골 등 약체 단계</div>
+                  <div><strong style={{ color: '#ef4444' }}>Lv.11~20:</strong> 🐗 전갈/악어 등 맹수 및 감염 야수</div>
+                  <div><strong style={{ color: '#ef4444' }}>Lv.21~30:</strong> 🧟 변종 좀비 및 흡혈귀 단계</div>
+                  <div><strong style={{ color: '#ef4444' }}>Lv.31~40:</strong> 👹 지옥 괴수 및 공룡/화염 악마</div>
+                  <div><strong style={{ color: '#ef4444' }}>Lv.41~49:</strong> ⚡ 속성 특화 초월 좀비 및 로드 좀비</div>
+                  <div><strong style={{ color: '#ef4444' }}>Lv.50 (Max):</strong> 👹👑 <strong>타이런트 좀비 킹</strong></div>
+
+                  <div style={{ gridColumn: 'span 2', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '6px', fontSize: '0.7rem', color: '#94a3b8', lineHeight: '1.4' }}>
+                    ※ 20m 이상 거리 방치 시 좀비가 폭발적으로 가속 진화하며, 획득한 실시간 레벨에 맞춰 지도 위의 좀비 마커와 버튼 외관이 실시간으로 갱신 및 변이합니다.
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -289,7 +316,6 @@ export default function ManualPage({ onBackToIntro }) {
           {activeTab === 'run' && (
             <div className="tab-pane-content">
               <div className="pane-header">
-                <div className="pane-number" style={{ color: '#4ade80' }}>02</div>
                 <div>
                   <h3 style={{ color: '#4ade80' }}>RUN: 코스 도보 탈출</h3>
                   <p className="pane-desc">미리 설정한 탈출로를 따라 좀비보다 먼저 골인 지점에 도달하세요.</p>
@@ -317,26 +343,25 @@ export default function ManualPage({ onBackToIntro }) {
           {activeTab === 'record' && (
             <div className="tab-pane-content">
               <div className="pane-header">
-                <div className="pane-number" style={{ color: '#10b981' }}>03</div>
                 <div>
-                  <h3 style={{ color: '#10b981' }}>RECORD: 경로 개척</h3>
+                  <h3 style={{ color: '#c084fc' }}>RECORD: 경로 개척</h3>
                   <p className="pane-desc">직접 안전 코스를 도보로 이동하며 나만의 시그니처 대피로를 개척합니다.</p>
                 </div>
               </div>
 
               <div className="info-grid">
-                <div className="info-card" style={{ borderColor: '#10b981' }}>
-                  <h4 style={{ color: '#10b981' }}>📡 실시간 GPS 경로 매핑</h4>
-                  <p>작전 지역을 실제로 직접 걸어 다니며 <span style={{ color: '#10b981', fontWeight: 'bold' }}>실시간 GPS 경로</span>를 지도 위에 그립니다. 최소 3미터 이상 걷거나 달릴 때마다 경로 포인트가 정확히 누적 기록됩니다.</p>
+                <div className="info-card" style={{ borderColor: '#c084fc' }}>
+                  <h4 style={{ color: '#c084fc' }}>📡 실시간 GPS 경로 매핑</h4>
+                  <p>작전 지역을 실제로 직접 걸어 다니며 <span style={{ color: '#c084fc', fontWeight: 'bold' }}>실시간 GPS 경로</span>를 지도 위에 그립니다. 최소 3미터 이상 걷거나 달릴 때마다 경로 포인트가 정확히 누적 기록됩니다.</p>
                 </div>
-                <div className="info-card" style={{ borderColor: '#10b981' }}>
-                  <h4 style={{ color: '#10b981' }}>⭐ 기록 보관소 유기적 연동</h4>
-                  <p>기록이 끝난 경로는 맞춤 이름을 지정하여 즐겨찾기로 저장합니다. 이 저장된 경로는 **기록 보관소**에서 탭 한 번으로 **즉시 런 모드로 플레이**하거나, **서바이벌 모드**의 길잡이 가이드선으로 불러올 수 있습니다.</p>
+                <div className="info-card" style={{ borderColor: '#c084fc' }}>
+                  <h4 style={{ color: '#c084fc' }}>⭐ 기록 보관소 유기적 연동</h4>
+                  <p>기록이 끝난 경로는 맞춤 이름을 지정하여 즐겨찾기로 저장합니다. 이 저장된 경로는 <span style={{ fontWeight: 'bold', color: '#f1f5f9' }}>기록 보관소</span>에서 탭 한 번으로 <span className="highlight-green">즉시 런 모드로 플레이</span>하거나, <span className="highlight-red">서바이벌 모드</span>의 길잡이 가이드선으로 불러올 수 있습니다.</p>
                 </div>
               </div>
 
-              <div className="advice-box" style={{ borderColor: '#10b981' }}>
-                <p><strong style={{ color: '#10b981' }}>💡 생존 응용팁:</strong> 대낮이나 안전한 이동 시간에 거주지 근처 공원, 자주 다니는 조깅 코스, 소방 대피로 등을 미리 기록하여 즐겨찾기에 보관해두면 다양한 생존 가상 훈련을 완성할 수 있습니다.</p>
+              <div className="advice-box" style={{ borderColor: '#c084fc' }}>
+                <p><strong style={{ color: '#c084fc' }}>💡 생존 응용팁:</strong> 대낮이나 안전한 이동 시간에 거주지 근처 공원, 자주 다니는 조깅 코스, 소방 대피로 등을 미리 기록하여 즐겨찾기에 보관해두면 다양한 생존 가상 훈련을 완성할 수 있습니다.</p>
               </div>
             </div>
           )}
@@ -345,7 +370,6 @@ export default function ManualPage({ onBackToIntro }) {
           {activeTab === 'gear' && (
             <div className="tab-pane-content">
               <div className="pane-header">
-                <div className="pane-number text-cyan">04</div>
                 <div>
                   <h3 className="text-cyan">SENSOR: 다차원 피드백</h3>
                   <p className="pane-desc">청각, 촉각, 시각 정보를 이용해 좀비의 근접을 본능적으로 감지합니다.</p>

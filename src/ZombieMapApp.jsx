@@ -2,6 +2,20 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Map, Polyline, CustomOverlayMap, Circle } from 'react-kakao-maps-sdk';
 import zombieSfx from './assets/dragon-studio-female-zombie-screams-324744.mp3';
 
+// 레벨 1부터 50까지의 좀비 이모지를 반환하는 헬퍼 함수
+const getZombieEmoji = (level) => {
+  const emojis = [
+    "🦠", "🐛", "🐌", "🍄", "💀", "👻", "👽", "🎃", "🦇", "🐺",  // 1 ~ 10
+    "🐗", "🕷️", "🦂", "🐍", "🦎", "🐊", "🐅", "🐆", "🦍", "🧟‍♀️", // 11 ~ 20
+    "🧟‍♂️", "🧟", "🧟‍♀️🏃", "🧟‍♂️🏃", "🧛‍♀️", "🧛‍♂️", "🧛", "🧙‍♀️", "🧙‍♂️", "🧙", // 21 ~ 30
+    "👹", "👺", "👾", "🤖", "🦖", "🦕", "🐉", "🐊🔥", "👹🔥", "👺🔥", // 31 ~ 40
+    "⚡🧟", "🔥🧟", "❄️🧟", "☠️🧟", "👿🧟", "🌋🧟", "☣️🧟", "🌀🧟", "👑🧟", "👹👑🧟" // 41 ~ 50
+  ];
+  
+  const idx = Math.min(Math.max(1, Number(level)), 50) - 1;
+  return emojis[idx] || "🧟";
+};
+
 // 좀비 최대 속도 기준 (보행자 경로의 정밀도를 고려해 밸런싱)
 const ZOMBIE_SPEED_BASE = 0.000002; // 기본 속도를 더 낮춰서 1일 때 훨씬 느리게
 
@@ -97,14 +111,16 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     setCountdown(selectedSpawnDelay);
 
     // 지정된 딜레이 후 좀비 출현
-    spawnTimerRef.current = setTimeout(() => {
-      const startPos = fav.routePath[0];
-      pathIndexRef.current = 0;
-      setZombiePosition(startPos);
-      zombiePosRef.current = startPos;
-      setCountdown(0);
+    if (gameMode !== 'survival') {
+      spawnTimerRef.current = setTimeout(() => {
+        const startPos = fav.routePath[0];
+        pathIndexRef.current = 0;
+        setZombiePosition(startPos);
+        zombiePosRef.current = startPos;
+        setCountdown(0);
       console.log("즐겨찾기 경로로 좀비 출현!");
     }, selectedSpawnDelay * 1000);
+    }
 
     setShowFavorites(false); // 리스트 창 닫기
   };
@@ -209,6 +225,46 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
   // 애니메이션 및 오디오 제어용 Refs
   const mapRef = useRef(null); // mapRef 선언
+  const isFirstPositionFoundRef = useRef(false);
+
+  // 지도를 지정 좌표로 스와이프하듯이 부드럽게 이동시키는 함수 (Lerp 애니메이션)
+  const animatePanTo = (targetLat, targetLng, duration = 800) => {
+    if (!mapRef.current || !window.kakao || !window.kakao.maps) {
+      setMapCenter({ lat: targetLat, lng: targetLng });
+      return;
+    }
+    
+    const center = mapRef.current.getCenter();
+    const startLat = center.getLat();
+    const startLng = center.getLng();
+    const startTime = performance.now();
+
+    const step = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // easeOutCubic 이징
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+      const nextLat = startLat + (targetLat - startLat) * easeProgress;
+      const nextLng = startLng + (targetLng - startLng) * easeProgress;
+
+      try {
+        const newLatLng = new window.kakao.maps.LatLng(nextLat, nextLng);
+        mapRef.current.setCenter(newLatLng);
+      } catch (e) {
+        console.error("animatePanTo setCenter error:", e);
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        setMapCenter({ lat: targetLat, lng: targetLng });
+      }
+    };
+
+    requestAnimationFrame(step);
+  };
   const requestRef = useRef();
   const pathIndexRef = useRef(0);
   const audioCtxRef = useRef(null);
@@ -275,6 +331,19 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserPosition(newPos);
         userPosRef.current = newPos;
+
+        // 최초 1회 현재 위치를 찾았을 때 부드럽게 스와이프하며 이동
+        if (!isFirstPositionFoundRef.current) {
+          isFirstPositionFoundRef.current = true;
+          setTimeout(() => {
+            if (mapRef.current) {
+              animatePanTo(newPos.lat, newPos.lng);
+            } else {
+              setMapCenter(newPos);
+            }
+          }, 200);
+        }
+
         console.log("현재 위치 수신:", newPos);
       }, (err) => console.error("위치 추적 실패:", err),
       { enableHighAccuracy: true }
@@ -387,21 +456,23 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       setRoutePath(initialRoutePath);
       setMapCenter(initialRoutePath[0]);
 
-      if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current);
-      setZombiePosition(null);
-      zombiePosRef.current = null;
-      setCountdown(selectedSpawnDelay);
+      if (gameMode !== 'survival') {
+        if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current);
+        setZombiePosition(null);
+        zombiePosRef.current = null;
+        setCountdown(selectedSpawnDelay);
 
-      spawnTimerRef.current = setTimeout(() => {
-        const startPos = initialRoutePath[0];
-        pathIndexRef.current = 0;
-        setZombiePosition(startPos);
-        zombiePosRef.current = startPos;
-        setCountdown(0);
-        console.log("좀비 출현 (재사용 경로)!");
+        spawnTimerRef.current = setTimeout(() => {
+          const startPos = initialRoutePath[0];
+          pathIndexRef.current = 0;
+          setZombiePosition(startPos);
+          zombiePosRef.current = startPos;
+          setCountdown(0);
+        console.log("좀비출현 (복사된 경로)!");
       }, selectedSpawnDelay * 1000);
+      }
     }
-  }, [initialRoutePath, selectedSpawnDelay]);
+  }, [initialRoutePath, selectedSpawnDelay, gameMode]);
 
   // 첫 사용자 상호작용 시 오디오 시작/재개 처리
   useEffect(() => {
@@ -850,6 +921,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       )}
       <Map
         center={mapCenter}
+        isPanto={true} // 중심좌표 변경 시 부드럽게 이동(PanTo)하도록 설정
         style={{ width: "100%", height: "100%" }}
         level={4} // 초기 줌 레벨을 4로 조정하여 좀 더 넓은 시야 제공
         onCreate={(map) => (mapRef.current = map)}
@@ -886,7 +958,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         )}
         {zombiePosition && (
           <CustomOverlayMap position={zombiePosition}>
-            <div style={{ fontSize: '30px' }}>🧟</div>
+            <div style={{ fontSize: '30px' }}>{getZombieEmoji(selectedZombieSpeed)}</div>
           </CustomOverlayMap>
         )}
         {/* 가이드 경로 (RUN 모드의 목표 경로 또는 서바이벌 모드에서 즐겨찾기로 불러온 가이드 경로) */}
@@ -967,6 +1039,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             setIsFollowingUser(nextState);
             if (nextState) {
               setIsFollowingZombie(false); // 사용자 추적 시 좀비 추적은 해제
+              if (userPosition) {
+                animatePanTo(userPosition.lat, userPosition.lng);
+              }
             }
           }}
           style={{
@@ -1002,6 +1077,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             setIsFollowingZombie(nextState);
             if (nextState) {
               setIsFollowingUser(false); // 좀비 추적 시 사용자 추적은 해제
+              if (zombiePosition) {
+                animatePanTo(zombiePosition.lat, zombiePosition.lng);
+              }
             }
           }}
           style={{
@@ -1025,7 +1103,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             opacity: isFollowingZombie ? 1 : 0.6
           }}
         >
-          🧟
+          {getZombieEmoji(selectedZombieSpeed)}
         </button>
       )}
 
@@ -1035,7 +1113,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           onClick={() => {
             const targetPath = routePath.length > 0 ? routePath : recordedPath;
             if (targetPath && targetPath.length > 0) {
-              setMapCenter(targetPath[0]);
+              animatePanTo(targetPath[0].lat, targetPath[0].lng);
               setIsFollowingUser(false);
               setIsFollowingZombie(false);
             }
