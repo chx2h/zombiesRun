@@ -196,7 +196,7 @@ export default function ManualPage({ onBackToIntro }) {
   }, []);
 
   return (
-    <div 
+    <div
       className="manual-page-container"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -232,25 +232,25 @@ export default function ManualPage({ onBackToIntro }) {
             onClick={() => setActiveTab('survival')}
             className={`tab-btn ${activeTab === 'survival' ? 'active-survival' : ''}`}
           >
-            <span>🧟 SURVIVAL 모드</span>
+            <span>🧟<br />SURVIVAL<br />모드</span>
           </button>
           <button
             onClick={() => setActiveTab('run')}
             className={`tab-btn ${activeTab === 'run' ? 'active-run' : ''}`}
           >
-            <span>🏃 RUN 모드</span>
+            <span>🏃<br />RUN<br />모드</span>
           </button>
           <button
             onClick={() => setActiveTab('record')}
             className={`tab-btn ${activeTab === 'record' ? 'active-record' : ''}`}
           >
-            <span>🗺️ 경로 만들기</span>
+            <span>🗺️<br />경로<br />만들기</span>
           </button>
           <button
             onClick={() => setActiveTab('gear')}
             className={`tab-btn ${activeTab === 'gear' ? 'active-gear' : ''}`}
           >
-            <span>📡 전술 피드백</span>
+            <span>📡<br />전술<br />피드백</span>
           </button>
         </div>
 
