@@ -88,7 +88,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
       const savedRecords = JSON.parse(localStorage.getItem('gameRecords') || '[]');
       const updatedRecords = savedRecords.filter(rec => rec.date !== dateString);
       localStorage.setItem('gameRecords', JSON.stringify(updatedRecords));
-      
+
       // 상태 즉시 동기화
       const updatedSorted = updatedRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setHistory(updatedSorted);
@@ -140,6 +140,32 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
     setCurrentDate(new Date(year, month + 1, 1));
   };
 
+  // --- 터치 스와이프 상태 ---
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (showDetailModal) return;
+
+    const deltaX = touchStartX.current - touchEndX.current;
+    const swipeThreshold = 60;
+
+    if (deltaX > swipeThreshold) {
+      handleNextMonth();
+    } else if (deltaX < -swipeThreshold) {
+      handlePrevMonth();
+    }
+  };
+
   const handleDateClick = (date, records) => {
     if (!date || records.length === 0) return;
     setSelectedDateRecords(records);
@@ -182,7 +208,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
           className={`tab-btn ${activeTab === 'history' ? 'active-survival' : ''}`}
           style={{ padding: '10px' }}
         >
-          <span>📜 게임 플레이 기록</span>
+          <span>📜 생존 기록</span>
         </button>
       </div>
 
@@ -208,7 +234,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
               </thead>
               <tbody>
                 {favorites.map((fav) => (
-                  <tr 
+                  <tr
                     key={fav.id}
                     onClick={() => {
                       if (fav.routePath && fav.routePath.length > 0) {
@@ -257,11 +283,11 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                           }}
                         />
                       ) : (
-                        <span 
+                        <span
                           onClick={(e) => startEditing(e, fav)}
                           title="클릭하여 이름 수정"
-                          style={{ 
-                            fontWeight: 'bold', 
+                          style={{
+                            fontWeight: 'bold',
                             color: '#f8fafc',
                             borderBottom: '1px dashed #64748b',
                             cursor: 'pointer',
@@ -275,7 +301,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                     <td>{getRouteDistance(fav.routePath)}</td>
                     <td>{fav.routePath.length}개</td>
                     <td>
-                      <button 
+                      <button
                         onClick={(e) => handleDeleteFavorite(e, fav.id)}
                         style={{
                           backgroundColor: 'rgba(239, 68, 68, 0.2)',
@@ -300,10 +326,15 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
           )
         ) : (
           /* 게임 플레이 기록 달력 */
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '500px', margin: '0 auto' }}>
+          <div 
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '500px', margin: '0 auto' }}
+          >
             {/* 달력 헤더 (월 변경) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', padding: '0 8px' }}>
-              <button 
+              <button
                 onClick={handlePrevMonth}
                 style={{
                   backgroundColor: 'rgba(30, 41, 59, 0.8)',
@@ -322,7 +353,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
               <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#ef4444', fontFamily: 'var(--mono)', letterSpacing: '0.05em' }}>
                 {year} . {String(month + 1).padStart(2, '0')}
               </h3>
-              <button 
+              <button
                 onClick={handleNextMonth}
                 style={{
                   backgroundColor: 'rgba(30, 41, 59, 0.8)',
@@ -363,11 +394,11 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
                 {days.map((day, idx) => {
                   if (!day) return <div key={`empty-${idx}`} />;
-                  
+
                   const records = getRecordsForDate(day);
                   const isToday = getLocalDateStr(new Date()) === getLocalDateStr(day);
                   const hasRecords = records.length > 0;
-                  
+
                   // 해당 일 요일 판단 (일요일: 0, 토요일: 6)
                   const dayOfWeek = day.getDay();
                   let color = '#f8fafc';
@@ -378,7 +409,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                   const hasWin = records.some(r => r.result === '탈출');
                   const hasLose = records.some(r => r.result === '사망');
                   const hasRecordMode = records.some(r => r.result === '생성');
-                  
+
                   let dotColor = '#cbd5e1';
                   if (hasWin) dotColor = '#4ade80'; // 초록
                   else if (hasLose) dotColor = '#ef4444'; // 빨강
@@ -540,10 +571,10 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ 
-                          fontWeight: 'bold', 
+                        <span style={{
+                          fontWeight: 'bold',
                           fontSize: '14px',
-                          color: record.result === '탈출' ? '#4ade80' : (record.result === '사망' ? '#ef4444' : '#94a3b8') 
+                          color: record.result === '탈출' ? '#4ade80' : (record.result === '사망' ? '#ef4444' : '#94a3b8')
                         }}>
                           {record.result || '-'}
                         </span>
