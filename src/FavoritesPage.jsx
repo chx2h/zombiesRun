@@ -326,7 +326,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
           )
         ) : (
           /* 게임 플레이 기록 달력 */
-          <div 
+          <div
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -567,7 +567,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                           </span>
                         </div>
                         <div style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: 'bold' }}>
-                          거리: {record.distance || '-'} | 속도: {record.zombieSpeed ? `Lv.${record.zombieSpeed}` : '-'}
+                          거리: {record.distance || '-'} | 좀비: {record.zombieSpeed ? `Lv.${record.zombieSpeed}` : '-'}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

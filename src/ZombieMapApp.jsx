@@ -558,6 +558,18 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     return (speedLevel / 50) * ZOMBIE_SPEED_BASE;
   }, [selectedZombieSpeed, gameMode]);
 
+  const maxZombieLevel = useMemo(() => {
+    try {
+      const records = JSON.parse(localStorage.getItem('gameRecords') || '[]');
+      const survivalRecords = records.filter(rec => rec.mode === 'survival');
+      if (survivalRecords.length === 0) return 1;
+      const speeds = survivalRecords.map(rec => Number(rec.zombieSpeed || 0));
+      return Math.max(...speeds, 1);
+    } catch (e) {
+      return 1;
+    }
+  }, [gameResult, isGameOver]);
+
   /**
    * 프레임별 애니메이션 루프
    */
@@ -1496,6 +1508,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             <div className="hud-control-row" style={{ justifyContent: 'center', padding: '4px 0' }}>
               <span className="hud-label" style={{ fontSize: '0.8rem', color: '#ef4444' }}>
                 🧟 좀비 레벨: <strong style={{ fontSize: '0.95rem', marginLeft: '4px' }}>Lv.{selectedZombieSpeed}</strong>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: '8px' }}>
+                  (최고: Lv.{maxZombieLevel})
+                </span>
               </span>
             </div>
           ) : (
