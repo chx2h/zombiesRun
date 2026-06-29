@@ -264,23 +264,23 @@ export default function ManualPage({ onBackToIntro }) {
                 <div className="pane-number text-amber">01</div>
                 <div>
                   <h3 className="text-amber">SURVIVAL: 실시간 추격</h3>
-                  <p className="pane-desc">직접 밟은 궤적을 쫓아오는 좀비로부터 생존하세요.</p>
+                  <p className="pane-desc">내 실제 발자취를 추격해오는 좀비로부터 무한히 생존하세요.</p>
                 </div>
               </div>
 
               <div className="info-grid">
                 <div className="info-card" style={{ borderColor: '#ef4444' }}>
-                  <h4 style={{ color: '#ef4444' }}>이동 궤적 추적</h4>
-                  <p>미리 그려진 경로 없이, <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>사용자가 실제 걸어간 붉은 라인</span>을 따라 좀비가 소환되어 뒤쫓습니다.</p>
+                  <h4 style={{ color: '#ef4444' }}>👣 이동 궤적 추적 (발자국 따라오기)</h4>
+                  <p>미리 그려진 루트가 없습니다. 사용자가 실제 거리를 이동하며 남긴 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>붉은색 발자국 라인</span>을 따라 좀비가 소환되어 그대로 뒤따라옵니다.</p>
                 </div>
                 <div className="info-card" style={{ borderColor: '#ef4444' }}>
-                  <h4 style={{ color: '#ef4444' }}>실시간 레벨 성장</h4>
-                  <p>좀비는 최초 소환 시 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>레벨 1</span>의 속도로 추격을 시작하지만, 사용자와의 거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>20m 이상 벌어지면</span> 매초 레벨(속도)이 1씩 점차 증가하여 추격해 옵니다.</p>
+                  <h4 style={{ color: '#ef4444' }}>⚡ 실시간 레벨 성장 (방심 금지)</h4>
+                  <p>좀비는 최초 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>레벨 1 (초속 약 1m)</span>의 느린 속도로 출발하지만, 사용자와 거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>20m 이상 벌어지면 매초 레벨(속도)이 1씩 빠르게 증가</span>하여 질주합니다 (최대 Lv.50).</p>
                 </div>
               </div>
 
               <div className="advice-box" style={{ borderColor: '#ef4444' }}>
-                <p><strong style={{ color: '#ef4444' }}>TIP:</strong> 거리가 멀어지면 좀비가 성장하여 엄청난 속도로 다가오므로, 지그재그로 따돌려 거리를 좁히거나 기발한 동선으로 목적지에 도달하세요. 도달한 최종 레벨은 기록 보관소에 영구 보관됩니다.</p>
+                <p><strong style={{ color: '#ef4444' }}>💀 사망 및 승리 규칙:</strong> 별도의 목적지 없이 버티는 모드입니다. 좀비가 사용자 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>5m 이내로 들어오면 사망</span>합니다. 골목길을 꺾어 따돌리거나 가볍게 제동해 거리를 좁혀(20m 이내) 좀비 속도를 통제하며 오래 생존하세요. 최종 생존 레벨이 일지에 남습니다.</p>
               </div>
             </div>
           )}
@@ -291,24 +291,24 @@ export default function ManualPage({ onBackToIntro }) {
               <div className="pane-header">
                 <div className="pane-number text-rose">02</div>
                 <div>
-                  <h3 className="text-rose">RUN: 도보 탈출</h3>
-                  <p className="pane-desc">좀비보다 빠르게 목적지에 도착하세요.</p>
+                  <h3 className="text-rose">RUN: 코스 도보 탈출</h3>
+                  <p className="pane-desc">미리 설정한 탈출로를 따라 좀비보다 먼저 골인 지점에 도달하세요.</p>
                 </div>
               </div>
 
               <div className="info-grid">
                 <div className="info-card" style={{ borderColor: '#4ade80' }}>
-                  <h4 style={{ color: '#4ade80' }}>작전 설정</h4>
-                  <p>지도 클릭 시 생성되는 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>최적의 도보 경로</span>를 따라 탈출합니다.</p>
+                  <h4 style={{ color: '#4ade80' }}>📍 작전 경로 개척 (목적지 설정)</h4>
+                  <p>지도를 클릭하여 탈출 목적지(<span style={{ color: '#f43f5e', fontWeight: 'bold' }}>붉은색 플래그 🚩</span>)를 지정하면, 목적지까지의 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>최적의 도보 경로(초록색선)</span>가 지도에 자동으로 생성됩니다.</p>
                 </div>
                 <div className="info-card" style={{ borderColor: '#4ade80' }}>
-                  <h4 style={{ color: '#4ade80' }}>탈출 규칙</h4>
-                  <p>좀비가 출발점에서 시작해 최적 경로를 따라 추격합니다. 좀비보다 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>먼저 목적지(15m 이내)</span>에 도착해야 합니다.</p>
+                  <h4 style={{ color: '#4ade80' }}>🏁 선착순 골인 승부</h4>
+                  <p>좀비가 경로의 시작점(Start)에서 생성되어 가이드 경로를 타고 추적을 시작합니다. 좀비보다 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>먼저 목적지 15m 이내에 골인</span>하면 승리, 가로막히거나 좀비가 먼저 골인하면 패배합니다.</p>
                 </div>
               </div>
 
               <div className="advice-box" style={{ borderColor: '#4ade80' }}>
-                <p><strong style={{ color: '#4ade80' }}>TIP:</strong> 좀비가 내 뒤를 쫓아오며, 먼저 목적지에 다다르면 사망하므로 한 발 앞서 도망치세요.</p>
+                <p><strong style={{ color: '#4ade80' }}>🏃 훈련 조언:</strong> 시작 전 HUD 슬라이더를 통해 좀비의 추격 속도(1~50)를 임의로 조절할 수 있습니다. 자신의 런닝 속도에 맞는 적절한 속도로 난이도를 맞추어 탈출 작전을 승리로 이끄세요.</p>
               </div>
             </div>
           )}
@@ -319,24 +319,24 @@ export default function ManualPage({ onBackToIntro }) {
               <div className="pane-header">
                 <div className="pane-number" style={{ color: '#10b981' }}>03</div>
                 <div>
-                  <h3 style={{ color: '#10b981' }}>RECORD: 경로 제작</h3>
-                  <p className="pane-desc">나만의 안전한 도보 탈출 경로를 개척하고 기록합니다.</p>
+                  <h3 style={{ color: '#10b981' }}>RECORD: 경로 개척</h3>
+                  <p className="pane-desc">직접 안전 코스를 도보로 이동하며 나만의 시그니처 대피로를 개척합니다.</p>
                 </div>
               </div>
 
               <div className="info-grid">
                 <div className="info-card" style={{ borderColor: '#10b981' }}>
-                  <h4 style={{ color: '#10b981' }}>GPS 실시간 기록</h4>
-                  <p>GPS 신호를 실시간 수집하여 지도에 표시합니다. 최소 3미터 이상 이동 시 포인트가 누적되어 기록을 완성합니다.</p>
+                  <h4 style={{ color: '#10b981' }}>📡 실시간 GPS 경로 매핑</h4>
+                  <p>작전 지역을 실제로 직접 걸어 다니며 <span style={{ color: '#10b981', fontWeight: 'bold' }}>실시간 GPS 경로</span>를 지도 위에 그립니다. 최소 3미터 이상 걷거나 달릴 때마다 경로 포인트가 정확히 누적 기록됩니다.</p>
                 </div>
                 <div className="info-card" style={{ borderColor: '#10b981' }}>
-                  <h4 style={{ color: '#10b981' }}>즐겨찾기 보관</h4>
-                  <p>기록이 완료되면 이름을 지어 <span style={{ color: '#10b981', fontWeight: 'bold' }}>즐겨찾기</span>에 저장합니다. 저장된 경로는 언제든 RUN 모드로 플레이 가능합니다.</p>
+                  <h4 style={{ color: '#10b981' }}>⭐ 기록 보관소 유기적 연동</h4>
+                  <p>기록이 끝난 경로는 맞춤 이름을 지정하여 즐겨찾기로 저장합니다. 이 저장된 경로는 **기록 보관소**에서 탭 한 번으로 **즉시 런 모드로 플레이**하거나, **서바이벌 모드**의 길잡이 가이드선으로 불러올 수 있습니다.</p>
                 </div>
               </div>
 
               <div className="advice-box" style={{ borderColor: '#10b981' }}>
-                <p><strong style={{ color: '#10b981' }}>TIP:</strong> 기록 화면 HUD의 조작기를 이용하면 기록 중에도 실시간으로 좀비 속도 및 출현 대기시간을 조절할 수 있습니다.</p>
+                <p><strong style={{ color: '#10b981' }}>💡 생존 응용팁:</strong> 대낮이나 안전한 이동 시간에 거주지 근처 공원, 자주 다니는 조깅 코스, 소방 대피로 등을 미리 기록하여 즐겨찾기에 보관해두면 다양한 생존 가상 훈련을 완성할 수 있습니다.</p>
               </div>
             </div>
           )}
