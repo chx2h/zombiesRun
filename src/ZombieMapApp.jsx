@@ -832,6 +832,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         {/* 가이드 경로 (RUN 모드의 목표 경로 또는 서바이벌 모드에서 즐겨찾기로 불러온 가이드 경로) */}
         {routePath && routePath.length > 0 && (
           <Polyline
+            key={`guide-path-${routePath.length}`}
             path={routePath}
             strokeWeight={5}
             strokeColor={gameMode === 'survival' ? "#10b981" : "#FF0000"} // 서바이벌 가이드는 초록색, RUN 모드는 빨간색
@@ -842,6 +843,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         {/* 실제 도보 기록 경로 (기록 모드 또는 서바이벌 모드의 이동 궤적) */}
         {(gameMode === 'record' || gameMode === 'survival') && recordedPath && recordedPath.length > 0 && (
           <Polyline
+            key={`live-path-${recordedPath.length}`}
             path={recordedPath}
             strokeWeight={5}
             strokeColor={"#FF0000"} // 좀비가 쫓아오는 빨간 실시간 경로
