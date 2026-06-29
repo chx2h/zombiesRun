@@ -6,6 +6,41 @@ export default function ManualPage({ onBackToIntro }) {
   const [isAudioRunning, setIsAudioRunning] = useState(true); // 기본 활성화
   const [isVibrating, setIsVibrating] = useState(false);
 
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+    touchEndX.current = e.targetTouches[0].clientX; // 초기화
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    // 모의 훈련 시뮬레이터 슬라이더 등의 터치는 스와이프 탭 이동에서 제외
+    if (e.target.closest('.simulator-section') || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+      return;
+    }
+
+    const deltaX = touchStartX.current - touchEndX.current;
+    const swipeThreshold = 60; // 스와이프 감지를 위한 최소 임계값 (px)
+
+    const tabs = ['survival', 'run', 'record', 'gear'];
+    const currentIndex = tabs.indexOf(activeTab);
+
+    if (deltaX > swipeThreshold) {
+      // 오른쪽에서 왼쪽으로 스와이프 -> 다음 탭으로
+      const nextIndex = Math.min(tabs.length - 1, currentIndex + 1);
+      setActiveTab(tabs[nextIndex]);
+    } else if (deltaX < -swipeThreshold) {
+      // 왼쪽에서 오른쪽으로 스와이프 -> 이전 탭으로
+      const prevIndex = Math.max(0, currentIndex - 1);
+      setActiveTab(tabs[prevIndex]);
+    }
+  };
+
   // Web Audio API를 위한 Ref
   const audioCtxRef = useRef(null);
   const heartbeatOscRef = useRef(null);
@@ -161,7 +196,12 @@ export default function ManualPage({ onBackToIntro }) {
   }, []);
 
   return (
-    <div className="manual-page-container">
+    <div 
+      className="manual-page-container"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* 백그라운드 연출 격자 필터 */}
       <div className="grid-overlay"></div>
 
