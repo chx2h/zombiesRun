@@ -278,35 +278,31 @@ export default function ManualPage({ onBackToIntro }) {
                 </div>
               </div>
 
-              {/* <div className="advice-box" style={{ borderColor: '#ef4444' }}>
-                <p><strong style={{ color: '#ef4444' }}>🚨 사망 및 관리 규칙:</strong> 별도의 목적지 없이 버티는 모드이며, 좀비가 사용자 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>5m 이내로 들어오면 사망</span>합니다. 골목길을 꺾어 따돌리거나 가볍게 이동해 거리를 좁혀(20m 이내) 좀비 속도를 억제하며 오래 생존하세요. 최종 생존 레벨이 기록에 보관됩니다.</p>
-              </div> */}
+              <div className="advice-box" style={{ borderColor: '#ef4444', padding: '8px 12px' }}>
+                <p style={{ fontSize: '0.8rem', lineHeight: '1.4' }}><strong style={{ color: '#ef4444' }}>🚨 생존 수칙:</strong> 좀비가 5m 이내로 오면 사망합니다. 거리를 좁히면(20m 이내) 속도가 증가하지 않으니 골목길을 활용해 따돌리며 생존하세요.</p>
+              </div>
 
-              <div className="simulator-section" style={{ borderTop: '1px solid rgba(239, 68, 68, 0.3)', marginTop: '0.75rem', paddingTop: '0.75rem' }}>
-                <h4 style={{ color: '#ef4444', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: 'bold' }}>🧟 실시간 좀비 진화 단계 도감</h4>
+              <div className="simulator-section" style={{ borderTop: '1px solid rgba(239, 68, 68, 0.3)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
+                <h4 style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: '0.3rem', fontWeight: 'bold' }}>🧟 실시간 좀비 진화 단계 도감</h4>
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '0.5rem 1rem',
-                  fontSize: '0.8rem',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '0.4rem 0.6rem',
+                  fontSize: '0.75rem',
                   color: '#cbd5e1',
                   background: 'rgba(2, 6, 23, 0.8)',
-                  padding: '12px',
-                  borderRadius: '10px',
+                  borderRadius: '8px',
                   border: '1px solid rgba(239, 68, 68, 0.2)',
-                  maxHeight: '150px',
+                  maxHeight: '90px',
+                  padding: '6px 10px',
                   overflowY: 'auto'
                 }}>
-                  <div><strong style={{ color: '#ef4444' }}>Lv.1~10:</strong> 🦠 애벌레/유령/해골 등 약체 단계</div>
-                  <div><strong style={{ color: '#ef4444' }}>Lv.11~20:</strong> 🐗 전갈/악어 등 맹수 및 감염 야수</div>
-                  <div><strong style={{ color: '#ef4444' }}>Lv.21~30:</strong> 🧟 변종 좀비 및 흡혈귀 단계</div>
-                  <div><strong style={{ color: '#ef4444' }}>Lv.31~40:</strong> 👹 지옥 괴수 및 공룡/화염 악마</div>
-                  <div><strong style={{ color: '#ef4444' }}>Lv.41~49:</strong> ⚡ 속성 특화 초월 좀비 및 로드 좀비</div>
-                  <div><strong style={{ color: '#ef4444' }}>Lv.50 (Max):</strong> 👹👑 <strong>타이런트 좀비 킹</strong></div>
-
-                  <div style={{ gridColumn: 'span 2', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '6px', fontSize: '0.7rem', color: '#94a3b8', lineHeight: '1.4' }}>
-                    ※ 20m 이상 거리 방치 시 좀비가 폭발적으로 가속 진화하며, 획득한 실시간 레벨에 맞춰 지도 위의 좀비 마커와 버튼 외관이 실시간으로 갱신 및 변이합니다.
-                  </div>
+                  <div><strong style={{ color: '#ef4444' }}>Lv.1~10:</strong> 🦠 약체</div>
+                  <div><strong style={{ color: '#ef4444' }}>Lv.11~20:</strong> 🐗 야수</div>
+                  <div><strong style={{ color: '#ef4444' }}>Lv.21~30:</strong> 🧟 변종</div>
+                  <div><strong style={{ color: '#ef4444' }}>Lv.31~40:</strong> 👹 괴수</div>
+                  <div><strong style={{ color: '#ef4444' }}>Lv.41~49:</strong> ⚡ 초월</div>
+                  <div><strong style={{ color: '#ef4444' }}>Lv.50:</strong> 👹👑 <strong>킹</strong></div>
                 </div>
               </div>
             </div>
