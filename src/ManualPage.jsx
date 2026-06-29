@@ -269,18 +269,18 @@ export default function ManualPage({ onBackToIntro }) {
               </div>
 
               <div className="info-grid">
-                <div className="info-card">
-                  <h4 className="text-amber">이동 궤적 추적</h4>
+                <div className="info-card" style={{ borderColor: '#ef4444' }}>
+                  <h4 style={{ color: '#ef4444' }}>이동 궤적 추적</h4>
                   <p>미리 그려진 경로 없이, <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>사용자가 실제 걸어간 붉은 라인</span>을 따라 좀비가 소환되어 뒤쫓습니다.</p>
                 </div>
-                <div className="info-card">
-                  <h4 className="text-amber">실시간 레벨 성장</h4>
+                <div className="info-card" style={{ borderColor: '#ef4444' }}>
+                  <h4 style={{ color: '#ef4444' }}>실시간 레벨 성장</h4>
                   <p>좀비는 최초 소환 시 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>레벨 1</span>의 속도로 추격을 시작하지만, 사용자와의 거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>20m 이상 벌어지면</span> 매초 레벨(속도)이 1씩 점차 증가하여 추격해 옵니다.</p>
                 </div>
               </div>
 
-              <div className="advice-box border-amber">
-                <p><strong className="text-amber">TIP:</strong> 거리가 멀어지면 좀비가 성장하여 엄청난 속도로 다가오므로, 지그재그로 따돌려 거리를 좁히거나 기발한 동선으로 목적지에 도달하세요. 도달한 최종 레벨은 기록 보관소에 영구 보관됩니다.</p>
+              <div className="advice-box" style={{ borderColor: '#ef4444' }}>
+                <p><strong style={{ color: '#ef4444' }}>TIP:</strong> 거리가 멀어지면 좀비가 성장하여 엄청난 속도로 다가오므로, 지그재그로 따돌려 거리를 좁히거나 기발한 동선으로 목적지에 도달하세요. 도달한 최종 레벨은 기록 보관소에 영구 보관됩니다.</p>
               </div>
             </div>
           )}
@@ -297,18 +297,18 @@ export default function ManualPage({ onBackToIntro }) {
               </div>
 
               <div className="info-grid">
-                <div className="info-card">
-                  <h4 className="text-rose">작전 설정</h4>
+                <div className="info-card" style={{ borderColor: '#4ade80' }}>
+                  <h4 style={{ color: '#4ade80' }}>작전 설정</h4>
                   <p>지도 클릭 시 생성되는 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>최적의 도보 경로</span>를 따라 탈출합니다.</p>
                 </div>
-                <div className="info-card">
-                  <h4 className="text-rose">탈출 규칙</h4>
+                <div className="info-card" style={{ borderColor: '#4ade80' }}>
+                  <h4 style={{ color: '#4ade80' }}>탈출 규칙</h4>
                   <p>좀비가 출발점에서 시작해 최적 경로를 따라 추격합니다. 좀비보다 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>먼저 목적지(15m 이내)</span>에 도착해야 합니다.</p>
                 </div>
               </div>
 
-              <div className="advice-box border-rose">
-                <p><strong className="text-rose">TIP:</strong> 좀비가 내 뒤를 쫓아오며, 먼저 목적지에 다다르면 사망하므로 한 발 앞서 도망치세요.</p>
+              <div className="advice-box" style={{ borderColor: '#4ade80' }}>
+                <p><strong style={{ color: '#4ade80' }}>TIP:</strong> 좀비가 내 뒤를 쫓아오며, 먼저 목적지에 다다르면 사망하므로 한 발 앞서 도망치세요.</p>
               </div>
             </div>
           )}
@@ -353,12 +353,12 @@ export default function ManualPage({ onBackToIntro }) {
               </div>
 
               <div className="info-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                <div className="info-card border-cyan">
-                  <h4>📢 포효 사운드 & 비주얼 경고</h4>
+                <div className="info-card" style={{ borderColor: '#22d3ee' }}>
+                  <h4 style={{ color: '#22d3ee' }}>📢 포효 사운드 & 비주얼 경고</h4>
                   <p>50m 이내로 들어오면 소리가 증폭되며, <strong>25m 이내 근접 시 화면 테두리가 붉은색으로 번쩍</strong>이며 경고합니다.</p>
                 </div>
-                <div className="info-card border-cyan">
-                  <h4>📳 햅틱 감지 & 뷰 컨트롤</h4>
+                <div className="info-card" style={{ borderColor: '#22d3ee' }}>
+                  <h4 style={{ color: '#22d3ee' }}>📳 햅틱 감지 & 뷰 컨트롤</h4>
                   <p><strong>25m 이내 약한 진동, 10m 이내 강렬한 더블 진동</strong>이 발생합니다. 우측 하단의 🏃, 🧟, 🚩 버튼으로 손쉽게 시점을 고정할 수 있습니다.</p>
                 </div>
               </div>

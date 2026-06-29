@@ -546,7 +546,17 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     setDistance(null);
   }, [routePath, recordedPath, gameMode, initAudio]);
 
-  const currentZombieSpeed = useMemo(() => (Number(selectedZombieSpeed) / 50) * ZOMBIE_SPEED_BASE, [selectedZombieSpeed]);
+  const currentZombieSpeed = useMemo(() => {
+    const speedLevel = Number(selectedZombieSpeed);
+    if (gameMode === 'survival') {
+      // 서바이벌 모드 전용 속도 밸런싱
+      // Lv.1 스타트 시 초속 약 1.0m 내외로 걷기 유도, 레벨당 가속화
+      const baseSurvivalSpeed = 0.00000012; // Lv.1 기본 속도
+      const speedStep = 0.000000015;        // 레벨당 점진적 가속폭
+      return baseSurvivalSpeed + (speedLevel - 1) * speedStep;
+    }
+    return (speedLevel / 50) * ZOMBIE_SPEED_BASE;
+  }, [selectedZombieSpeed, gameMode]);
 
   /**
    * 프레임별 애니메이션 루프
@@ -701,16 +711,18 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       }
 
       // 사용자가 목적지에 도달했는지 확인 (RUN 모드 승리 조건)
-      const destination = routePath[routePath.length - 1];
-      const distToFinish = calculateDistance(userPosRef.current.lat, userPosRef.current.lng, destination.lat, destination.lng);
-      if (distToFinish <= 15) { // 15미터 이내 도착 시 승리
-        setIsGameOver(true);
-        setGameResult('win');
-        if (audioCtxRef.current) {
-          gainNodeRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
-          ambientGainRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+      if (gameMode === 'run' && routePath && routePath.length > 0) {
+        const destination = routePath[routePath.length - 1];
+        const distToFinish = calculateDistance(userPosRef.current.lat, userPosRef.current.lng, destination.lat, destination.lng);
+        if (distToFinish <= 15) { // 15미터 이내 도착 시 승리
+          setIsGameOver(true);
+          setGameResult('win');
+          if (audioCtxRef.current) {
+            gainNodeRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+            ambientGainRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+          }
+          return;
         }
-        return;
       }
     }
 
