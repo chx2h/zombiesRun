@@ -45,6 +45,40 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
     loadData();
   }, []);
 
+  // 역대 최고 생존 기록(가장 높은 좀비 레벨) 산출
+  const bestSurvivalRecord = useMemo(() => {
+    const survivalRecords = history.filter(rec => rec.mode === 'survival' && rec.zombieSpeed);
+    if (survivalRecords.length === 0) return null;
+    let best = survivalRecords[0];
+    for (let i = 1; i < survivalRecords.length; i++) {
+      if (Number(survivalRecords[i].zombieSpeed) > Number(best.zombieSpeed)) {
+        best = survivalRecords[i];
+      } else if (Number(survivalRecords[i].zombieSpeed) === Number(best.zombieSpeed)) {
+        if (new Date(survivalRecords[i].date) > new Date(best.date)) {
+          best = survivalRecords[i];
+        }
+      }
+    }
+    return best;
+  }, [history]);
+
+  // 최고 기록일 클릭 시 해당 날짜로 캘린더 이동 및 모달 표출
+  const handleSelectBestRecordDate = (dateInput) => {
+    if (!dateInput) return;
+    const targetDate = new Date(dateInput);
+    
+    // 해당 연/월로 캘린더 이동
+    setCurrentDate(new Date(targetDate.getFullYear(), targetDate.getMonth(), 1));
+    
+    // 데이터 로드 및 모달 팝업
+    const searchDateStr = getLocalDateStr(targetDate);
+    const filtered = history.filter(rec => getLocalDateStr(rec.date) === searchDateStr);
+    
+    setSelectedDateRecords(filtered);
+    setSelectedDateStr(`${targetDate.getFullYear()}년 ${String(targetDate.getMonth() + 1).padStart(2, '0')}월 ${String(targetDate.getDate()).padStart(2, '0')}일`);
+    setShowDetailModal(true);
+  };
+
   const getRouteDistance = (path) => {
     if (!path || path.length < 2) return '0.00km';
     let total = 0;
@@ -415,6 +449,8 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                   else if (hasLose) dotColor = '#ef4444'; // 빨강
                   else if (hasRecordMode) dotColor = '#2563eb'; // 파랑
 
+                  const isBestRecordDate = bestSurvivalRecord && getLocalDateStr(bestSurvivalRecord.date) === getLocalDateStr(day);
+
                   return (
                     <div
                       key={`day-${day.getDate()}`}
@@ -428,19 +464,20 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                         padding: '4px 0',
                         borderRadius: '8px',
                         cursor: hasRecords ? 'pointer' : 'default',
-                        backgroundColor: isToday ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
-                        border: isToday ? '1px solid rgba(239, 68, 68, 0.4)' : (hasRecords ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent'),
+                        backgroundColor: isToday ? 'rgba(239, 68, 68, 0.15)' : (isBestRecordDate ? 'rgba(234, 179, 8, 0.12)' : 'transparent'),
+                        border: isToday ? '1px solid rgba(239, 68, 68, 0.4)' : (isBestRecordDate ? '1.5px solid #eab308' : (hasRecords ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent')),
+                        boxShadow: isBestRecordDate ? '0 0 8px rgba(234, 179, 8, 0.3)' : 'none',
                         transition: 'all 0.2s',
                       }}
                       onMouseEnter={(e) => {
-                        if (hasRecords) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                        if (hasRecords) e.currentTarget.style.backgroundColor = isBestRecordDate ? 'rgba(234, 179, 8, 0.25)' : 'rgba(255, 255, 255, 0.05)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = isToday ? 'rgba(239, 68, 68, 0.15)' : 'transparent';
+                        e.currentTarget.style.backgroundColor = isToday ? 'rgba(239, 68, 68, 0.15)' : (isBestRecordDate ? 'rgba(234, 179, 8, 0.12)' : 'transparent');
                       }}
                     >
-                      <span style={{ fontSize: '14px', fontWeight: 'bold', color }}>
-                        {day.getDate()}
+                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: isBestRecordDate ? '#fef08a' : color }}>
+                        {isBestRecordDate ? `👑${day.getDate()}` : day.getDate()}
                       </span>
                       {hasRecords && (
                         <div style={{ display: 'flex', gap: '2px', alignItems: 'center', justifyContent: 'center' }}>
@@ -453,6 +490,44 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                 })}
               </div>
             </div>
+
+            {/* 역대 최고 생존 기록 요약 배너 */}
+            {bestSurvivalRecord && (
+              <div 
+                onClick={() => handleSelectBestRecordDate(bestSurvivalRecord.date)}
+                style={{
+                  marginTop: '15px',
+                  backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                  border: '1.5px solid #eab308',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 0 12px rgba(234, 179, 8, 0.2)',
+                  transition: 'transform 0.2s, background-color 0.2s',
+                  color: '#fef08a'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.02)';
+                  e.currentTarget.style.backgroundColor = 'rgba(234, 179, 8, 0.18)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.backgroundColor = 'rgba(234, 179, 8, 0.1)';
+                }}
+              >
+                <strong style={{ color: '#eab308', display: 'block', fontSize: '0.9rem', marginBottom: '3px' }}>
+                  👑 역대 최고 생존 기록 달성일
+                </strong>
+                <span style={{ fontSize: '0.8rem' }}>
+                  {new Date(bestSurvivalRecord.date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} (Lv.{bestSurvivalRecord.zombieSpeed})
+                </span>
+                <span style={{ display: 'block', fontSize: '0.7rem', color: '#a1a1aa', marginTop: '4px' }}>
+                  ※ 클릭 시 해당 날짜의 일지를 즉시 조회합니다.
+                </span>
+              </div>
+            )}
+
           </div>
         )}
       </div>
