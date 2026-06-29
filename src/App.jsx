@@ -35,6 +35,17 @@ function App() {
         return; // 더 이상 아래 view 업데이트 로직이 실행되지 않도록 리턴
       }
 
+      // ──────────────────────────────────────────────────────────────
+      // 🧟 [추가] 게임 중(playing) 물리 뒤로가기 시 맵 내부 🔙 버튼과 동일 작동 유도
+      // ──────────────────────────────────────────────────────────────
+      if (viewRef.current === 'playing' && isGameActiveRef.current && triggerExitConfirmRef.current) {
+        // 뒤로 간 히스토리를 다시 playing 상태로 복원하여 오동작 방지
+        window.history.pushState({ view: 'playing' }, '', '#playing');
+        // 좀비 앱의 종료 확인 팝업 트리거 작동
+        triggerExitConfirmRef.current();
+        return;
+      }
+
       setView(newView);
       viewRef.current = newView;
     };
