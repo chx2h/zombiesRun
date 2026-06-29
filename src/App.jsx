@@ -171,7 +171,7 @@ function App() {
             생존 매뉴얼
           </button>
           <button className="menu-btn" onClick={() => navigate('favorites')}>
-            즐겨찾기
+            기록 보관소
           </button>
         </div>
         <div className="intro-warning-message">

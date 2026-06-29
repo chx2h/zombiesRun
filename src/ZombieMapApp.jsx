@@ -40,6 +40,16 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   // --- 경로 기록 전용 상태 ---
   const [isRecording, setIsRecording] = useState(false);
   const [recordedPath, setRecordedPath] = useState([]);
+  const recordedPathRef = useRef([]);
+  const routePathRef = useRef([]);
+
+  useEffect(() => {
+    recordedPathRef.current = recordedPath;
+  }, [recordedPath]);
+
+  useEffect(() => {
+    routePathRef.current = routePath;
+  }, [routePath]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [customRouteTitle, setCustomRouteTitle] = useState('');
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -530,7 +540,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
    * 프레임별 애니메이션 루프
    */
   const animate = useCallback(() => {
-    const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
+    const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPathRef.current : routePathRef.current;
     if (isGameOver || activePath.length === 0) return;
 
     // 좀비가 아직 생성되지 않았으면 루프만 유지
@@ -679,7 +689,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     }
 
     requestRef.current = requestAnimationFrame(animate);
-  }, [routePath, recordedPath, isGameOver, currentZombieSpeed, gameMode]);
+  }, [isGameOver, currentZombieSpeed, gameMode]);
 
   // 게임 종료 시 기록 저장
   useEffect(() => {
