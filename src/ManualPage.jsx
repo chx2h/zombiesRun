@@ -261,9 +261,9 @@ export default function ManualPage({ onBackToIntro }) {
           {activeTab === 'survival' && (
             <div className="tab-pane-content">
               <div className="pane-header">
-                <div className="pane-number text-amber">01</div>
+                <div className="pane-number" style={{ color: '#ef4444' }}>01</div>
                 <div>
-                  <h3 className="text-amber">SURVIVAL: 실시간 추격</h3>
+                  <h3 style={{ color: '#ef4444' }}>SURVIVAL: 실시간 추격</h3>
                   <p className="pane-desc">내 실제 발자취를 추격해오는 좀비로부터 무한히 생존하세요.</p>
                 </div>
               </div>
@@ -271,7 +271,7 @@ export default function ManualPage({ onBackToIntro }) {
               <div className="info-grid">
                 <div className="info-card" style={{ borderColor: '#ef4444' }}>
                   <h4 style={{ color: '#ef4444' }}>👣 이동 궤적 추적 (발자국 따라오기)</h4>
-                  <p>미리 그려진 루트가 없습니다. 사용자가 실제 거리를 이동하며 남긴 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>붉은색 발자국 라인</span>을 따라 좀비가 소환되어 그대로 뒤따라옵니다.</p>
+                  <p>미리 그려진 루트는 없습니다. 사용자가 실제 거리를 이동하며 남긴 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>붉은색 발자국 라인</span>을 따라 좀비가 소환되어 그대로 뒤따라옵니다.</p>
                 </div>
                 <div className="info-card" style={{ borderColor: '#ef4444' }}>
                   <h4 style={{ color: '#ef4444' }}>⚡ 실시간 레벨 성장 (방심 금지)</h4>
@@ -289,9 +289,9 @@ export default function ManualPage({ onBackToIntro }) {
           {activeTab === 'run' && (
             <div className="tab-pane-content">
               <div className="pane-header">
-                <div className="pane-number text-rose">02</div>
+                <div className="pane-number" style={{ color: '#4ade80' }}>02</div>
                 <div>
-                  <h3 className="text-rose">RUN: 코스 도보 탈출</h3>
+                  <h3 style={{ color: '#4ade80' }}>RUN: 코스 도보 탈출</h3>
                   <p className="pane-desc">미리 설정한 탈출로를 따라 좀비보다 먼저 골인 지점에 도달하세요.</p>
                 </div>
               </div>
