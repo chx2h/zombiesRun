@@ -274,13 +274,13 @@ export default function ManualPage({ onBackToIntro }) {
                   <p>미리 그려진 경로 없이, <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>사용자가 실제 걸어간 붉은 라인</span>을 따라 좀비가 소환되어 뒤쫓습니다.</p>
                 </div>
                 <div className="info-card">
-                  <h4 className="text-amber">경로 어시스트</h4>
-                  <p>즐겨찾기 버튼을 눌러 미리 생성해 둔 경로를 <span style={{ color: '#10b981', fontWeight: 'bold' }}>초록색 가이드선</span>으로 띄워 참고하며 생존할 수 있습니다.</p>
+                  <h4 className="text-amber">실시간 레벨 성장</h4>
+                  <p>좀비는 최초 소환 시 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>레벨 1</span>의 속도로 추격을 시작하지만, 사용자와의 거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>20m 이상 벌어지면</span> 매초 레벨(속도)이 1씩 점차 증가하여 추격해 옵니다.</p>
                 </div>
               </div>
 
               <div className="advice-box border-amber">
-                <p><strong className="text-amber">TIP:</strong> 좀비가 사용자 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>5m 이내</span>로 도달하면 사망하므로 좀비를 지그재그로 따돌리며 탈출구를 찾으세요.</p>
+                <p><strong className="text-amber">TIP:</strong> 거리가 멀어지면 좀비가 성장하여 엄청난 속도로 다가오므로, 지그재그로 따돌려 거리를 좁히거나 기발한 동선으로 목적지에 도달하세요. 도달한 최종 레벨은 기록 보관소에 영구 보관됩니다.</p>
               </div>
             </div>
           )}

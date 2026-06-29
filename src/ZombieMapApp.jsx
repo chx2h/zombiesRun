@@ -187,10 +187,18 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     }
   }, [routePath, gameMode]);
 
-  // 설정값이 변경될 때마다 localStorage에 저장
+  // 설정값이 변경될 때마다 localStorage에 저장 (서바이벌 모드는 제외)
   useEffect(() => {
+    if (gameMode === 'survival') return;
     localStorage.setItem(`${gameMode}_zombieSpeed`, selectedZombieSpeed);
   }, [selectedZombieSpeed, gameMode]);
+
+  // 서바이벌 모드 시작 시 속도(레벨) 1로 고정 초기화
+  useEffect(() => {
+    if (gameMode === 'survival') {
+      setSelectedZombieSpeed(1);
+    }
+  }, [gameMode]);
 
   useEffect(() => {
     localStorage.setItem(`${gameMode}_spawnDelay`, selectedSpawnDelay);
@@ -213,6 +221,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const spawnTimerRef = useRef(null);
   const distanceRef = useRef(null); // 심장박동 펄스 루프에서 최신 거리값을 참조하기 위한 ref
   const vibrationTimerRef = useRef(null); // 진동 간격 제어용 타이머
+  const speedIncreaseFrameCountRef = useRef(0); // 서바이벌 모드 실시간 가속용 프레임 카운터
 
   // "따라가기" 모드일 때 사용자 위치를 지도 중심에 동기화
   useEffect(() => {
@@ -529,6 +538,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     const startPos = activePath[0];
     setZombiePosition(startPos);
     zombiePosRef.current = startPos;
+    if (gameMode === 'survival') {
+      setSelectedZombieSpeed(1);
+    }
     setIsGameOver(false);
     setGameResult(null);
     setDistance(null);
@@ -542,6 +554,20 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const animate = useCallback(() => {
     const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPathRef.current : routePathRef.current;
     if (isGameOver || activePath.length === 0) return;
+
+    // 서바이벌 모드 실시간 가속 (20m 이상 벌어질 때 대략 1초에 레벨 1씩 증가)
+    if (gameMode === 'survival' && !isGameOver && zombiePosRef.current && userPosRef.current) {
+      const d = distanceRef.current;
+      if (d !== null && d >= 20) {
+        speedIncreaseFrameCountRef.current += 1;
+        if (speedIncreaseFrameCountRef.current >= 60) { // 약 1초 경과
+          speedIncreaseFrameCountRef.current = 0;
+          setSelectedZombieSpeed(prev => Math.min(50, prev + 1));
+        }
+      } else {
+        speedIncreaseFrameCountRef.current = 0; // 20m 미만 시 가속 대기 카운터 리셋
+      }
+    }
 
     // 좀비가 아직 생성되지 않았으면 루프만 유지
     const prevPos = zombiePosRef.current;
@@ -1453,10 +1479,27 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             )}
           </div>
 
-          <div className="hud-control-row">
-            <label className="hud-label">좀비 속도 ({selectedZombieSpeed}/50)</label>
-            <input type="range" min="1" max="50" value={selectedZombieSpeed} onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} style={{ flexGrow: 1, accentColor: '#f43f5e' }} />
-          </div>
+          {gameMode === 'survival' ? (
+            /* 서바이벌 모드는 조작 불가한 텍스트로만 표시 */
+            <div className="hud-control-row" style={{ justifyContent: 'center', padding: '4px 0' }}>
+              <span className="hud-label" style={{ fontSize: '0.8rem', color: '#ef4444' }}>
+                🧟 좀비 레벨: <strong style={{ fontSize: '0.95rem', marginLeft: '4px' }}>Lv.{selectedZombieSpeed}</strong>
+              </span>
+            </div>
+          ) : (
+            /* 다른 모드는 기존 슬라이더 유지 */
+            <div className="hud-control-row">
+              <label className="hud-label">좀비 속도 ({selectedZombieSpeed}/50)</label>
+              <input 
+                type="range" 
+                min="1" 
+                max="50" 
+                value={selectedZombieSpeed} 
+                onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} 
+                style={{ flexGrow: 1, accentColor: '#f43f5e' }} 
+              />
+            </div>
+          )}
 
           <div className="hud-control-row">
             <label className="hud-label">좀비 발생 시간</label>
