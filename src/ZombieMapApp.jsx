@@ -736,7 +736,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   };
 
   useEffect(() => {
-    const activePathLength = gameMode === 'record' ? recordedPath.length : routePath.length;
+    const activePathLength = (gameMode === 'record' || gameMode === 'survival') ? recordedPath.length : routePath.length;
     if (activePathLength > 0 && !isGameOver) {
       requestRef.current = requestAnimationFrame(animate);
     }
