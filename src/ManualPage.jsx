@@ -278,9 +278,9 @@ export default function ManualPage({ onBackToIntro }) {
                 </div>
               </div>
 
-              <div className="advice-box" style={{ borderColor: '#ef4444', padding: '8px 12px' }}>
+              {/* <div className="advice-box" style={{ borderColor: '#ef4444', padding: '8px 12px' }}>
                 <p style={{ fontSize: '0.8rem', lineHeight: '1.4' }}><strong style={{ color: '#ef4444' }}>🚨 생존 수칙:</strong> 좀비가 5m 이내로 오면 사망합니다. 거리를 좁히면(30m 이내) 속도가 증가하지 않으니 골목길을 활용해 따돌리며 생존하세요.</p>
-              </div>
+              </div> */}
 
               <div className="simulator-section" style={{ borderTop: '1px solid rgba(239, 68, 68, 0.3)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
                 <h4 style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: '0.3rem', fontWeight: 'bold' }}>🧟 실시간 좀비 진화 단계 도감</h4>
