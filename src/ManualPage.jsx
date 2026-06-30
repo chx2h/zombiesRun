@@ -273,8 +273,8 @@ export default function ManualPage({ onBackToIntro }) {
                   <p>정해진 탈출구는 없습니다. 사용자가 실제 거리를 이동하며 남긴 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>붉은색 발자국 라인</span>을 따라 좀비가 소환되어 그대로 뒤따라옵니다.</p>
                 </div>
                 <div className="info-card" style={{ borderColor: '#ef4444' }}>
-                  <h4 style={{ color: '#ef4444' }}>⚡ 좀비 경험치 및 레벨업 시스템</h4>
-                  <p>거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>30m 이상 벌어지면 3초마다 경험치(EXP)가 누적</span>되며, 마커 하단의 EXP 게이지가 가득 차면 레벨(속도)이 상승합니다.</p>
+                  <h4 style={{ color: '#ef4444' }}>⚡ 좀비 경험치 및 실시간 레벨업</h4>
+                  <p>좀비는 버틴 시간 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>3초당 1 XP</span> 및 유저 이동 거리 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>5m당 1 XP</span>를 누적합산해 성장합니다. 사용자와 거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>30m 이상 벌어지면</span> 실시간 가속 경험치가 누적되며, 30m 이내로 거리를 좁히면 해당 레벨의 누적 경험치가 0으로 초기화됩니다 (최대 Lv.50).</p>
                 </div>
               </div>
 

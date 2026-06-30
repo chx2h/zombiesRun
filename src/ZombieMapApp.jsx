@@ -74,7 +74,92 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     const saved = localStorage.getItem(`${gameMode}_zombieSpeed`);
     return saved !== null ? Number(saved) : 1;
   });
-  const [zombieExp, setZombieExp] = useState(0); // 좀비 경험치 상태
+
+  // --- 좀비 실시간 레벨업 및 난이도 조절 시스템 ---
+  const [zombieLevel, setZombieLevel] = useState(1);
+  const [zombieXp, setZombieXp] = useState(0);
+  const [isLevelUpFlashing, setIsLevelUpFlashing] = useState(false);
+
+  // 일정한 압박형(선형 스케일) 요구 경험치 계산 함수
+  const getNextLevelXp = useCallback((currentLevel) => {
+    return Math.round(15 + (currentLevel * 0.7));
+  }, []);
+
+  // 레벨업 특수 효과 및 오디오 재생 함수
+  const triggerZombieLevelUpEffect = useCallback(() => {
+    // 1. 시각 효과 플래싱 온 (500ms 후 복구)
+    setIsLevelUpFlashing(true);
+    setTimeout(() => {
+      setIsLevelUpFlashing(false);
+    }, 500);
+
+    // 2. 오디오 효과 트리거
+    if (!audioCtxRef.current) return;
+    const ctx = audioCtxRef.current;
+    
+    // 만약 디코딩된 좀비 울음소리 버퍼가 있으면 단발성 고볼륨으로 재생
+    if (decodedZombieBufferRef.current) {
+      try {
+        const source = ctx.createBufferSource();
+        source.buffer = decodedZombieBufferRef.current;
+        const tempGain = ctx.createGain();
+        tempGain.gain.setValueAtTime(0.7, ctx.currentTime); // 매우 크게
+        
+        source.connect(tempGain);
+        tempGain.connect(ctx.destination);
+        source.start(0);
+      } catch (e) {
+        console.error("단발 좀비 비명 재생 실패", e);
+      }
+    } else {
+      // 버퍼가 없을 때는 비프음(사이렌 효과)으로 연출
+      try {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.4);
+        
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+      } catch (e) {
+        console.error("레벨업 사이렌 재생 실패", e);
+      }
+    }
+  }, []);
+
+  // 경험치 획득 및 연쇄 레벨업 핸들러
+  const gainZombieXp = useCallback((amount) => {
+    setZombieLevel((prevLevel) => {
+      if (prevLevel >= 50) return prevLevel;
+      
+      let currentLevel = prevLevel;
+      let didLevelUp = false;
+      
+      setZombieXp((prevXp) => {
+        let newXp = prevXp + amount;
+        
+        while (newXp >= getNextLevelXp(currentLevel) && currentLevel < 50) {
+          newXp -= getNextLevelXp(currentLevel);
+          currentLevel += 1;
+          didLevelUp = true;
+        }
+        
+        if (didLevelUp) {
+          // 레벨업 특수 효과 호출
+          triggerZombieLevelUpEffect();
+        }
+        return newXp;
+      });
+      
+      return currentLevel;
+    });
+  }, [getNextLevelXp, triggerZombieLevelUpEffect]);
   const [selectedSpawnDelay, setSelectedSpawnDelay] = useState(() => {
     const saved = localStorage.getItem(`${gameMode}_spawnDelay`);
     return saved !== null ? Number(saved) : 10;
@@ -213,7 +298,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   // 서바이벌 모드 시작 시 속도(레벨) 1로 고정 초기화 및 저장상태 리셋
   useEffect(() => {
     hasSavedRef.current = false; // 새 게임 모드 로드 시 저장 상태 초기화
-    setZombieExp(0); // 새 게임 모드 로드 시 경험치 리셋
+    setZombieLevel(1); // 새 게임 모드 로드 시 레벨 리셋
+    setZombieXp(0); // 새 게임 모드 로드 시 경험치 리셋
     if (gameMode === 'survival') {
       setSelectedZombieSpeed(1);
     }
@@ -230,6 +316,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const mapRef = useRef(null); // mapRef 선언
   const isFirstPositionFoundRef = useRef(false);
   const hasSavedRef = useRef(false);
+  const lastUserPosForExpRef = useRef(null);
+  const accumulatedUserDistanceRef = useRef(0);
+  const decodedZombieBufferRef = useRef(null);
 
   // 지도를 지정 좌표로 스와이프하듯이 부드럽게 이동시키는 함수 (Lerp 애니메이션)
   const animatePanTo = (targetLat, targetLng, duration = 800) => {
@@ -355,6 +444,32 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
+  // 유저 이동 시 5m마다 좀비 경험치 획득 처리 (거리 비례)
+  useEffect(() => {
+    if (gameMode !== 'survival' || isGameOver || !userPosition) {
+      lastUserPosForExpRef.current = null;
+      return;
+    }
+    
+    if (lastUserPosForExpRef.current) {
+      const dist = calculateDistance(
+        lastUserPosForExpRef.current.lat,
+        lastUserPosForExpRef.current.lng,
+        userPosition.lat,
+        userPosition.lng
+      );
+      if (dist > 0) {
+        accumulatedUserDistanceRef.current += dist;
+        if (accumulatedUserDistanceRef.current >= 5) {
+          const expEarned = Math.floor(accumulatedUserDistanceRef.current / 5);
+          accumulatedUserDistanceRef.current %= 5;
+          gainZombieXp(expEarned);
+        }
+      }
+    }
+    lastUserPosForExpRef.current = userPosition;
+  }, [userPosition, gameMode, isGameOver, gainZombieXp]);
+
   // 컴포넌트 언마운트 시 오디오 및 타이머 정리
   useEffect(() => {
     return () => {
@@ -400,6 +515,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       const response = await fetch(zombieSfx);
       const arrayBuffer = await response.arrayBuffer();
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      decodedZombieBufferRef.current = audioBuffer;
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
       source.loop = true;
@@ -600,7 +716,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
     if (activePath.length === 0) return;
     hasSavedRef.current = false; // 저장 상태 리셋
-    setZombieExp(0); // 경험치 상태 리셋
+    setZombieLevel(1); // 레벨 상태 리셋
+    setZombieXp(0); // 경험치 상태 리셋
     initAudio();
     if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
 
@@ -615,6 +732,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     const startPos = activePath[0];
     setZombiePosition(startPos);
     zombiePosRef.current = startPos;
+    lastUserPosForExpRef.current = null;
+    accumulatedUserDistanceRef.current = 0;
     if (gameMode === 'survival') {
       setSelectedZombieSpeed(1);
     }
@@ -629,11 +748,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       // 서바이벌 모드 전용 속도 밸런싱
       // Lv.1 스타트 시 초속 약 1.0m 내외로 걷기 유도, 레벨당 가속화
       const baseSurvivalSpeed = 0.00000012; // Lv.1 기본 속도
-      const speedStep = 0.000000015;        // 레벨당 점진적 가속폭
-      return baseSurvivalSpeed + (speedLevel - 1) * speedStep;
+      // 기존 speedStep 제거 (zombieLevel 3% 가중치 연동으로 대체)        // 레벨당 점진적 가속폭
+      return baseSurvivalSpeed * (1 + (zombieLevel - 1) * 0.03);
     }
     return (speedLevel / 50) * ZOMBIE_SPEED_BASE;
-  }, [selectedZombieSpeed, gameMode]);
+  }, [selectedZombieSpeed, zombieLevel, gameMode]);
 
   const maxZombieLevel = useMemo(() => {
     try {
@@ -657,23 +776,15 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     // 서바이벌 모드 실시간 가속 (20m 이상 벌어질 때 대략 1초에 레벨 1씩 증가)
     if (gameMode === 'survival' && !isGameOver && zombiePosRef.current && userPosRef.current) {
       const d = distanceRef.current;
-      if (d !== null && d >= 30) {
+      if (d !== null && d >= 30 && zombieLevel < 50) {
         speedIncreaseFrameCountRef.current += 1;
         if (speedIncreaseFrameCountRef.current >= 180) {
           speedIncreaseFrameCountRef.current = 0;
-          setZombieExp(prevExp => {
-            const nextExp = prevExp + 1;
-            const required = Math.pow(2, selectedZombieSpeed - 1);
-            if (nextExp >= required) {
-              setSelectedZombieSpeed(prevLevel => Math.min(50, prevLevel + 1));
-              return 0;
-            }
-            return nextExp;
-          });
+          gainZombieXp(1); // 시간 비례 경험치 획득
         }
       } else {
         speedIncreaseFrameCountRef.current = 0;
-        setZombieExp(0);
+        setZombieXp(0); // 30m 이내 진입 시 현재 레벨의 누적 경험치 초기화
       }
     }
 
@@ -849,12 +960,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         date: new Date().toISOString(),
         mode: gameMode,
         distance: totalDistanceStr,
-        zombieSpeed: selectedZombieSpeed,
+        zombieSpeed: gameMode === 'survival' ? zombieLevel : selectedZombieSpeed,
         result: result,
         routePath: activePath,
       });
     }
-  }, [isGameOver, gameResult, gameMode, routePath, recordedPath, onSaveRecord, selectedZombieSpeed]);
+  }, [isGameOver, gameResult, gameMode, routePath, recordedPath, onSaveRecord, selectedZombieSpeed, zombieLevel]);
 
   // 중간 종료 시 기록 저장
   const handleExitAndSave = () => {
@@ -874,7 +985,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         date: new Date().toISOString(),
         mode: gameMode,
         distance: totalDistanceStr,
-        zombieSpeed: selectedZombieSpeed,
+        zombieSpeed: gameMode === 'survival' ? zombieLevel : selectedZombieSpeed,
         result: '-', // 중간 종료는 '-'로 표시
         routePath: activePath,
       });
@@ -916,7 +1027,14 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   }, [routePath.length, isGameOver]); // 게임 진행 상태가 바뀔 때마다 리스너를 재평가
 
   return (
-    <div style={{ width: '100vw', height: '100dvh', position: 'relative' }}>
+    <div style={{ 
+      width: '100vw', 
+      height: '100dvh', 
+      position: 'relative',
+      boxShadow: isLevelUpFlashing ? 'inset 0 0 50px rgba(239, 68, 68, 0.95)' : 'none',
+      transition: 'box-shadow 0.15s ease-in-out',
+      overflow: 'hidden'
+    }}>
       {/* 현재 위치 로딩 중 표시 */}
       {!userPosition && (
         <div style={{
@@ -977,7 +1095,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           <CustomOverlayMap position={zombiePosition}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{ fontSize: '30px', userSelect: 'none' }}>
-                {getZombieEmoji(selectedZombieSpeed)}
+                {getZombieEmoji(zombieLevel)}
               </div>
               {gameMode === 'survival' && (
                 <div style={{
@@ -1003,14 +1121,14 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                     position: 'relative'
                   }}>
                     <div style={{
-                      width: `${Math.min(100, (zombieExp / Math.pow(2, selectedZombieSpeed - 1)) * 100)}%`,
+                      width: `${Math.min(100, (zombieXp / getNextLevelXp(zombieLevel)) * 100)}%`,
                       height: '100%',
                       backgroundColor: '#f43f5e',
                       transition: 'width 0.2s'
                     }} />
                   </div>
                   <span style={{ fontSize: '7px', color: '#fda4af', scale: '0.8', transform: 'scale(0.85)', transformOrigin: 'center', fontWeight: 'bold' }}>
-                    {selectedZombieSpeed === 50 ? 'MAX' : `${zombieExp}/${Math.pow(2, selectedZombieSpeed - 1)}`}
+                    {zombieLevel === 50 ? 'MAX' : `${zombieXp}/${getNextLevelXp(zombieLevel)}`}
                   </span>
                 </div>
               )}
@@ -1638,15 +1756,16 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           </div>
 
           {gameMode === 'survival' ? (
-            /* 서바이벌 모드는 조작 불가한 텍스트로만 표시 */
-            <div className="hud-control-row" style={{ justifyContent: 'center', padding: '4px 0' }}>
-              <span className="hud-label" style={{ fontSize: '0.8rem', color: '#ef4444' }}>
-                🧟 좀비 레벨: <strong style={{ fontSize: '0.95rem', marginLeft: '4px' }}>Lv.{selectedZombieSpeed}</strong>
-                <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: '8px' }}>
-                  (최고: Lv.{maxZombieLevel})
+            <>
+              <div className="hud-control-row" style={{ justifyContent: 'center', padding: '4px 0' }}>
+                <span className="hud-label" style={{ fontSize: '0.8rem', color: '#ef4444' }}>
+                  🧟 좀비 레벨: <strong style={{ fontSize: '0.95rem', marginLeft: '4px' }}>Lv.{zombieLevel}</strong> (EXP: {zombieXp}/{getNextLevelXp(zombieLevel)})
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: '8px' }}>
+                    (최고: Lv.{maxZombieLevel})
+                  </span>
                 </span>
-              </span>
-            </div>
+              </div>
+            </>
           ) : (
             /* 다른 모드는 기존 슬라이더 유지 */
             <div className="hud-control-row">
