@@ -163,113 +163,110 @@ function App() {
     };
   }, [view]); // view 상태가 변경될 때마다 useEffect 재실행
 
-  if (view === 'playing') {
-    return (
-      <div className="App">
-        <ZombieMapApp
-          key={gameMode + (reusedRoutePath ? '-reused' : '') + (isReplay ? '-replay' : '')}
-          gameMode={gameMode}
-          initialRoutePath={reusedRoutePath}
-          onExit={() => {
-            setReusedRoutePath(null);
-            setIsReplay(false);
-            navigate('intro');
-          }}
-          onSaveRecord={(record) => {
-            if (isReplay) {
-              console.log("재플레이 세션이므로 기록을 누적하지 않습니다.");
-              return;
-            }
-            const savedRecords = JSON.parse(localStorage.getItem('gameRecords') || '[]');
-            savedRecords.push(record);
-            localStorage.setItem('gameRecords', JSON.stringify(savedRecords));
-          }}
-          setIsGameActive={(active) => {
-            isGameActiveRef.current = active;
-          }}
-          setTriggerExitConfirm={(trigger) => {
-            triggerExitConfirmRef.current = trigger;
+  // 글로벌 모바일 프레임 적용
+  return (
+    <div className="mobile-app-frame">
+      {view === 'playing' && (
+        <div className="App" style={{ width: '100%', height: '100%', position: 'relative' }}>
+          <ZombieMapApp
+            key={gameMode + (reusedRoutePath ? '-reused' : '') + (isReplay ? '-replay' : '')}
+            gameMode={gameMode}
+            initialRoutePath={reusedRoutePath}
+            onExit={() => {
+              setReusedRoutePath(null);
+              setIsReplay(false);
+              navigate('intro');
+            }}
+            onSaveRecord={(record) => {
+              if (isReplay) {
+                console.log("리플레이 세션이므로 기록을 누적하지 않습니다.");
+                return;
+              }
+              const savedRecords = JSON.parse(localStorage.getItem('gameRecords') || '[]');
+              savedRecords.push(record);
+              localStorage.setItem('gameRecords', JSON.stringify(savedRecords));
+            }}
+            setIsGameActive={(active) => {
+              isGameActiveRef.current = active;
+            }}
+            setTriggerExitConfirm={(trigger) => {
+              triggerExitConfirmRef.current = trigger;
+            }}
+          />
+        </div>
+      )}
+
+      {view === 'manual' && (
+        <ManualPage onBackToIntro={() => navigate('intro')} />
+      )}
+
+      {view === 'favorites' && (
+        <FavoritesPage
+          onBackToIntro={() => navigate('intro')}
+          onReplayRecord={(recordData) => {
+            setReusedRoutePath(recordData.routePath);
+            setGameMode(recordData.mode || 'run');
+            setIsReplay(true);
+            navigate('playing');
           }}
         />
-      </div>
-    );
-  }
+      )}
 
-  if (view === 'manual') {
-    return (
-      <ManualPage onBackToIntro={() => navigate('intro')} />
-    );
-  }
-
-  if (view === 'favorites') {
-    return (
-      <FavoritesPage
-        onBackToIntro={() => navigate('intro')}
-        onReplayRecord={(recordData) => {
-          setReusedRoutePath(recordData.routePath);
-          setGameMode(recordData.mode || 'run'); // 전달받은 모드(run 또는 survival)로 진행
-          setIsReplay(true); // 리플레이 모드 활성화
-          navigate('playing');
-        }}
-      />
-    );
-  }
-
-  return (
-    <div className="App intro-screen" style={{ backgroundImage: `url(${mainImg})` }}> {/* 배경 이미지 적용 */}
-      <h1 className="intro-main-title">Zombies Run</h1>
-      <div className="intro-content">
-        {geoPermissionState !== 'granted' && (
-          <div style={{
-            margin: '0 auto 1.2rem auto',
-            maxWidth: '340px',
-            backgroundColor: 'rgba(239, 68, 68, 0.12)',
-            border: '1.5px solid #ef4444',
-            borderRadius: '8px',
-            padding: '12px 16px',
-            boxShadow: '0 0 12px rgba(239, 68, 68, 0.3)',
-            color: '#fca5a5',
-            textAlign: 'center',
-            fontSize: '12px',
-            lineHeight: '1.5',
-            boxSizing: 'border-box'
-          }}>
-            <strong style={{ color: '#ef4444', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
-              ⚠️ 위치 권한 비활성화 상태
-            </strong>
-            실시간 GPS 추격 및 경로 매핑을 위해 기기의 <strong>위치 정보(GPS) 권한 허용이 필수</strong>입니다. 상단 브라우저 설정에서 권한을 허용해 주세요.
-            <button 
-              onClick={() => {
-                navigator.geolocation.getCurrentPosition(
-                  () => {
-                    setGeoPermissionState('granted');
-                    alert("위치 정보 권한이 성공적으로 허용되었습니다!");
-                  },
-                  (err) => {
-                    alert("위치 권한을 다시 거부했거나 획득하지 못했습니다. 브라우저 설정 앱에서 직접 변경하셔야 합니다.");
-                  }
-                );
-              }}
-              style={{
-                marginTop: '8px',
-                backgroundColor: '#ef4444',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '6px 10px',
-                fontSize: '11px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s',
-                width: '100%'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
-            >
-              위치 권한 다시 확인하기 / 요청하기
-            </button>
-          </div>
-        )}
+      {view === 'intro' && (
+        <div className="App intro-screen" style={{ backgroundImage: `url(${mainImg})`, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+          <h1 className="intro-main-title">Zombies Run</h1>
+          <div className="intro-content">
+            {geoPermissionState !== 'granted' && (
+              <div style={{
+                margin: '0 auto 1.2rem auto',
+                maxWidth: '340px',
+                backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                border: '1.5px solid #ef4444',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                boxShadow: '0 0 12px rgba(239, 68, 68, 0.3)',
+                color: '#fca5a5',
+                textAlign: 'center',
+                fontSize: '12px',
+                lineHeight: '1.5',
+                boxSizing: 'border-box'
+              }}>
+                <strong style={{ color: '#ef4444', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
+                  🚨 위치 권한 비활성화 상태
+                </strong>
+                실시간 GPS 추격 및 경로 매핑을 위해 기기의 <strong>위치 정보(GPS) 권한 허용이 필수</strong>입니다. 상단 브라우저 설정에서 권한을 허용해 주세요.
+                <button 
+                  onClick={() => {
+                    navigator.geolocation.getCurrentPosition(
+                      () => {
+                        setGeoPermissionState('granted');
+                        alert("위치 정보 권한이 성공적으로 허용되었습니다.");
+                      },
+                      (err) => {
+                        alert("위치 권한이 임시 거부되었거나 획득하지 못했습니다. 브라우저 설정에서 직접 변경하셔야 합니다.");
+                      }
+                    );
+                  }}
+                  style={{
+                    marginTop: '8px',
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '6px 10px',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                    width: '100%'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
+                >
+                  위치 권한 다시 확인하기 / 요청하기
+                </button>
+              </div>
+            )}
         <div className={`intro-menu ${geoPermissionState !== 'granted' ? 'has-warning' : ''}`}>
           <button className="menu-btn start-button" onClick={() => {
             setReusedRoutePath(null);
@@ -300,6 +297,8 @@ function App() {
           <p>※ 일반 도로에서 사용 시 횡단보도나 주위 사물에 주의하며 안전하게 이용해 주세요.</p>
         </div>
       </div>
+      </div>
+      )}
     </div>
   );
 }
