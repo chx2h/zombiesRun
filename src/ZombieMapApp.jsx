@@ -507,7 +507,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isGameOver]);
 
-  // 유저 이동 시 5m마다 좀비 경험치 획득 처리 (거리 비례)
+  // 유저 이동 시 5m마다 좀비 경험치 획득 처리 (거리 비례) - 비활성화 (주석 처리)
+  /*
   useEffect(() => {
     if (gameMode !== 'survival' || isGameOver || !userPosition) {
       lastUserPosForExpRef.current = null;
@@ -532,6 +533,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     }
     lastUserPosForExpRef.current = userPosition;
   }, [userPosition, gameMode, isGameOver, gainZombieXp]);
+  */
 
   // 컴포넌트 언마운트 시 오디오 및 타이머 정리
   useEffect(() => {
@@ -1936,11 +1938,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             </select>
           </div>
 
-          {((gameMode === 'survival' && recordedPath.length > 0) || (gameMode !== 'survival' && routePath.length > 0)) && (
-            <button onClick={handleResetZombie} className="hud-reset-btn">
-              RESTART PURSUIT
-            </button>
-          )}
+          {//((gameMode === 'survival' && recordedPath.length > 0) || (gameMode !== 'survival' && routePath.length > 0)) && (
+            ((gameMode !== 'survival' && routePath.length > 0)) && (
+              <button onClick={handleResetZombie} className="hud-reset-btn">
+                RESTART PURSUIT
+              </button>
+            )}
         </div>
       )}
 
