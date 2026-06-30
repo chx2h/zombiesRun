@@ -595,7 +595,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
             {/* 모달 바디 (리스트) */}
             <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
               <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 12px 0' }}>
-                ※ 경로를 터치하면 해당 코스로 복습 훈련(RUN 모드)을 시작 합니다.
+                ※ 달력 일지의 재도전(🏃 RUN / 🧟 SURV) 버튼을 클릭해 재도전할 수 있으며, 이 재플레이 기록은 이력에 새로 누적되지 않습니다.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {selectedDateRecords.map((record, index) => {
@@ -603,56 +603,93 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                   return (
                     <div
                       key={record.date || index}
-                      onClick={() => {
-                        if (hasPath) {
-                          setShowDetailModal(false);
-                          if (onReplayRecord) {
-                            onReplayRecord({ routePath: record.routePath, mode: 'run' });
-                          }
-                        } else {
-                          alert("해당 기록에는 이동 경로 좌표 데이터가 포함되어 있지 않아 재시작이 불가능합니다.");
-                        }
-                      }}
                       style={{
                         backgroundColor: 'rgba(30, 41, 59, 0.6)',
                         border: '1px solid #475569',
                         borderRadius: '8px',
                         padding: '12px',
-                        cursor: hasPath ? 'pointer' : 'not-allowed',
                         opacity: hasPath ? 1 : 0.7,
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        transition: 'background-color 0.2s'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (hasPath) e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.8)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(30, 41, 59, 0.6)';
+                        gap: '10px'
                       }}
                     >
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span className={`mode-badge ${record.mode || 'run'}`} style={{ fontSize: '9px', padding: '1px 5px' }}>
                             {record.mode ? record.mode.toUpperCase() : 'RUN'}
                           </span>
-                          <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>
                             {new Date(record.date).toLocaleTimeString('ko-KR', {
                               hour: '2-digit',
-                              minute: '2-digit',
-                              second: '2-digit'
+                              minute: '2-digit'
                             })}
                           </span>
                         </div>
-                        <div style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: 'bold' }}>
-                          거리: {record.distance || '-'} | 좀비: {record.zombieSpeed ? `Lv.${record.zombieSpeed}` : '-'}
+                        <div style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          거리: {record.distance || '-'} | 좀비 {record.zombieSpeed ? `Lv.${record.zombieSpeed}` : '-'}
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {hasPath ? (
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <button
+                              onClick={() => {
+                                setShowDetailModal(false);
+                                if (onReplayRecord) {
+                                  onReplayRecord({ routePath: record.routePath, mode: 'run' });
+                                }
+                              }}
+                              style={{
+                                backgroundColor: 'rgba(74, 222, 128, 0.15)',
+                                border: '1px solid #4ade80',
+                                borderRadius: '4px',
+                                color: '#4ade80',
+                                padding: '4px 6px',
+                                fontSize: '10px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                whiteSpace: 'nowrap'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(74, 222, 128, 0.3)'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(74, 222, 128, 0.15)'}
+                            >
+                              🏃 RUN
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowDetailModal(false);
+                                if (onReplayRecord) {
+                                  onReplayRecord({ routePath: record.routePath, mode: 'survival' });
+                                }
+                              }}
+                              style={{
+                                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                                border: '1px solid #ef4444',
+                                borderRadius: '4px',
+                                color: '#ef4444',
+                                padding: '4px 6px',
+                                fontSize: '10px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                whiteSpace: 'nowrap'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.3)'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'}
+                            >
+                              🧟 SURV
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '10px', color: '#64748b' }}>경로 없음</span>
+                        )}
+
                         <span style={{
                           fontWeight: 'bold',
-                          fontSize: '14px',
                           color: record.result === '탈출' ? '#4ade80' : (record.result === '사망' ? '#ef4444' : '#94a3b8')
                         }}>
                           {record.result || '-'}

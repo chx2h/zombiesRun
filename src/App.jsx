@@ -8,6 +8,7 @@ function App() {
   const [view, setView] = useState('intro');
   const [reusedRoutePath, setReusedRoutePath] = useState(null);
   const [gameMode, setGameMode] = useState('survival'); // 'survival' 또는 'run'
+  const [isReplay, setIsReplay] = useState(false); // 재플레이 판 플래그
   const wakeLockSentinelRef = useRef(null); // WakeLockSentinel 객체를 저장할 Ref
   const viewRef = useRef('intro');
   const isGameActiveRef = useRef(false);
@@ -166,14 +167,19 @@ function App() {
     return (
       <div className="App">
         <ZombieMapApp
-          key={gameMode + (reusedRoutePath ? '-reused' : '')}
+          key={gameMode + (reusedRoutePath ? '-reused' : '') + (isReplay ? '-replay' : '')}
           gameMode={gameMode}
           initialRoutePath={reusedRoutePath}
           onExit={() => {
             setReusedRoutePath(null);
+            setIsReplay(false);
             navigate('intro');
           }}
           onSaveRecord={(record) => {
+            if (isReplay) {
+              console.log("재플레이 세션이므로 기록을 누적하지 않습니다.");
+              return;
+            }
             const savedRecords = JSON.parse(localStorage.getItem('gameRecords') || '[]');
             savedRecords.push(record);
             localStorage.setItem('gameRecords', JSON.stringify(savedRecords));
@@ -199,9 +205,10 @@ function App() {
     return (
       <FavoritesPage
         onBackToIntro={() => navigate('intro')}
-        onReplayRecord={(record) => {
-          setReusedRoutePath(record.routePath);
-          setGameMode('run'); // 즐겨찾기 경로를 클릭하면 무조건 RUN 모드로 진행
+        onReplayRecord={(recordData) => {
+          setReusedRoutePath(recordData.routePath);
+          setGameMode(recordData.mode || 'run'); // 전달받은 모드(run 또는 survival)로 진행
+          setIsReplay(true); // 리플레이 모드 활성화
           navigate('playing');
         }}
       />
@@ -267,16 +274,19 @@ function App() {
           <button className="menu-btn start-button" onClick={() => {
             setReusedRoutePath(null);
             setGameMode('survival');
+            setIsReplay(false);
             navigate('playing');
           }}>SURVIVAL</button>
           <button className="menu-btn start-button" onClick={() => {
             setReusedRoutePath(null);
             setGameMode('run');
+            setIsReplay(false);
             navigate('playing');
           }}>RUN</button>
           <button className="menu-btn start-button" onClick={() => {
             setReusedRoutePath(null);
             setGameMode('record');
+            setIsReplay(false);
             navigate('playing');
           }}>경로 만들기</button>
           <button className="menu-btn start-button" onClick={() => navigate('manual')}>
