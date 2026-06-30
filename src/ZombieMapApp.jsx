@@ -209,8 +209,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     localStorage.setItem(`${gameMode}_zombieSpeed`, selectedZombieSpeed);
   }, [selectedZombieSpeed, gameMode]);
 
-  // 서바이벌 모드 시작 시 속도(레벨) 1로 고정 초기화
+  // 서바이벌 모드 시작 시 속도(레벨) 1로 고정 초기화 및 저장상태 리셋
   useEffect(() => {
+    hasSavedRef.current = false; // 새 게임 모드 로드 시 저장 상태 초기화
     if (gameMode === 'survival') {
       setSelectedZombieSpeed(1);
     }
@@ -226,6 +227,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   // 애니메이션 및 오디오 제어용 Refs
   const mapRef = useRef(null); // mapRef 선언
   const isFirstPositionFoundRef = useRef(false);
+  const hasSavedRef = useRef(false);
 
   // 지도를 지정 좌표로 스와이프하듯이 부드럽게 이동시키는 함수 (Lerp 애니메이션)
   const animatePanTo = (targetLat, targetLng, duration = 800) => {
@@ -595,6 +597,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const handleResetZombie = useCallback(() => {
     const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
     if (activePath.length === 0) return;
+    hasSavedRef.current = false; // 저장 상태 리셋
     initAudio();
     if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
 
@@ -814,7 +817,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
   // 게임 종료 시 기록 저장
   useEffect(() => {
-    if (isGameOver && onSaveRecord) {
+    if (isGameOver && onSaveRecord && !hasSavedRef.current) {
+      hasSavedRef.current = true; // 중복 저장 차단 락 활성화
       let result = '-';
       if (gameResult === 'win') result = '탈출';
       if (gameResult === 'lose') result = '사망';
@@ -842,7 +846,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
   // 중간 종료 시 기록 저장
   const handleExitAndSave = () => {
-    if (onSaveRecord) {
+    if (onSaveRecord && !hasSavedRef.current) {
+      hasSavedRef.current = true; // 중복 저장 차단 락 활성화
       const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
       let totalDistanceStr = '-';
       if (activePath.length > 0) {
