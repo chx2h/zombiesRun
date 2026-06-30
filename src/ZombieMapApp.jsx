@@ -831,6 +831,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   /**
    * 프레임별 애니메이션 루프
    */
+  const animateRef = useRef(null);
+  useEffect(() => {
+    animateRef.current = animate;
+  });
+
   const animate = useCallback(() => {
     const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPathRef.current : routePathRef.current;
     if (isGameOver || activePath.length === 0) return;
@@ -1002,7 +1007,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       }
     }
 
-    requestRef.current = requestAnimationFrame(animate);
+    requestRef.current = requestAnimationFrame(() => animateRef.current && animateRef.current());
   }, [isGameOver, currentZombieSpeed, gameMode]);
 
   // 게임 종료 시 기록 저장
@@ -1064,7 +1069,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   useEffect(() => {
     const activePathLength = (gameMode === 'record' || gameMode === 'survival') ? recordedPath.length : routePath.length;
     if (activePathLength > 0 && !isGameOver) {
-      requestRef.current = requestAnimationFrame(animate);
+      requestRef.current = requestAnimationFrame(() => animateRef.current && animateRef.current());
     }
     return () => cancelAnimationFrame(requestRef.current);
   }, [animate, routePath.length, recordedPath.length, isGameOver, gameMode]);
