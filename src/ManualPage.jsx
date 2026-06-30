@@ -274,7 +274,7 @@ export default function ManualPage({ onBackToIntro }) {
                 </div>
                 <div className="info-card" style={{ borderColor: '#ef4444' }}>
                   <h4 style={{ color: '#ef4444' }}>⚡ 좀비 경험치 및 실시간 레벨업</h4>
-                  <p>좀비는 버틴 시간 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>3초당 1 XP</span> 및 유저 이동 거리 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>5m당 1 XP</span>를 누적합산해 성장합니다. 사용자와 거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>30m 이상 벌어지면</span> 실시간 가속 경험치가 누적되며, 30m 이내로 거리를 좁히면 해당 레벨의 누적 경험치가 0으로 초기화됩니다. 요구 경험치는 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>Math.round(30 + (현재 레벨 * 1.4))</span> 공식이 적용되어, 유저의 평균적인 1시간(60분) 러닝 시점에 만렙(Lv.50)에 도달하도록 선형 설계되었습니다.</p>
+                  <p>좀비는 버틴 시간 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>3초당 1 XP</span> 및 유저 이동 거리 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>5m당 1 XP</span>를 누적합산해 성장합니다. 사용자와 거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>30m 이상 벌어지면</span> 실시간 가속 경험치가 누적되며, 30m 이내로 거리를 좁히면 해당 레벨의 누적 경험치가 0으로 초기화됩니다.</p>
                 </div>
               </div>
 
