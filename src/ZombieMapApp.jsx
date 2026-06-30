@@ -45,9 +45,20 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const [countdown, setCountdown] = useState(0);
   const [mapCenter, setMapCenter] = useState({ lat: 37.5665, lng: 126.978 }); // 지도의 현재 중심 좌표 (서울 시청)
   const [isFollowingUser, setIsFollowingUser] = useState(true); // 사용자를 따라갈지 여부
+  const isFollowingUserRef = useRef(true);
   const [showExitConfirm, setShowExitConfirm] = useState(false); // 종료 확인 팝업 상태
   const [showReconfirmPath, setShowReconfirmPath] = useState(false); // 경로 재설정 확인 팝업
   const [isFollowingZombie, setIsFollowingZombie] = useState(false); // 좀비 추적 모드 상태
+  const isFollowingZombieRef = useRef(false);
+
+  useEffect(() => {
+    isFollowingUserRef.current = isFollowingUser;
+  }, [isFollowingUser]);
+
+  useEffect(() => {
+    isFollowingZombieRef.current = isFollowingZombie;
+  }, [isFollowingZombie]);
+
   const [pendingDest, setPendingDest] = useState(null); // 대기 중인 목적지
   const [dangerLevel, setDangerLevel] = useState(0); // 0: 안전, 1: 경고(25m), 2: 위험(10m)
 
@@ -103,7 +114,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     // 2. 오디오 효과 트리거
     if (!audioCtxRef.current) return;
     const ctx = audioCtxRef.current;
-    
+
     // 만약 디코딩된 좀비 울음소리 버퍼가 있으면 단발성 고볼륨으로 재생
     if (decodedZombieBufferRef.current) {
       try {
@@ -111,7 +122,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         source.buffer = decodedZombieBufferRef.current;
         const tempGain = ctx.createGain();
         tempGain.gain.setValueAtTime(0.7, ctx.currentTime); // 매우 크게
-        
+
         source.connect(tempGain);
         tempGain.connect(ctx.destination);
         source.start(0);
@@ -126,10 +137,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(220, ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.4);
-        
+
         gain.gain.setValueAtTime(0.3, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-        
+
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start();
@@ -144,17 +155,17 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const gainZombieXp = useCallback((amount) => {
     setZombieProgress((prev) => {
       if (prev.level >= 50) return prev;
-      
+
       let newXp = prev.xp + amount;
       let currentLevel = prev.level;
       let didLevelUp = false;
-      
+
       while (newXp >= getNextLevelXp(currentLevel) && currentLevel < 50) {
         newXp -= getNextLevelXp(currentLevel);
         currentLevel += 1;
         didLevelUp = true;
       }
-      
+
       if (didLevelUp) {
         // 레벨업 특수 효과 연출
         triggerZombieLevelUpEffect();
@@ -502,7 +513,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       lastUserPosForExpRef.current = null;
       return;
     }
-    
+
     if (lastUserPosForExpRef.current) {
       const dist = calculateDistance(
         lastUserPosForExpRef.current.lat,
@@ -798,7 +809,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     if (gameMode === 'survival') {
       // 서바이벌 모드 전용 속도 밸런싱
       // Lv.1 스타트 시 초속 약 1.0m 내외로 걷기 유도, 레벨당 가속화
-      const baseSurvivalSpeed = 0.00000012; // Lv.1 기본 속도
+      const baseSurvivalSpeed = 0.0000005; // Lv.1 기본 속도
       // 기존 speedStep 제거 (zombieLevel 3% 가중치 연동으로 대체)        // 레벨당 점진적 가속폭
       return baseSurvivalSpeed * (1 + (zombieProgress.level - 1) * 0.03);
     }
@@ -885,6 +896,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
     setZombiePosition(newPos);
     zombiePosRef.current = newPos;
+
+    // 좀비 따라가기 카메라 고정
+    if (isFollowingZombieRef.current) {
+      setMapCenter(newPos);
+    }
 
     // 거리 계산 및 특수 효과
     if (userPosRef.current) {
@@ -1078,9 +1094,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   }, [routePath.length, isGameOver]); // 게임 진행 상태가 바뀔 때마다 리스너를 재평가
 
   return (
-    <div style={{ 
-      width: '100%', 
-      height: '100dvh', 
+    <div style={{
+      width: '100%',
+      height: '100dvh',
       position: 'relative',
       boxShadow: isLevelUpFlashing ? 'inset 0 0 50px rgba(239, 68, 68, 0.95)' : 'none',
       transition: 'box-shadow 0.15s ease-in-out',
