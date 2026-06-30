@@ -74,6 +74,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     const saved = localStorage.getItem(`${gameMode}_zombieSpeed`);
     return saved !== null ? Number(saved) : 1;
   });
+  const [zombieExp, setZombieExp] = useState(0); // 좀비 경험치 상태
   const [selectedSpawnDelay, setSelectedSpawnDelay] = useState(() => {
     const saved = localStorage.getItem(`${gameMode}_spawnDelay`);
     return saved !== null ? Number(saved) : 10;
@@ -212,6 +213,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   // 서바이벌 모드 시작 시 속도(레벨) 1로 고정 초기화 및 저장상태 리셋
   useEffect(() => {
     hasSavedRef.current = false; // 새 게임 모드 로드 시 저장 상태 초기화
+    setZombieExp(0); // 새 게임 모드 로드 시 경험치 리셋
     if (gameMode === 'survival') {
       setSelectedZombieSpeed(1);
     }
@@ -598,6 +600,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
     if (activePath.length === 0) return;
     hasSavedRef.current = false; // 저장 상태 리셋
+    setZombieExp(0); // 경험치 상태 리셋
     initAudio();
     if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
 
@@ -656,9 +659,17 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       const d = distanceRef.current;
       if (d !== null && d >= 30) {
         speedIncreaseFrameCountRef.current += 1;
-        if (speedIncreaseFrameCountRef.current >= 180) { // 약 3초 경과
+        if (speedIncreaseFrameCountRef.current >= 180) {
           speedIncreaseFrameCountRef.current = 0;
-          setSelectedZombieSpeed(prev => Math.min(50, prev + 1));
+          setZombieExp(prevExp => {
+            const nextExp = prevExp + 1;
+            const required = Math.pow(2, selectedZombieSpeed - 1);
+            if (nextExp >= required) {
+              setSelectedZombieSpeed(prevLevel => Math.min(50, prevLevel + 1));
+              return 0;
+            }
+            return nextExp;
+          });
         }
       } else {
         speedIncreaseFrameCountRef.current = 0; // 30m 미만 시 가속 대기 카운터 리셋
@@ -963,7 +974,46 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         )}
         {zombiePosition && (
           <CustomOverlayMap position={zombiePosition}>
-            <div style={{ fontSize: '30px' }}>{getZombieEmoji(selectedZombieSpeed)}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ fontSize: '30px', userSelect: 'none' }}>
+                {getZombieEmoji(selectedZombieSpeed)}
+              </div>
+              {gameMode === 'survival' && (
+                <div style={{
+                  marginTop: '1px',
+                  backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                  border: '1px solid rgba(244, 63, 94, 0.5)',
+                  borderRadius: '4px',
+                  padding: '2px 4px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '2px',
+                  width: '40px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
+                }}>
+                  {/* EXP 게이지 바 */}
+                  <div style={{
+                    width: '100%',
+                    height: '3px',
+                    backgroundColor: '#1e293b',
+                    borderRadius: '1.5px',
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}>
+                    <div style={{
+                      width: `${Math.min(100, (zombieExp / Math.pow(2, selectedZombieSpeed - 1)) * 100)}%`,
+                      height: '100%',
+                      backgroundColor: '#f43f5e',
+                      transition: 'width 0.2s'
+                    }} />
+                  </div>
+                  <span style={{ fontSize: '7px', color: '#fda4af', scale: '0.8', transform: 'scale(0.85)', transformOrigin: 'center', fontWeight: 'bold' }}>
+                    {selectedZombieSpeed === 50 ? 'MAX' : `${zombieExp}/${Math.pow(2, selectedZombieSpeed - 1)}`}
+                  </span>
+                </div>
+              )}
+            </div>
           </CustomOverlayMap>
         )}
         {/* 가이드 경로 (RUN 모드의 목표 경로 또는 서바이벌 모드에서 즐겨찾기로 불러온 가이드 경로) */}

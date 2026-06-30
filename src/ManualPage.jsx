@@ -273,8 +273,8 @@ export default function ManualPage({ onBackToIntro }) {
                   <p>정해진 탈출구는 없습니다. 사용자가 실제 거리를 이동하며 남긴 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>붉은색 발자국 라인</span>을 따라 좀비가 소환되어 그대로 뒤따라옵니다.</p>
                 </div>
                 <div className="info-card" style={{ borderColor: '#ef4444' }}>
-                  <h4 style={{ color: '#ef4444' }}>⚡ 실시간 레벨 성장 (방심 금지)</h4>
-                  <p>좀비는 최초 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>레벨 1 (초속 약 1m)</span>의 느린 속도로 출발하지만, 사용자와 거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>30m 이상 벌어지면 3초마다 레벨(속도)이 1씩 증가</span>하여 질주합니다 (최대 Lv.50).</p>
+                  <h4 style={{ color: '#ef4444' }}>⚡ 좀비 경험치 및 레벨업 시스템</h4>
+                  <p>거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>30m 이상 벌어지면 3초마다 경험치(EXP)가 1씩 누적</span>되며, 마커 하단의 EXP 게이지가 가득 차면 레벨(속도)이 상승합니다. 요구 경험치는 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>2^(레벨-1)</span>로 레벨이 오를수록 다음 레벨업이 비약적으로 힘들어집니다 (최대 Lv.50).</p>
                 </div>
               </div>
 
