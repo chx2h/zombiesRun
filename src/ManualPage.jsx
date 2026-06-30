@@ -274,7 +274,7 @@ export default function ManualPage({ onBackToIntro }) {
                 </div>
                 <div className="info-card" style={{ borderColor: '#ef4444' }}>
                   <h4 style={{ color: '#ef4444' }}>⚡ 실시간 레벨 성장 (방심 금지)</h4>
-                  <p>좀비는 최초 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>레벨 1 (초속 약 1m)</span>의 느린 속도로 출발하지만, 사용자와 거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>30m 이상 벌어지면 매초 레벨(속도)이 1씩 빠르게 증가</span>하여 질주합니다 (최대 Lv.50).</p>
+                  <p>좀비는 최초 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>레벨 1 (초속 약 1m)</span>의 느린 속도로 출발하지만, 사용자와 거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>30m 이상 벌어지면 3초마다 레벨(속도)이 1씩 증가</span>하여 질주합니다 (최대 Lv.50).</p>
                 </div>
               </div>
 

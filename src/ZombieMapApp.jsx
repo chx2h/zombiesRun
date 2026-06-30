@@ -656,7 +656,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       const d = distanceRef.current;
       if (d !== null && d >= 30) {
         speedIncreaseFrameCountRef.current += 1;
-        if (speedIncreaseFrameCountRef.current >= 60) { // 약 1초 경과
+        if (speedIncreaseFrameCountRef.current >= 180) { // 약 3초 경과
           speedIncreaseFrameCountRef.current = 0;
           setSelectedZombieSpeed(prev => Math.min(50, prev + 1));
         }
