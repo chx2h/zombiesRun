@@ -79,6 +79,14 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const [zombieProgress, setZombieProgress] = useState({ level: 1, xp: 0 });
   const [isLevelUpFlashing, setIsLevelUpFlashing] = useState(false);
 
+  // 테스트 모드 (개발자 및 실내 테스트용 사용자 위치 키보드 제어 상태)
+  const [isDebugMode, setIsDebugMode] = useState(false);
+  const isDebugModeRef = useRef(false);
+
+  useEffect(() => {
+    isDebugModeRef.current = isDebugMode;
+  }, [isDebugMode]);
+
   // 일정한 압박형(선형 스케일) 요구 경험치 계산 함수
   const getNextLevelXp = useCallback((currentLevel) => {
     return Math.round(30 + (currentLevel * 1.4));
@@ -414,6 +422,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     if (!navigator.geolocation) return;
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
+        if (isDebugModeRef.current) return;
         const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserPosition(newPos);
         userPosRef.current = newPos;
@@ -436,6 +445,56 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     );
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
+
+  // 개발 및 테스트용 키보드(방향키/WASD) 사용자 위치 제어 훅
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!isDebugModeRef.current || isGameOver || !userPosRef.current) return;
+
+      const moveStep = 0.00002; // 약 2.2미터
+      const moveStepLng = 0.000025; // 동서 방향 경도 보정값
+
+      let newLat = userPosRef.current.lat;
+      let newLng = userPosRef.current.lng;
+      let moved = false;
+
+      switch (e.key.toLowerCase()) {
+        case 'w':
+        case 'arrowup':
+          newLat += moveStep;
+          moved = true;
+          break;
+        case 's':
+        case 'arrowdown':
+          newLat -= moveStep;
+          moved = true;
+          break;
+        case 'a':
+        case 'arrowleft':
+          newLng -= moveStepLng;
+          moved = true;
+          break;
+        case 'd':
+        case 'arrowright':
+          newLng += moveStepLng;
+          moved = true;
+          break;
+        default:
+          break;
+      }
+
+      if (moved) {
+        e.preventDefault(); // 스크롤 차단
+        const nextPos = { lat: newLat, lng: newLng };
+        setUserPosition(nextPos);
+        userPosRef.current = nextPos;
+        setMapCenter(nextPos); // 맵 중심 동기화
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isGameOver]);
 
   // 유저 이동 시 5m마다 좀비 경험치 획득 처리 (거리 비례)
   useEffect(() => {
@@ -1020,13 +1079,62 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
   return (
     <div style={{ 
-      width: '100vw', 
+      width: '100%', 
       height: '100dvh', 
       position: 'relative',
       boxShadow: isLevelUpFlashing ? 'inset 0 0 50px rgba(239, 68, 68, 0.95)' : 'none',
       transition: 'box-shadow 0.15s ease-in-out',
       overflow: 'hidden'
     }}>
+      {/* 테스트 모드 토글 버튼 */}
+      <button
+        onClick={() => setIsDebugMode(prev => !prev)}
+        style={{
+          position: 'absolute',
+          top: '12px',
+          right: '12px',
+          zIndex: 1010,
+          backgroundColor: isDebugMode ? '#ef4444' : '#1e293b',
+          border: '1.5px solid rgba(255,255,255,0.2)',
+          borderRadius: '8px',
+          color: '#fff',
+          padding: '6px 10px',
+          fontSize: '0.75rem',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+          transition: 'all 0.2s'
+        }}
+      >
+        {isDebugMode ? '🛠️ 테스트 모드 OFF' : '🛠️ 테스트 모드 ON'}
+      </button>
+
+      {/* 테스트 모드 가이드 가시화 */}
+      {isDebugMode && (
+        <div style={{
+          position: 'absolute',
+          top: '55px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 1009,
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          border: '1px solid #ef4444',
+          borderRadius: '20px',
+          color: '#fca5a5',
+          padding: '6px 14px',
+          fontSize: '0.7rem',
+          fontWeight: 'bold',
+          pointerEvents: 'none',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+          whiteSpace: 'nowrap',
+          textAlign: 'center'
+        }}>
+          🎮 방향키 / WASD 키로 사용자 위치 조작 가능
+        </div>
+      )}
       {/* 현재 위치 로딩 중 표시 */}
       {!userPosition && (
         <div style={{
