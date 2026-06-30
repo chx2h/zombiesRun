@@ -639,6 +639,16 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       setRoutePath(initialRoutePath);
       setMapCenter(initialRoutePath[0]);
 
+      // 새 게임 모드 실행 시 상태 전면 초기화
+      setZombieProgress({ level: 1, xp: 0 });
+      setRecordedPath([]);
+      setIsGameOver(false);
+      setGameResult(null);
+      setDistance(null);
+      hasSavedRef.current = false;
+      accumulatedUserDistanceRef.current = 0;
+      lastUserPosForExpRef.current = null;
+
       if (gameMode !== 'survival') {
         if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current);
         setZombiePosition(null);
@@ -653,6 +663,13 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           setCountdown(0);
           console.log("좀비출현 (복사된 경로)!");
         }, selectedSpawnDelay * 1000);
+      } else {
+        if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current);
+        spawnTimerRef.current = null;
+        setZombiePosition(null);
+        zombiePosRef.current = null;
+        setCountdown(0);
+        setSelectedZombieSpeed(1);
       }
     }
   }, [initialRoutePath, selectedSpawnDelay, gameMode]);
@@ -776,8 +793,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
    * 좀비를 다시 처음 위치로 되돌리는 초기화 함수
    */
   const handleResetZombie = useCallback(() => {
-    const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
-    if (activePath.length === 0) return;
     hasSavedRef.current = false; // 저장 상태 리셋
     setZombieProgress({ level: 1, xp: 0 }); // 레벨 및 경험치 초기화
     initAudio();
@@ -791,9 +806,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     setCountdown(0);
 
     pathIndexRef.current = 0;
-    const startPos = activePath[0];
-    setZombiePosition(startPos);
-    zombiePosRef.current = startPos;
     lastUserPosForExpRef.current = null;
     accumulatedUserDistanceRef.current = 0;
     if (gameMode === 'survival') {
@@ -802,6 +814,16 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     setIsGameOver(false);
     setGameResult(null);
     setDistance(null);
+
+    const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
+    if (activePath && activePath.length > 0) {
+      const startPos = activePath[0];
+      setZombiePosition(startPos);
+      zombiePosRef.current = startPos;
+    } else {
+      setZombiePosition(null);
+      zombiePosRef.current = null;
+    }
   }, [routePath, recordedPath, gameMode, initAudio]);
 
   const currentZombieSpeed = useMemo(() => {
@@ -809,7 +831,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     if (gameMode === 'survival') {
       // 서바이벌 모드 전용 속도 밸런싱
       // Lv.1 스타트 시 초속 약 1.0m 내외로 걷기 유도, 레벨당 가속화
-      const baseSurvivalSpeed = 0.0000005; // Lv.1 기본 속도
+      const baseSurvivalSpeed = 0.0000002; // Lv.1 기본 속도
       // 기존 speedStep 제거 (zombieLevel 3% 가중치 연동으로 대체)        // 레벨당 점진적 가속폭
       return baseSurvivalSpeed * (1 + (zombieProgress.level - 1) * 0.03);
     }
