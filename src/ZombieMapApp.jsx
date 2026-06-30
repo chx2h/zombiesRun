@@ -76,8 +76,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   });
 
   // --- 좀비 실시간 레벨업 및 난이도 조절 시스템 ---
-  const [zombieLevel, setZombieLevel] = useState(1);
-  const [zombieXp, setZombieXp] = useState(0);
+  const [zombieProgress, setZombieProgress] = useState({ level: 1, xp: 0 });
   const [isLevelUpFlashing, setIsLevelUpFlashing] = useState(false);
 
   // 일정한 압박형(선형 스케일) 요구 경험치 계산 함수
@@ -135,29 +134,24 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
   // 경험치 획득 및 연쇄 레벨업 핸들러
   const gainZombieXp = useCallback((amount) => {
-    setZombieLevel((prevLevel) => {
-      if (prevLevel >= 50) return prevLevel;
+    setZombieProgress((prev) => {
+      if (prev.level >= 50) return prev;
       
-      let currentLevel = prevLevel;
+      let newXp = prev.xp + amount;
+      let currentLevel = prev.level;
       let didLevelUp = false;
       
-      setZombieXp((prevXp) => {
-        let newXp = prevXp + amount;
-        
-        while (newXp >= getNextLevelXp(currentLevel) && currentLevel < 50) {
-          newXp -= getNextLevelXp(currentLevel);
-          currentLevel += 1;
-          didLevelUp = true;
-        }
-        
-        if (didLevelUp) {
-          // 레벨업 특수 효과 호출
-          triggerZombieLevelUpEffect();
-        }
-        return newXp;
-      });
+      while (newXp >= getNextLevelXp(currentLevel) && currentLevel < 50) {
+        newXp -= getNextLevelXp(currentLevel);
+        currentLevel += 1;
+        didLevelUp = true;
+      }
       
-      return currentLevel;
+      if (didLevelUp) {
+        // 레벨업 특수 효과 연출
+        triggerZombieLevelUpEffect();
+      }
+      return { level: currentLevel, xp: newXp };
     });
   }, [getNextLevelXp, triggerZombieLevelUpEffect]);
   const [selectedSpawnDelay, setSelectedSpawnDelay] = useState(() => {
@@ -298,8 +292,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   // 서바이벌 모드 시작 시 속도(레벨) 1로 고정 초기화 및 저장상태 리셋
   useEffect(() => {
     hasSavedRef.current = false; // 새 게임 모드 로드 시 저장 상태 초기화
-    setZombieLevel(1); // 새 게임 모드 로드 시 레벨 리셋
-    setZombieXp(0); // 새 게임 모드 로드 시 경험치 리셋
+    setZombieProgress({ level: 1, xp: 0 }); // 새 게임 모드 로드 시 레벨 및 경험치 초기화
     if (gameMode === 'survival') {
       setSelectedZombieSpeed(1);
     }
@@ -716,8 +709,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
     if (activePath.length === 0) return;
     hasSavedRef.current = false; // 저장 상태 리셋
-    setZombieLevel(1); // 레벨 상태 리셋
-    setZombieXp(0); // 경험치 상태 리셋
+    setZombieProgress({ level: 1, xp: 0 }); // 레벨 및 경험치 초기화
     initAudio();
     if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
 
@@ -749,10 +741,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       // Lv.1 스타트 시 초속 약 1.0m 내외로 걷기 유도, 레벨당 가속화
       const baseSurvivalSpeed = 0.00000012; // Lv.1 기본 속도
       // 기존 speedStep 제거 (zombieLevel 3% 가중치 연동으로 대체)        // 레벨당 점진적 가속폭
-      return baseSurvivalSpeed * (1 + (zombieLevel - 1) * 0.03);
+      return baseSurvivalSpeed * (1 + (zombieProgress.level - 1) * 0.03);
     }
     return (speedLevel / 50) * ZOMBIE_SPEED_BASE;
-  }, [selectedZombieSpeed, zombieLevel, gameMode]);
+  }, [selectedZombieSpeed, zombieProgress.level, gameMode]);
 
   const maxZombieLevel = useMemo(() => {
     try {
@@ -776,15 +768,15 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     // 서바이벌 모드 실시간 가속 (20m 이상 벌어질 때 대략 1초에 레벨 1씩 증가)
     if (gameMode === 'survival' && !isGameOver && zombiePosRef.current && userPosRef.current) {
       const d = distanceRef.current;
-      if (d !== null && d >= 30 && zombieLevel < 50) {
+      if (d !== null && d >= 30 && zombieProgress.level < 50) {
         speedIncreaseFrameCountRef.current += 1;
-        if (speedIncreaseFrameCountRef.current >= 180) {
+        if (speedIncreaseFrameCountRef.current >= 60) {
           speedIncreaseFrameCountRef.current = 0;
           gainZombieXp(1); // 시간 비례 경험치 획득
         }
       } else {
         speedIncreaseFrameCountRef.current = 0;
-        setZombieXp(0); // 30m 이내 진입 시 현재 레벨의 누적 경험치 초기화
+        setZombieProgress(prev => ({ ...prev, xp: 0 }));
       }
     }
 
@@ -960,12 +952,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         date: new Date().toISOString(),
         mode: gameMode,
         distance: totalDistanceStr,
-        zombieSpeed: gameMode === 'survival' ? zombieLevel : selectedZombieSpeed,
+        zombieSpeed: gameMode === 'survival' ? zombieProgress.level : selectedZombieSpeed,
         result: result,
         routePath: activePath,
       });
     }
-  }, [isGameOver, gameResult, gameMode, routePath, recordedPath, onSaveRecord, selectedZombieSpeed, zombieLevel]);
+  }, [isGameOver, gameResult, gameMode, routePath, recordedPath, onSaveRecord, selectedZombieSpeed, zombieProgress.level]);
 
   // 중간 종료 시 기록 저장
   const handleExitAndSave = () => {
@@ -985,7 +977,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         date: new Date().toISOString(),
         mode: gameMode,
         distance: totalDistanceStr,
-        zombieSpeed: gameMode === 'survival' ? zombieLevel : selectedZombieSpeed,
+        zombieSpeed: gameMode === 'survival' ? zombieProgress.level : selectedZombieSpeed,
         result: '-', // 중간 종료는 '-'로 표시
         routePath: activePath,
       });
@@ -1095,7 +1087,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           <CustomOverlayMap position={zombiePosition}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{ fontSize: '30px', userSelect: 'none' }}>
-                {getZombieEmoji(zombieLevel)}
+                {getZombieEmoji(zombieProgress.level)}
               </div>
               {gameMode === 'survival' && (
                 <div style={{
@@ -1121,14 +1113,14 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                     position: 'relative'
                   }}>
                     <div style={{
-                      width: `${Math.min(100, (zombieXp / getNextLevelXp(zombieLevel)) * 100)}%`,
+                      width: `${Math.min(100, (zombieProgress.xp / getNextLevelXp(zombieProgress.level)) * 100)}%`,
                       height: '100%',
                       backgroundColor: '#f43f5e',
                       transition: 'width 0.2s'
                     }} />
                   </div>
                   <span style={{ fontSize: '7px', color: '#fda4af', scale: '0.8', transform: 'scale(0.85)', transformOrigin: 'center', fontWeight: 'bold' }}>
-                    {zombieLevel === 50 ? 'MAX' : `${zombieXp}/${getNextLevelXp(zombieLevel)}`}
+                    {zombieProgress.level === 50 ? 'MAX' : `${zombieProgress.xp}/${getNextLevelXp(zombieProgress.level)}`}
                   </span>
                 </div>
               )}
@@ -1759,11 +1751,21 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             <>
               <div className="hud-control-row" style={{ justifyContent: 'center', padding: '4px 0' }}>
                 <span className="hud-label" style={{ fontSize: '0.8rem', color: '#ef4444' }}>
+                  🧟 좀비 레벨: <strong style={{ fontSize: '0.95rem', marginLeft: '4px' }}>Lv.{zombieProgress.level}</strong> (EXP: {zombieProgress.xp}/{getNextLevelXp(zombieProgress.level)})
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: '8px' }}>
+                    (최고: Lv.{maxZombieLevel})
+                  </span>
+                </span>
+              </div>
+              <div style={{ display: 'none' }}>
+                <div className="hud-control-row" style={{ justifyContent: 'center', padding: '4px 0' }}>
+                <span className="hud-label" style={{ fontSize: '0.8rem', color: '#ef4444' }}>
                   🧟 좀비 레벨: <strong style={{ fontSize: '0.95rem', marginLeft: '4px' }}>Lv.{zombieLevel}</strong> (EXP: {zombieXp}/{getNextLevelXp(zombieLevel)})
                   <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: '8px' }}>
                     (최고: Lv.{maxZombieLevel})
                   </span>
                 </span>
+              </div>
               </div>
             </>
           ) : (
