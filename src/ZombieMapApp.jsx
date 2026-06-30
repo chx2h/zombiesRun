@@ -82,7 +82,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
   // 일정한 압박형(선형 스케일) 요구 경험치 계산 함수
   const getNextLevelXp = useCallback((currentLevel) => {
-    return Math.round(15 + (currentLevel * 0.7));
+    return Math.round(30 + (currentLevel * 1.4));
   }, []);
 
   // 레벨업 특수 효과 및 오디오 재생 함수
