@@ -672,7 +672,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           });
         }
       } else {
-        speedIncreaseFrameCountRef.current = 0; // 30m 미만 시 가속 대기 카운터 리셋
+        speedIncreaseFrameCountRef.current = 0;
+        setZombieExp(0);
       }
     }
 
