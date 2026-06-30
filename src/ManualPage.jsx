@@ -274,12 +274,12 @@ export default function ManualPage({ onBackToIntro }) {
                 </div>
                 <div className="info-card" style={{ borderColor: '#ef4444' }}>
                   <h4 style={{ color: '#ef4444' }}>⚡ 실시간 레벨 성장 (방심 금지)</h4>
-                  <p>좀비는 최초 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>레벨 1 (초속 약 1m)</span>의 느린 속도로 출발하지만, 사용자와 거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>20m 이상 벌어지면 매초 레벨(속도)이 1씩 빠르게 증가</span>하여 질주합니다 (최대 Lv.50).</p>
+                  <p>좀비는 최초 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>레벨 1 (초속 약 1m)</span>의 느린 속도로 출발하지만, 사용자와 거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>30m 이상 벌어지면 매초 레벨(속도)이 1씩 빠르게 증가</span>하여 질주합니다 (최대 Lv.50).</p>
                 </div>
               </div>
 
               <div className="advice-box" style={{ borderColor: '#ef4444', padding: '8px 12px' }}>
-                <p style={{ fontSize: '0.8rem', lineHeight: '1.4' }}><strong style={{ color: '#ef4444' }}>🚨 생존 수칙:</strong> 좀비가 5m 이내로 오면 사망합니다. 거리를 좁히면(20m 이내) 속도가 증가하지 않으니 골목길을 활용해 따돌리며 생존하세요.</p>
+                <p style={{ fontSize: '0.8rem', lineHeight: '1.4' }}><strong style={{ color: '#ef4444' }}>🚨 생존 수칙:</strong> 좀비가 5m 이내로 오면 사망합니다. 거리를 좁히면(30m 이내) 속도가 증가하지 않으니 골목길을 활용해 따돌리며 생존하세요.</p>
               </div>
 
               <div className="simulator-section" style={{ borderTop: '1px solid rgba(239, 68, 68, 0.3)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>

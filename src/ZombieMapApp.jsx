@@ -654,14 +654,14 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     // 서바이벌 모드 실시간 가속 (20m 이상 벌어질 때 대략 1초에 레벨 1씩 증가)
     if (gameMode === 'survival' && !isGameOver && zombiePosRef.current && userPosRef.current) {
       const d = distanceRef.current;
-      if (d !== null && d >= 20) {
+      if (d !== null && d >= 30) {
         speedIncreaseFrameCountRef.current += 1;
         if (speedIncreaseFrameCountRef.current >= 60) { // 약 1초 경과
           speedIncreaseFrameCountRef.current = 0;
           setSelectedZombieSpeed(prev => Math.min(50, prev + 1));
         }
       } else {
-        speedIncreaseFrameCountRef.current = 0; // 20m 미만 시 가속 대기 카운터 리셋
+        speedIncreaseFrameCountRef.current = 0; // 30m 미만 시 가속 대기 카운터 리셋
       }
     }
 
