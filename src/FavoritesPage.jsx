@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Map, Polyline, Circle } from 'react-kakao-maps-sdk';
 
 /**
  * 두 좌표 간 거리 계산 (하버사인 공식)
@@ -27,6 +28,15 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
   const [selectedDateRecords, setSelectedDateRecords] = useState([]); // 선택 날짜의 상세 기록
   const [selectedDateStr, setSelectedDateStr] = useState(''); // 선택된 날짜 레이블
   const [showDetailModal, setShowDetailModal] = useState(false); // 상세 기록 레이어 활성화
+
+  // --- 경로 미리보기 상태 ---
+  const [previewPath, setPreviewPath] = useState(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  const previewMapCenter = useMemo(() => {
+    if (!previewPath || previewPath.length === 0) return { lat: 37.5665, lng: 126.9780 };
+    return previewPath[0];
+  }, [previewPath]);
 
   const loadData = () => {
     // 1. 즐겨찾기 로드
@@ -615,19 +625,46 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                         gap: '10px'
                       }}
                     >
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
+                      <div
+                        onClick={() => {
+                          if (hasPath) {
+                            setPreviewPath(record.routePath);
+                            setShowPreviewModal(true);
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px',
+                          flex: 1,
+                          minWidth: 0,
+                          cursor: hasPath ? 'pointer' : 'default',
+                          transition: 'color 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (hasPath) {
+                            e.currentTarget.style.color = '#38bdf8';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (hasPath) {
+                            e.currentTarget.style.color = 'inherit';
+                          }
+                        }}
+                        title={hasPath ? "클릭하여 이 경로 미리보기" : ""}
+                      >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span className={`mode-badge ${record.mode || 'run'}`} style={{ fontSize: '9px', padding: '1px 5px' }}>
                             {record.mode ? record.mode.toUpperCase() : 'RUN'}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                          <span style={{ fontSize: '11px', color: 'inherit' }}>
                             {new Date(record.date).toLocaleTimeString('ko-KR', {
                               hour: '2-digit',
                               minute: '2-digit'
                             })}
                           </span>
                         </div>
-                        <div style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           거리: {record.distance || '-'} | 좀비 {record.zombieSpeed ? `Lv.${record.zombieSpeed}` : '-'}
                         </div>
                       </div>
@@ -713,6 +750,128 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                   );
                 })}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 경로 미리보기 모달 */}
+      {showPreviewModal && previewPath && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1100,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'rgba(15, 23, 42, 0.98)',
+            border: '1.5px solid rgba(56, 189, 248, 0.4)',
+            boxShadow: '0 0 24px rgba(56, 189, 248, 0.3)',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '420px',
+            height: '75%',
+            maxHeight: '480px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* 헤더 */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 16px',
+              borderBottom: '1px solid rgba(56, 189, 248, 0.2)',
+              backgroundColor: 'rgba(30, 41, 59, 0.5)'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', color: '#38bdf8', fontWeight: 'bold' }}>
+                🗺️ 경로 미리보기
+              </h3>
+              <button
+                onClick={() => {
+                  setShowPreviewModal(false);
+                  setPreviewPath(null);
+                }}
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  border: 'none',
+                  color: 'white',
+                  fontSize: '16px',
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* 지도 영역 */}
+            <div style={{ flex: 1, position: 'relative' }}>
+              <Map
+                center={previewMapCenter}
+                style={{ width: '100%', height: '100%' }}
+                level={4}
+              >
+                <Polyline
+                  path={previewPath}
+                  strokeWeight={5}
+                  strokeColor="#38bdf8"
+                  strokeOpacity={0.85}
+                  strokeStyle="solid"
+                />
+                
+                {/* 출발지 (녹색) */}
+                {previewPath.length > 0 && (
+                  <Circle
+                    center={previewPath[0]}
+                    radius={8}
+                    strokeWeight={2}
+                    strokeColor="#22c55e"
+                    strokeOpacity={0.8}
+                    fillColor="#22c55e"
+                    fillOpacity={0.6}
+                  />
+                )}
+
+                {/* 목적지 (적색) */}
+                {previewPath.length > 1 && (
+                  <Circle
+                    center={previewPath[previewPath.length - 1]}
+                    radius={8}
+                    strokeWeight={2}
+                    strokeColor="#ef4444"
+                    strokeOpacity={0.8}
+                    fillColor="#ef4444"
+                    fillOpacity={0.6}
+                  />
+                )}
+              </Map>
+            </div>
+            
+            {/* 안내 문구 */}
+            <div style={{
+              padding: '10px 16px',
+              backgroundColor: 'rgba(30, 41, 59, 0.3)',
+              borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+              textAlign: 'center',
+              fontSize: '11px',
+              color: '#94a3b8'
+            }}>
+              🟢 출발지 / 🔴 도착지 경로 매핑 미리보기
             </div>
           </div>
         </div>
