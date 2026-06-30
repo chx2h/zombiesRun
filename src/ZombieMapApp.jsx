@@ -1757,16 +1757,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                   </span>
                 </span>
               </div>
-              <div style={{ display: 'none' }}>
-                <div className="hud-control-row" style={{ justifyContent: 'center', padding: '4px 0' }}>
+              {/*
                 <span className="hud-label" style={{ fontSize: '0.8rem', color: '#ef4444' }}>
                   🧟 좀비 레벨: <strong style={{ fontSize: '0.95rem', marginLeft: '4px' }}>Lv.{zombieLevel}</strong> (EXP: {zombieXp}/{getNextLevelXp(zombieLevel)})
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: '8px' }}>
-                    (최고: Lv.{maxZombieLevel})
-                  </span>
-                </span>
-              </div>
-              </div>
+            </div>
+              */}
             </>
           ) : (
             /* 다른 모드는 기존 슬라이더 유지 */
