@@ -524,7 +524,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       if (dist > 0) {
         accumulatedUserDistanceRef.current += dist;
         if (accumulatedUserDistanceRef.current >= 5) {
-          const expEarned = Math.floor(accumulatedUserDistanceRef.current / 5);
+          const expEarned = Math.floor(accumulatedUserDistanceRef.current / 5) * 2; // 기존 5m당 1 XP에서 2배로 상향
           accumulatedUserDistanceRef.current %= 5;
           gainZombieXp(expEarned);
         }
@@ -869,7 +869,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         speedIncreaseFrameCountRef.current += 1;
         if (speedIncreaseFrameCountRef.current >= 60) {
           speedIncreaseFrameCountRef.current = 0;
-          gainZombieXp(1); // 시간 비례 경험치 획득
+          gainZombieXp(2); // 시간 비례 경험치 획득 (1초당 1 XP에서 2배인 2 XP로 상향)
         }
       } else {
         speedIncreaseFrameCountRef.current = 0;
