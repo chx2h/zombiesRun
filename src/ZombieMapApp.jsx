@@ -1270,9 +1270,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                       transition: 'width 0.2s'
                     }} />
                   </div>
-                  <span style={{ fontSize: '7px', color: '#fda4af', scale: '0.8', transform: 'scale(0.85)', transformOrigin: 'center', fontWeight: 'bold' }}>
-                    {zombieProgress.level === 50 ? 'MAX' : `${zombieProgress.xp}/${getNextLevelXp(zombieProgress.level)}`}
-                  </span>
                 </div>
               )}
             </div>
