@@ -757,33 +757,42 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
 
       {/* 경로 미리보기 모달 */}
       {showPreviewModal && previewPath && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1100,
-          padding: '20px'
-        }}>
-          <div style={{
-            backgroundColor: 'rgba(15, 23, 42, 0.98)',
-            border: '1.5px solid rgba(56, 189, 248, 0.4)',
-            boxShadow: '0 0 24px rgba(56, 189, 248, 0.3)',
-            borderRadius: '16px',
-            width: '100%',
-            maxWidth: '420px',
-            height: '75%',
-            maxHeight: '480px',
+        <div 
+          onClick={() => {
+            setShowPreviewModal(false);
+            setPreviewPath(null);
+          }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(8px)',
             display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-          }}>
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1100,
+            padding: '20px'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'rgba(15, 23, 42, 0.98)',
+              border: '1.5px solid rgba(56, 189, 248, 0.4)',
+              boxShadow: '0 0 24px rgba(56, 189, 248, 0.3)',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '420px',
+              height: '75%',
+              maxHeight: '480px',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+          >
             {/* 헤더 */}
             <div style={{
               display: 'flex',
