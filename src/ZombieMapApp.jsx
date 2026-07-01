@@ -17,7 +17,7 @@ const getZombieEmoji = (level) => {
 };
 
 // 좀비 최대 속도 기준 (보행자 경로의 정밀도를 고려해 밸런싱)
-const ZOMBIE_SPEED_BASE = 0.000002; // 기본 속도를 더 낮춰서 1일 때 훨씬 느리게
+const ZOMBIE_SPEED_BASE = 0.0000033; // 기본 속도를 대폭 상향 (기존 50레벨 속도가 신규 30레벨 수준이 되도록 조정)
 
 /**
  * 두 좌표 간 거리 계산 (하버사인 공식)
@@ -96,11 +96,20 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
   useEffect(() => {
     isDebugModeRef.current = isDebugMode;
+    // 테스트 모드가 켜졌는데 현재 유저 위치가 없는 경우 기본 가상 좌표(서울 시청)를 즉시 설정하여 브라우저 GPS 차단 상황 대응
+    if (isDebugMode && !userPosRef.current) {
+      const defaultMockPos = { lat: 37.5665, lng: 126.978 };
+      setUserPosition(defaultMockPos);
+      userPosRef.current = defaultMockPos;
+      setMapCenter(defaultMockPos);
+      isFirstPositionFoundRef.current = true;
+      console.log("테스트 모드 활성화로 인한 기본 가상 위치 설정:", defaultMockPos);
+    }
   }, [isDebugMode]);
 
-  // 일정한 압박형(선형 스케일) 요구 경험치 계산 함수
+  // 지수 스케일 요구 경험치 계산 함수 (고레벨일수록 더 많은 경험치 필요)
   const getNextLevelXp = useCallback((currentLevel) => {
-    return Math.round(30 + (currentLevel * 1.4));
+    return Math.round(30 + Math.pow(currentLevel, 1.3) * 1.5);
   }, []);
 
   // 레벨업 특수 효과 및 오디오 재생 함수
@@ -151,16 +160,16 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     }
   }, []);
 
-  // 경험치 획득 및 연쇄 레벨업 핸들러
+  // 경험치 획득 및 연쇄 레벨업 핸들러 (최대 100레벨까지 제한 완화)
   const gainZombieXp = useCallback((amount) => {
     setZombieProgress((prev) => {
-      if (prev.level >= 50) return prev;
+      if (prev.level >= 100) return prev;
 
       let newXp = prev.xp + amount;
       let currentLevel = prev.level;
       let didLevelUp = false;
 
-      while (newXp >= getNextLevelXp(currentLevel) && currentLevel < 50) {
+      while (newXp >= getNextLevelXp(currentLevel) && currentLevel < 100) {
         newXp -= getNextLevelXp(currentLevel);
         currentLevel += 1;
         didLevelUp = true;
@@ -832,10 +841,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     const speedLevel = Number(selectedZombieSpeed);
     if (gameMode === 'survival') {
       // 서바이벌 모드 전용 속도 밸런싱
-      // Lv.1 스타트 시 초속 약 1.0m 내외로 걷기 유도, 레벨당 가속화
-      const baseSurvivalSpeed = 0.0000002; // Lv.1 기본 속도
-      // 기존 speedStep 제거 (zombieLevel 3% 가중치 연동으로 대체)        // 레벨당 점진적 가속폭
-      return baseSurvivalSpeed * (1 + (zombieProgress.level - 1) * 0.03);
+      // 달리기 시작 시 거리가 너무 벌어지지 않도록 Lv.1 시작 속도를 시속 8.3km/h 수준(초속 약 2.3m)으로 상향
+      const baseSurvivalSpeed = 0.00000035; 
+      // 기존 최고속도가 30레벨 속도 수준이 되도록 레벨당 증가폭을 1.38%로 설정 (만렙인 100레벨에서는 무척 빠르게 추격)
+      return baseSurvivalSpeed * (1 + (zombieProgress.level - 1) * 0.0138);
     }
     return (speedLevel / 50) * ZOMBIE_SPEED_BASE;
   }, [selectedZombieSpeed, zombieProgress.level, gameMode]);
@@ -864,10 +873,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPathRef.current : routePathRef.current;
     if (isGameOver || activePath.length === 0) return;
 
-    // 서바이벌 모드 실시간 가속 (20m 이상 벌어질 때 대략 1초에 레벨 1씩 증가)
+    // 서바이벌 모드 실시간 가속 (30m 이상 벌어질 때 시간 비례 경험치 획득, 레벨 제한 100)
     if (gameMode === 'survival' && !isGameOver && zombiePosRef.current && userPosRef.current) {
       const d = distanceRef.current;
-      if (d !== null && d >= 30 && zombieProgress.level < 50) {
+      if (d !== null && d >= 30 && zombieProgress.level < 100) {
         speedIncreaseFrameCountRef.current += 1;
         if (speedIncreaseFrameCountRef.current >= 60) {
           speedIncreaseFrameCountRef.current = 0;
@@ -908,18 +917,37 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       return;
     }
 
+    // --- 끈질긴 추격을 위한 러버밴딩(Rubber-banding) 제어 로직 적용 ---
+    let rubberBandingMultiplier = 1.0;
+    if (distanceRef.current !== null) {
+      const d = distanceRef.current;
+      if (d >= 50) {
+        rubberBandingMultiplier = 2.0; // 50m 이상 멀어지면 빠르게 추격하기 위해 2.0배 가속
+      } else if (d >= 30) {
+        rubberBandingMultiplier = 1.4; // 30m ~ 50m 구간 1.4배 가속
+      } else if (d >= 15) {
+        rubberBandingMultiplier = 1.0; // 15m ~ 30m 기본 추격 페이스
+      } else if (d >= 5) {
+        // 5m ~ 15m 구간에서는 잡히기 직전의 긴장감 연출을 위해 선형 보간하여 서서히 감속 (0.75 ~ 1.0배)
+        rubberBandingMultiplier = 0.75 + ((d - 5) / 10) * 0.25;
+      } else {
+        rubberBandingMultiplier = 0.75;
+      }
+    }
+    const finalSpeed = currentZombieSpeed * rubberBandingMultiplier;
+
     const dLat = target.lat - prevPos.lat;
     const dLng = target.lng - prevPos.lng;
     const len = Math.sqrt(dLat * dLat + dLng * dLng);
 
     let newPos;
-    if (len < currentZombieSpeed) {
+    if (len < finalSpeed) {
       pathIndexRef.current += 1;
       newPos = target;
     } else {
       newPos = {
-        lat: prevPos.lat + (dLat / len) * currentZombieSpeed,
-        lng: prevPos.lng + (dLng / len) * currentZombieSpeed,
+        lat: prevPos.lat + (dLat / len) * finalSpeed,
+        lng: prevPos.lng + (dLng / len) * finalSpeed,
       };
     }
 
