@@ -97,7 +97,7 @@ const WheelColumn = ({ label, currentVal, onChangeVal }) => {
       let lastTickIdx = Math.round(Math.abs(currentOffset.current) / itemHeight);
 
       const runMomentum = () => {
-        speed *= 0.98; // 💡 기존 0.96에서 0.98으로 수정하면 훨씬 기분 좋게 촤르륵 굴러갑니다!
+        speed *= 0.97; // 💡 기존 0.96에서 0.98으로 수정하면 훨씬 기분 좋게 촤르륵 굴러갑니다!
         const nextOffset = currentOffset.current + speed * 16.7;
 
         if (nextOffset > maxOffset || nextOffset < minOffset) {
