@@ -23,19 +23,19 @@ const WheelColumn = ({ label, currentVal, onChangeVal }) => {
   // 모멘텀/관성 물리 속성 refs
   const startY = useRef(0);
   const startOffset = useRef(0);
-  const currentOffset = useRef(-currentVal * itemHeight);
+  // 1️⃣ 초기 마운트 오프셋 계산 공식 반전
+  const currentOffset = useRef(-(9 - currentVal) * itemHeight);
 
   const lastY = useRef(0);
   const lastTime = useRef(0);
   const velocity = useRef(0);
   const animationFrameRef = useRef(null);
-  // 💡 [추가] 사용자가 손을 대고 있거나 굴러가는 중인지 판별하는 플래그
   const isUserInteracting = useRef(false);
 
   useEffect(() => {
-    // 💡 [수정] 사용자가 조작 중이 아닐 때만 외부 값 변경에 따라 스냅 위치 정렬
     if (!isUserInteracting.current) {
-      currentOffset.current = -currentVal * itemHeight;
+      // 2️⃣ 리액트 상태 변경 시 오프셋 계산 공식 반전
+      currentOffset.current = -(9 - currentVal) * itemHeight;
       if (listRef.current) {
         listRef.current.style.transition = 'transform 0.15s cubic-bezier(0.1, 0.8, 0.25, 1)';
         listRef.current.style.transform = `translateY(${currentOffset.current}px)`;
@@ -50,7 +50,6 @@ const WheelColumn = ({ label, currentVal, onChangeVal }) => {
     }
     startY.current = e.touches[0].clientY;
     startOffset.current = currentOffset.current;
-
     lastY.current = e.touches[0].clientY;
     lastTime.current = Date.now();
     velocity.current = 0;
@@ -81,15 +80,17 @@ const WheelColumn = ({ label, currentVal, onChangeVal }) => {
       lastTime.current = now;
     }
 
+    // 3️⃣ 드래그 이동 중 스크롤 인덱스를 실제 값(9 - index)으로 반전
     const currentIdx = Math.round(Math.abs(limitedOffset) / itemHeight);
-    if (currentIdx !== currentVal && currentIdx >= 0 && currentIdx <= 9) {
-      onChangeVal(currentIdx);
+    const calculatedVal = 9 - currentIdx;
+    if (calculatedVal !== currentVal && calculatedVal >= 0 && calculatedVal <= 9) {
+      onChangeVal(calculatedVal);
       triggerTickVibration();
     }
   };
 
   const handleTouchEnd = () => {
-    let speed = velocity.current;
+    let speed = velocity.current * 1.3;
     const maxOffset = 0;
     const minOffset = -9 * itemHeight;
 
@@ -97,7 +98,7 @@ const WheelColumn = ({ label, currentVal, onChangeVal }) => {
       let lastTickIdx = Math.round(Math.abs(currentOffset.current) / itemHeight);
 
       const runMomentum = () => {
-        speed *= 0.97; // 💡 기존 0.96에서 0.98으로 수정하면 훨씬 기분 좋게 촤르륵 굴러갑니다!
+        speed *= 0.98;
         const nextOffset = currentOffset.current + speed * 16.7;
 
         if (nextOffset > maxOffset || nextOffset < minOffset) {
@@ -114,12 +115,13 @@ const WheelColumn = ({ label, currentVal, onChangeVal }) => {
 
         const currentIdx = Math.round(Math.abs(boundedOffset) / itemHeight);
         if (currentIdx !== lastTickIdx && currentIdx >= 0 && currentIdx <= 9) {
-          onChangeVal(currentIdx);
+          // 4️⃣ 관성 스크롤 중 호출되는 인덱스를 값으로 반전
+          onChangeVal(9 - currentIdx);
           triggerTickVibration();
           lastTickIdx = currentIdx;
         }
-        // 3️⃣ 최소 정지 커트라인을 0.03에서 0.01로 낮춰서 느린 속도에서도 끝까지 굴러가게 함
-        if (Math.abs(speed) > 0.03) {
+
+        if (Math.abs(speed) > 0.01) {
           animationFrameRef.current = requestAnimationFrame(runMomentum);
         } else {
           snapToNearest();
@@ -137,8 +139,9 @@ const WheelColumn = ({ label, currentVal, onChangeVal }) => {
     const snappedIdx = Math.min(9, Math.max(0, targetIdx));
     currentOffset.current = -snappedIdx * itemHeight;
 
-    isUserInteracting.current = false; // 💡 완벽히 멈춰 서서 정착하기 직전에 간섭 차단 해제!
-    onChangeVal(snappedIdx);
+    isUserInteracting.current = false;
+    // 5️⃣ 최종 자석 안착 시 인덱스를 값으로 반전
+    onChangeVal(9 - snappedIdx);
     triggerTickVibration();
 
     if (listRef.current) {
@@ -172,7 +175,8 @@ const WheelColumn = ({ label, currentVal, onChangeVal }) => {
     };
   }, []);
 
-  const digits = Array.from({ length: 10 }, (_, i) => i);
+  // 6️⃣ 다이얼 숫자를 거꾸로 [9, 8, 7 ... 0] 생성
+  const digits = Array.from({ length: 10 }, (_, i) => 9 - i);
 
   return (
     <div
