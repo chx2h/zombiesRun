@@ -14,56 +14,6 @@ function App() {
   const isGameActiveRef = useRef(false);
   const triggerExitConfirmRef = useRef(null);
 
-  const [geoPermissionState, setGeoPermissionState] = useState('granted'); // 'granted' | 'prompt' | 'denied'
-
-  const checkPermission = () => {
-    if (!navigator.geolocation) {
-      setGeoPermissionState('denied');
-      return;
-    }
-
-    if (navigator.permissions && navigator.permissions.query) {
-      navigator.permissions.query({ name: 'geolocation' })
-        .then((permissionStatus) => {
-          setGeoPermissionState(permissionStatus.state);
-          permissionStatus.onchange = () => {
-            setGeoPermissionState(permissionStatus.state);
-          };
-        })
-        .catch(() => {
-          navigator.geolocation.getCurrentPosition(
-            () => setGeoPermissionState('granted'),
-            (err) => {
-              if (err.code === err.PERMISSION_DENIED) {
-                setGeoPermissionState('denied');
-              } else {
-                setGeoPermissionState('prompt');
-              }
-            },
-            { timeout: 2000 }
-          );
-        });
-    } else {
-      navigator.geolocation.getCurrentPosition(
-        () => setGeoPermissionState('granted'),
-        (err) => {
-          if (err.code === err.PERMISSION_DENIED) {
-            setGeoPermissionState('denied');
-          } else {
-            setGeoPermissionState('prompt');
-          }
-        },
-        { timeout: 2000 }
-      );
-    }
-  };
-
-  useEffect(() => {
-    if (view === 'intro') {
-      checkPermission();
-    }
-  }, [view]);
-
   // 화면 전환 및 브라우저 히스토리 관리
   const navigate = (newView) => {
     setView(newView);
@@ -216,7 +166,7 @@ function App() {
         <div className="App intro-screen" style={{ backgroundImage: `url(${mainImg})`, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
           <h1 className="intro-main-title">Zombies Run</h1>
           <div className="intro-content">
-            {geoPermissionState !== 'granted' && (
+            {false && (
               <div style={{
                 margin: '0 auto 1.2rem auto',
                 maxWidth: '340px',
@@ -267,7 +217,7 @@ function App() {
                 </button>
               </div>
             )}
-        <div className={`intro-menu ${geoPermissionState !== 'granted' ? 'has-warning' : ''}`}>
+        <div className="intro-menu">
           <button className="menu-btn start-button" onClick={() => {
             setReusedRoutePath(null);
             setGameMode('survival');

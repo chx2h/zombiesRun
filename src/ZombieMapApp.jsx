@@ -462,6 +462,17 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   // 개발 및 테스트용 키보드(방향키/WASD) 사용자 위치 제어 훅
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // [히든 단축키] Ctrl + Shift + D 입력 시 테스트 모드 활성화/비활성화 토글
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
+        setIsDebugMode(prev => {
+          const nextVal = !prev;
+          isDebugModeRef.current = nextVal;
+          console.log("히든 단축키로 테스트 모드 상태 변경:", nextVal);
+          return nextVal;
+        });
+        return;
+      }
+
       if (!isDebugModeRef.current || isGameOver || !userPosRef.current) return;
 
       const moveStep = 0.00002; // 약 2.2미터
@@ -1152,31 +1163,33 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       transition: 'box-shadow 0.15s ease-in-out',
       overflow: 'hidden'
     }}>
-      {/* 테스트 모드 토글 버튼 */}
-      <button
-        onClick={() => setIsDebugMode(prev => !prev)}
-        style={{
-          position: 'absolute',
-          top: '12px',
-          right: '12px',
-          zIndex: 1010,
-          backgroundColor: isDebugMode ? '#ef4444' : '#1e293b',
-          border: '1.5px solid rgba(255,255,255,0.2)',
-          borderRadius: '8px',
-          color: '#fff',
-          padding: '6px 10px',
-          fontSize: '0.75rem',
-          fontWeight: 'bold',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-          transition: 'all 0.2s'
-        }}
-      >
-        {isDebugMode ? '🛠️ 테스트 모드 OFF' : '🛠️ 테스트 모드 ON'}
-      </button>
+      {/* 테스트 모드 토글 버튼 (활성화 상태에서만 취소용으로 화면 우측 상단 노출) */}
+      {isDebugMode && (
+        <button
+          onClick={() => setIsDebugMode(false)}
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            zIndex: 1010,
+            backgroundColor: '#ef4444',
+            border: '1.5px solid rgba(255,255,255,0.2)',
+            borderRadius: '8px',
+            color: '#fff',
+            padding: '6px 10px',
+            fontSize: '0.75rem',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            transition: 'all 0.2s'
+          }}
+        >
+          🛠️ 테스트 모드 OFF
+        </button>
+      )}
 
       {/* 테스트 모드 가이드 가시화 */}
       {isDebugMode && (
@@ -1343,7 +1356,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       </Map>
 
       {/* 홈 버튼 */}
-      {/* 뒤로가기 버튼 */}
+      {/* 뒤로가기 버튼 (하단 좌측으로 이동) */}
       <button
         onClick={() => {
           const isActive = (gameMode === 'record' || gameMode === 'survival') ? recordedPath.length > 0 : routePath.length > 0;
@@ -1355,7 +1368,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         }}
         style={{
           position: 'absolute',
-          top: '20px',
+          bottom: '20px',
           left: '20px',
           zIndex: 99999,
           background: 'rgba(15, 23, 42, 0.85)',
@@ -1490,8 +1503,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       )}
 
 
-      {/* --- [수정] 우측 상단 경로 즐겨찾기 토글 버튼 --- */}
-      <div style={{ position: 'absolute', top: '15px', right: '15px', zIndex: 30 }}>
+      {/* --- [수정] 하단 좌측 (뒤로가기 버튼 위) 경로 즐겨찾기 토글 버튼 --- */}
+      <div style={{ position: 'absolute', bottom: '95px', left: '20px', zIndex: 30 }}>
         <button
           onClick={() => setShowFavorites(!showFavorites)}
           title={`경로 히스토리/즐겨찾기 목록 보기 (${favorites.length})`}
@@ -1503,7 +1516,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             border: '2px solid #4ade80',
             borderRadius: '50%',
 
-            // [변경] 뒤로가기 버튼과 동일하게 외부 버튼 크기를 50px로 확대
+            // 뒤로가기 버튼과 동일하게 외부 버튼 크기를 60px로 조정
             width: '60px',
             height: '60px',
 
@@ -1519,14 +1532,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         >
           {/* 북마크 리스트 SVG 아이콘 */}
           <svg
-            // [변경] 내부 아이콘 크기를 22 -> 30으로 확대 (뒤로가기 이미지 크기와 맞춤)
             width="30"
             height="30"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            // 아이콘이 커진 만큼 선 두께(strokeWidth)를 살짝 조절(2.5 -> 2.2)하여 
-            // 뒤로가기 이미지와 시각적 무게감을 맞췄습니다.
             strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"

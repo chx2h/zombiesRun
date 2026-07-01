@@ -887,13 +887,13 @@ code {
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
-  width: 70%;
-  max-width: 260px;
+  width: 90%;
+  max-width: 380px;
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(30, 41, 59, 0.8);
   border-radius: 1rem;
-  padding: 0.4rem 0.6rem;
+  padding: 0.5rem 0.8rem;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
   color: #f1f5f9;
 }
