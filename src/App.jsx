@@ -46,27 +46,33 @@ const SurvivalDialPicker = ({ value, onChange }) => {
     const startY = useRef(0);
     const startOffset = useRef(0);
     const currentOffset = useRef(-currentVal * itemHeight);
-    
+
     const lastY = useRef(0);
     const lastTime = useRef(0);
     const velocity = useRef(0);
     const animationFrameRef = useRef(null);
+    // 💡 [추가] 사용자가 손을 대고 있거나 굴러가는 중인지 판별하는 플래그
+    const isUserInteracting = useRef(false);
 
     useEffect(() => {
-      currentOffset.current = -currentVal * itemHeight;
-      if (listRef.current) {
-        listRef.current.style.transition = 'transform 0.15s cubic-bezier(0.1, 0.8, 0.25, 1)';
-        listRef.current.style.transform = `translateY(${currentOffset.current}px)`;
+      // 💡 [수정] 사용자가 조작 중이 아닐 때만 외부 값 변경에 따라 스냅 위치 정렬
+      if (!isUserInteracting.current) {
+        currentOffset.current = -currentVal * itemHeight;
+        if (listRef.current) {
+          listRef.current.style.transition = 'transform 0.15s cubic-bezier(0.1, 0.8, 0.25, 1)';
+          listRef.current.style.transform = `translateY(${currentOffset.current}px)`;
+        }
       }
     }, [currentVal]);
 
     const handleTouchStart = (e) => {
+      isUserInteracting.current = true;
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
       startY.current = e.touches[0].clientY;
       startOffset.current = currentOffset.current;
-      
+
       lastY.current = e.touches[0].clientY;
       lastTime.current = Date.now();
       velocity.current = 0;
@@ -77,12 +83,12 @@ const SurvivalDialPicker = ({ value, onChange }) => {
       const clientY = e.touches[0].clientY;
       const now = Date.now();
       const deltaY = clientY - startY.current;
-      
+
       const rawOffset = startOffset.current + deltaY;
       const maxOffset = 0;
       const minOffset = -9 * itemHeight;
       const limitedOffset = Math.min(maxOffset, Math.max(minOffset, rawOffset));
-      
+
       currentOffset.current = limitedOffset;
 
       if (listRef.current) {
@@ -111,15 +117,15 @@ const SurvivalDialPicker = ({ value, onChange }) => {
 
       if (Math.abs(speed) > 0.15) {
         let lastTickIdx = Math.round(Math.abs(currentOffset.current) / itemHeight);
-        
+
         const runMomentum = () => {
-          speed *= 0.94;
+          speed *= 0.96; // 💡 기존 0.94에서 0.96으로 수정하면 훨씬 기분 좋게 촤르륵 굴러갑니다!
           const nextOffset = currentOffset.current + speed * 16.7;
-          
+
           if (nextOffset > maxOffset || nextOffset < minOffset) {
             speed = 0;
           }
-          
+
           const boundedOffset = Math.min(maxOffset, Math.max(minOffset, nextOffset));
           currentOffset.current = boundedOffset;
 
@@ -153,6 +159,7 @@ const SurvivalDialPicker = ({ value, onChange }) => {
       const snappedIdx = Math.min(9, Math.max(0, targetIdx));
       currentOffset.current = -snappedIdx * itemHeight;
 
+      isUserInteracting.current = false; // 💡 완벽히 멈춰 서서 정착하기 직전에 간섭 차단 해제!
       onChangeVal(snappedIdx);
       triggerTickVibration();
 
@@ -190,8 +197,8 @@ const SurvivalDialPicker = ({ value, onChange }) => {
     const digits = Array.from({ length: 10 }, (_, i) => i);
 
     return (
-      <div 
-        className="dial-column-box" 
+      <div
+        className="dial-column-box"
         onWheel={handleMouseWheel}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -201,8 +208,8 @@ const SurvivalDialPicker = ({ value, onChange }) => {
         <div className="dial-wheel-center-line" />
         <div ref={listRef} className="dial-wheel-list">
           {digits.map((num) => (
-            <div 
-              key={num} 
+            <div
+              key={num}
               className={`dial-item ${num === currentVal ? 'active' : ''}`}
               onClick={() => handleItemClick(num)}
             >
@@ -220,7 +227,7 @@ const SurvivalDialPicker = ({ value, onChange }) => {
       <div className="dial-picker-title">
         <span>🏃 Target Survival Distance</span>
       </div>
-      
+
       <div className="dial-picker-container">
         <WheelColumn label="10km" currentVal={tens} onChangeVal={(v) => handleWheelChange('tens', v)} />
         <WheelColumn label="1km" currentVal={ones} onChangeVal={(v) => handleWheelChange('ones', v)} />

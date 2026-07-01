@@ -1,9 +1,11 @@
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
-  background-color: #090d16; /* 바깥 배경 어둡게 */
+  background-color: #090d16;
+  /* 바깥 배경 어둡게 */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -21,12 +23,14 @@ html, body {
 /* 모든 단말기 해상도 고정용 모바일 프레임 */
 .mobile-app-frame {
   width: 100%;
-  max-width: 480px; /* 가로 해상도 상한 고정 */
+  max-width: 480px;
+  /* 가로 해상도 상한 고정 */
   height: 100dvh;
   margin: 0 auto;
   position: relative;
   background-color: #020617;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.85); /* 기기 경계 섀도우 */
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.85);
+  /* 기기 경계 섀도우 */
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -532,7 +536,8 @@ code {
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow: hidden; /* 자식인 콘텐츠 박스가 자체 스크롤되므로 부모는 스크롤 차단 */
+  overflow: hidden;
+  /* 자식인 콘텐츠 박스가 자체 스크롤되므로 부모는 스크롤 차단 */
 }
 
 .manual-main-title {
@@ -623,7 +628,8 @@ code {
 
 .manual-content-box {
   width: 100%;
-  box-sizing: border-box; /* 패딩으로 인한 가로 크기 삐져나옴 방지 */
+  box-sizing: border-box;
+  /* 패딩으로 인한 가로 크기 삐져나옴 방지 */
   flex: 1;
   min-height: 0;
   background: rgba(15, 23, 42, 0.6);
@@ -634,10 +640,14 @@ code {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* 스크롤 정렬 보정 */
-  overflow-y: auto;   /* 내용물이 길어지면 박스 내부에서 세로 스크롤 */
-  overflow-x: hidden;  /* 가로 스크롤 원천 차단 */
-  gap: 1.2rem;        /* 탭 내용과 하단 시뮬레이터 간의 안정적 간격 확보 */
+  justify-content: flex-start;
+  /* 스크롤 정렬 보정 */
+  overflow-y: auto;
+  /* 내용물이 길어지면 박스 내부에서 세로 스크롤 */
+  overflow-x: hidden;
+  /* 가로 스크롤 원천 차단 */
+  gap: 1.2rem;
+  /* 탭 내용과 하단 시뮬레이터 간의 안정적 간격 확보 */
 }
 
 .tab-pane-content {
@@ -838,20 +848,24 @@ code {
   flex-shrink: 0;
   padding-top: 0.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
-  background-color: #020617; /* 스크롤되는 컨텐츠와 겹칠 때 가독성을 위해 불투명 배경 지정 */
+  background-color: #020617;
+  /* 스크롤되는 컨텐츠와 겹칠 때 가독성을 위해 불투명 배경 지정 */
   z-index: 20;
 }
 
 .manual-content-box::-webkit-scrollbar {
   width: 6px;
 }
+
 .manual-content-box::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .manual-content-box::-webkit-scrollbar-thumb {
   background: rgba(244, 63, 94, 0.3);
   border-radius: 3px;
 }
+
 .manual-content-box::-webkit-scrollbar-thumb:hover {
   background: rgba(244, 63, 94, 0.6);
 }
@@ -1082,15 +1096,19 @@ code {
   0% {
     transform: translateY(0) scaleX(1) rotate(0deg);
   }
+
   25% {
     transform: translateY(-5px) scaleX(0.95) rotate(6deg);
   }
+
   50% {
     transform: translateY(0) scaleX(1.02) rotate(0deg);
   }
+
   75% {
     transform: translateY(-5px) scaleX(0.95) rotate(-6deg);
   }
+
   100% {
     transform: translateY(0) scaleX(1) rotate(0deg);
   }
@@ -1107,9 +1125,11 @@ code {
   0% {
     transform: translateY(0) rotate(-6deg) scale(1);
   }
+
   50% {
     transform: translateY(-3px) rotate(6deg) scale(1.03);
   }
+
   100% {
     transform: translateY(0) rotate(-6deg) scale(1);
   }
@@ -1251,13 +1271,11 @@ code {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    rgba(2, 6, 23, 0.95) 0%,
-    rgba(2, 6, 23, 0) 35%,
-    rgba(2, 6, 23, 0) 65%,
-    rgba(2, 6, 23, 0.95) 100%
-  );
+  background: linear-gradient(to bottom,
+      rgba(2, 6, 23, 0.95) 0%,
+      rgba(2, 6, 23, 0) 35%,
+      rgba(2, 6, 23, 0) 65%,
+      rgba(2, 6, 23, 0.95) 100%);
   z-index: 5;
 }
 
@@ -1282,7 +1300,8 @@ code {
   width: 100%;
   transition: transform 0.15s cubic-bezier(0.1, 0.8, 0.25, 1);
   will-change: transform;
-  padding: 42px 0; /* 중앙 정렬용 상하 패딩 */
+  padding: 42px 0;
+  /* 중앙 정렬용 상하 패딩 */
 }
 
 .dial-item {
@@ -1360,4 +1379,4 @@ code {
   box-shadow: 0 0 8px rgba(52, 211, 153, 0.8);
   transition: width 0.3s ease-out;
   width: 0%;
-}
+}
