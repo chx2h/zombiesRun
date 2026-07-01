@@ -532,11 +532,7 @@ code {
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow-y: auto; /* 내용물이 길어지면 푸터 위에서 스크롤되도록 설정 */
-  overflow-x: hidden; /* 좌우 가로 스크롤 원천 차단 */
-  box-sizing: border-box;
-  min-height: 0;    /* flex container 내에서 overflow-y가 오작동하는 현상 방지 */
-  padding-right: 4px; /* 스크롤바 공간 확보 */
+  overflow: hidden; /* 자식인 콘텐츠 박스가 자체 스크롤되므로 부모는 스크롤 차단 */
 }
 
 .manual-main-title {
@@ -638,7 +634,10 @@ code {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start; /* 스크롤 정렬 보정 */
+  overflow-y: auto;   /* 내용물이 길어지면 박스 내부에서 세로 스크롤 */
+  overflow-x: hidden;  /* 가로 스크롤 원천 차단 */
+  gap: 1.2rem;        /* 탭 내용과 하단 시뮬레이터 간의 안정적 간격 확보 */
 }
 
 .tab-pane-content {
@@ -843,17 +842,17 @@ code {
   z-index: 20;
 }
 
-.manual-main-content::-webkit-scrollbar {
+.manual-content-box::-webkit-scrollbar {
   width: 6px;
 }
-.manual-main-content::-webkit-scrollbar-track {
+.manual-content-box::-webkit-scrollbar-track {
   background: transparent;
 }
-.manual-main-content::-webkit-scrollbar-thumb {
+.manual-content-box::-webkit-scrollbar-thumb {
   background: rgba(244, 63, 94, 0.3);
   border-radius: 3px;
 }
-.manual-main-content::-webkit-scrollbar-thumb:hover {
+.manual-content-box::-webkit-scrollbar-thumb:hover {
   background: rgba(244, 63, 94, 0.6);
 }
 
