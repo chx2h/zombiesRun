@@ -90,6 +90,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const [zombieProgress, setZombieProgress] = useState({ level: 1, xp: 0 });
   const [isLevelUpFlashing, setIsLevelUpFlashing] = useState(false);
 
+  // --- 유저 달리기 애니메이션 전용 상태 ---
+  const [isUserMoving, setIsUserMoving] = useState(false);
+  const [runnerFrame, setRunnerFrame] = useState(0);
+  const userMoveTimerRef = useRef(null);
+
   // 테스트 모드 (개발자 및 실내 테스트용 사용자 위치 키보드 제어 상태)
   const [isDebugMode, setIsDebugMode] = useState(false);
   const isDebugModeRef = useRef(false);
@@ -393,6 +398,28 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       setMapCenter(zombiePosition);
     }
   }, [zombiePosition, isFollowingZombie]);
+
+  // 유저 실시간 움직임 판단 이펙트 (애니메이션 구동용)
+  useEffect(() => {
+    if (!userPosition) return;
+    setIsUserMoving(true);
+    if (userMoveTimerRef.current) clearTimeout(userMoveTimerRef.current);
+    userMoveTimerRef.current = setTimeout(() => {
+      setIsUserMoving(false);
+    }, 2000); // 2초 동안 위치 갱신이 없으면 정지 상태로 간주
+  }, [userPosition]);
+
+  // 유저 질주 모션 프레임 교차 이펙트
+  useEffect(() => {
+    if (!isUserMoving || isGameOver) {
+      setRunnerFrame(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setRunnerFrame(prev => (prev === 0 ? 1 : 0));
+    }, 180); // 180ms 주기로 이모지 프레임 교환
+    return () => clearInterval(timer);
+  }, [isUserMoving, isGameOver]);
 
   // 카운트다운 타이머
   useEffect(() => {
@@ -1227,13 +1254,21 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       >
         {userPosition && (
           <CustomOverlayMap position={userPosition} zIndex={1}>
-            <div style={{ fontSize: '30px' }}>🏃</div>
+            <div 
+              className={isUserMoving ? 'runner-active-dash' : ''} 
+              style={{ fontSize: '32px', userSelect: 'none' }}
+            >
+              {isUserMoving ? (runnerFrame === 0 ? "🏃" : "🏃‍♀️") : "🏃"}
+            </div>
           </CustomOverlayMap>
         )}
         {zombiePosition && (
           <CustomOverlayMap position={zombiePosition}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ fontSize: '30px', userSelect: 'none' }}>
+              <div 
+                className={!isGameOver ? 'zombie-active-chase' : ''} 
+                style={{ fontSize: '32px', userSelect: 'none' }}
+              >
                 {getZombieEmoji(zombieProgress.level)}
               </div>
               {gameMode === 'survival' && (

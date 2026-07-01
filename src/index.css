@@ -1076,3 +1076,47 @@ code {
 .history-row:hover {
   background-color: rgba(30, 41, 59, 0.6);
 }
+
+/* 🏃 러너 생동감 있는 질주 애니메이션 (상하 바운스 + 앞뒤 피칭 각도 회전) */
+@keyframes runner-dash {
+  0% {
+    transform: translateY(0) scaleX(1) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-5px) scaleX(0.95) rotate(6deg);
+  }
+  50% {
+    transform: translateY(0) scaleX(1.02) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-5px) scaleX(0.95) rotate(-6deg);
+  }
+  100% {
+    transform: translateY(0) scaleX(1) rotate(0deg);
+  }
+}
+
+.runner-active-dash {
+  display: inline-block;
+  animation: runner-dash 0.38s infinite ease-in-out;
+  transform-origin: bottom center;
+}
+
+/* 🧟 좀비 스멀스멀 추격 애니메이션 (앞뒤 씰룩거림 및 좌우 기우뚱 효과) */
+@keyframes zombie-chase {
+  0% {
+    transform: translateY(0) rotate(-6deg) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) rotate(6deg) scale(1.03);
+  }
+  100% {
+    transform: translateY(0) rotate(-6deg) scale(1);
+  }
+}
+
+.zombie-active-chase {
+  display: inline-block;
+  animation: zombie-chase 0.55s infinite ease-in-out;
+  transform-origin: bottom center;
+}

@@ -76,14 +76,14 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
   const handleSelectBestRecordDate = (dateInput) => {
     if (!dateInput) return;
     const targetDate = new Date(dateInput);
-    
+
     // 해당 연/월로 캘린더 이동
     setCurrentDate(new Date(targetDate.getFullYear(), targetDate.getMonth(), 1));
-    
+
     // 데이터 로드 및 모달 팝업
     const searchDateStr = getLocalDateStr(targetDate);
     const filtered = history.filter(rec => getLocalDateStr(rec.date) === searchDateStr);
-    
+
     setSelectedDateRecords(filtered);
     setSelectedDateStr(`${targetDate.getFullYear()}년 ${String(targetDate.getMonth() + 1).padStart(2, '0')}월 ${String(targetDate.getDate()).padStart(2, '0')}일`);
     setShowDetailModal(true);
@@ -503,7 +503,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
 
             {/* 역대 최고 생존 기록 요약 배너 */}
             {bestSurvivalRecord && (
-              <div 
+              <div
                 onClick={() => handleSelectBestRecordDate(bestSurvivalRecord.date)}
                 style={{
                   marginTop: '15px',
@@ -548,33 +548,39 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
 
       {/* --- 날짜별 상세 기록 레이어 (모달 팝업) --- */}
       {showDetailModal && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(5px)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-          padding: '20px'
-        }}>
-          <div style={{
-            backgroundColor: 'rgba(15, 23, 42, 0.98)',
-            border: '2px solid #ef4444',
-            borderRadius: '12px',
-            width: '100%',
-            maxWidth: '420px',
-            maxHeight: '80vh',
-            boxShadow: '0 0 25px rgba(239, 68, 68, 0.3)',
-            color: 'white',
+        <div
+          onClick={() => setShowDetailModal(false)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(5px)',
             display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-          }}>
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'rgba(15, 23, 42, 0.98)',
+              border: '2px solid #ef4444',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: '420px',
+              maxHeight: '80vh',
+              boxShadow: '0 0 25px rgba(239, 68, 68, 0.3)',
+              color: 'white',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+          >
             {/* 모달 헤더 */}
             <div style={{
               padding: '16px 20px',
@@ -757,7 +763,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
 
       {/* 경로 미리보기 모달 */}
       {showPreviewModal && previewPath && (
-        <div 
+        <div
           onClick={() => {
             setShowPreviewModal(false);
             setPreviewPath(null);
@@ -777,7 +783,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
             padding: '20px'
           }}
         >
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
             style={{
               backgroundColor: 'rgba(15, 23, 42, 0.98)',
@@ -842,7 +848,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                   strokeOpacity={0.85}
                   strokeStyle="solid"
                 />
-                
+
                 {/* 출발지 (녹색) */}
                 {previewPath.length > 0 && (
                   <Circle
@@ -870,7 +876,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                 )}
               </Map>
             </div>
-            
+
             {/* 안내 문구 */}
             <div style={{
               padding: '10px 16px',
