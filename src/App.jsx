@@ -15,6 +15,7 @@ const triggerTickVibration = async () => {
     }
   }
 };
+
 const WheelColumn = ({ label, currentVal, onChangeVal }) => {
   const listRef = useRef(null);
   const itemHeight = 36;
@@ -197,30 +198,27 @@ const WheelColumn = ({ label, currentVal, onChangeVal }) => {
       <div className="dial-column-label">{label}</div>
     </div>
   );
+};
+/**
+ * 🎛️ 서바이벌 모드 목표 거리 세부 설정용 다이얼(Wheel) 피커 컴포넌트
+ */
+const SurvivalDialPicker = ({ value, onChange }) => {
+  const valStr = value.toFixed(1).padStart(4, '0'); // "12.5" -> "12.5"
+  const tens = parseInt(valStr[0], 10);
+  const ones = parseInt(valStr[1], 10);
+  const tenths = parseInt(valStr[3], 10);
 
-  /**
-   * 🎛️ 서바이벌 모드 목표 거리 세부 설정용 다이얼(Wheel) 피커 컴포넌트
-   */
-  const SurvivalDialPicker = ({ value, onChange }) => {
-    const valStr = value.toFixed(1).padStart(4, '0'); // "12.5" -> "12.5"
-    const tens = parseInt(valStr[0], 10);
-    const ones = parseInt(valStr[1], 10);
-    const tenths = parseInt(valStr[3], 10);
+  const handleWheelChange = (type, val) => {
+    let nextTens = tens;
+    let nextOnes = ones;
+    let nextTenths = tenths;
 
-    const handleWheelChange = (type, val) => {
-      let nextTens = tens;
-      let nextOnes = ones;
-      let nextTenths = tenths;
+    if (type === 'tens') nextTens = val;
+    if (type === 'ones') nextOnes = val;
+    if (type === 'tenths') nextTenths = val;
 
-      if (type === 'tens') nextTens = val;
-      if (type === 'ones') nextOnes = val;
-      if (type === 'tenths') nextTenths = val;
-
-      const nextVal = nextTens * 10 + nextOnes + nextTenths * 0.1;
-      onChange(parseFloat(nextVal.toFixed(1)));
-    };
-
-
+    const nextVal = nextTens * 10 + nextOnes + nextTenths * 0.1;
+    onChange(parseFloat(nextVal.toFixed(1)));
   };
 
   return (
