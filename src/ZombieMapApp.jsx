@@ -112,7 +112,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     return Math.round(30 + Math.pow(currentLevel, 1.3) * 1.5);
   }, []);
 
-  // 레벨업 특수 효과 및 오디오 재생 함수
+  // 레벨업 특수 효과 및 진동 발생 함수 (오디오 포효 제거, 강력 진동 추가)
   const triggerZombieLevelUpEffect = useCallback(() => {
     // 1. 시각 효과 플래싱 온 (500ms 후 복구)
     setIsLevelUpFlashing(true);
@@ -120,43 +120,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       setIsLevelUpFlashing(false);
     }, 500);
 
-    // 2. 오디오 효과 트리거
-    if (!audioCtxRef.current) return;
-    const ctx = audioCtxRef.current;
-
-    // 만약 디코딩된 좀비 울음소리 버퍼가 있으면 단발성 고볼륨으로 재생
-    if (decodedZombieBufferRef.current) {
-      try {
-        const source = ctx.createBufferSource();
-        source.buffer = decodedZombieBufferRef.current;
-        const tempGain = ctx.createGain();
-        tempGain.gain.setValueAtTime(0.7, ctx.currentTime); // 매우 크게
-
-        source.connect(tempGain);
-        tempGain.connect(ctx.destination);
-        source.start(0);
-      } catch (e) {
-        console.error("단발 좀비 비명 재생 실패", e);
-      }
-    } else {
-      // 버퍼가 없을 때는 비프음(사이렌 효과)으로 연출
-      try {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(220, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.4);
-
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.5);
-      } catch (e) {
-        console.error("레벨업 사이렌 재생 실패", e);
-      }
+    // 2. 강한 진동 효과 트리거 (오디오 울음소리는 완전히 제거)
+    if ("vibrate" in navigator) {
+      navigator.vibrate([600, 200, 600]); // 강하고 묵직한 2단 진동
     }
   }, []);
 
