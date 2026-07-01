@@ -3,6 +3,238 @@ import ZombieMapApp from './ZombieMapApp';
 import mainImg from './assets/main.jpg'; // 배경 이미지 임포트
 import ManualPage from './ManualPage'; // ManualPage 컴포넌트 임포트
 import FavoritesPage from './FavoritesPage'; // FavoritesPage 컴포넌트 임포트
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+
+// 다이얼 돌릴 때 미세 햅틱 피드백 제공 함수
+const triggerTickVibration = async () => {
+  try {
+    await Haptics.impact({ style: ImpactStyle.Light });
+  } catch (e) {
+    if (navigator.vibrate) {
+      navigator.vibrate(10);
+    }
+  }
+};
+
+/**
+ * 🎛️ 서바이벌 모드 목표 거리 세부 설정용 다이얼(Wheel) 피커 컴포넌트
+ */
+const SurvivalDialPicker = ({ value, onChange }) => {
+  const valStr = value.toFixed(1).padStart(4, '0'); // "12.5" -> "12.5"
+  const tens = parseInt(valStr[0], 10);
+  const ones = parseInt(valStr[1], 10);
+  const tenths = parseInt(valStr[3], 10);
+
+  const handleWheelChange = (type, val) => {
+    let nextTens = tens;
+    let nextOnes = ones;
+    let nextTenths = tenths;
+
+    if (type === 'tens') nextTens = val;
+    if (type === 'ones') nextOnes = val;
+    if (type === 'tenths') nextTenths = val;
+
+    const nextVal = nextTens * 10 + nextOnes + nextTenths * 0.1;
+    onChange(parseFloat(nextVal.toFixed(1)));
+  };
+
+  const WheelColumn = ({ label, currentVal, onChangeVal }) => {
+    const listRef = useRef(null);
+    const itemHeight = 36;
+
+    // 모멘텀/관성 물리 속성 refs
+    const startY = useRef(0);
+    const startOffset = useRef(0);
+    const currentOffset = useRef(-currentVal * itemHeight);
+    
+    const lastY = useRef(0);
+    const lastTime = useRef(0);
+    const velocity = useRef(0);
+    const animationFrameRef = useRef(null);
+
+    useEffect(() => {
+      currentOffset.current = -currentVal * itemHeight;
+      if (listRef.current) {
+        listRef.current.style.transition = 'transform 0.15s cubic-bezier(0.1, 0.8, 0.25, 1)';
+        listRef.current.style.transform = `translateY(${currentOffset.current}px)`;
+      }
+    }, [currentVal]);
+
+    const handleTouchStart = (e) => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      startY.current = e.touches[0].clientY;
+      startOffset.current = currentOffset.current;
+      
+      lastY.current = e.touches[0].clientY;
+      lastTime.current = Date.now();
+      velocity.current = 0;
+    };
+
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      const clientY = e.touches[0].clientY;
+      const now = Date.now();
+      const deltaY = clientY - startY.current;
+      
+      const rawOffset = startOffset.current + deltaY;
+      const maxOffset = 0;
+      const minOffset = -9 * itemHeight;
+      const limitedOffset = Math.min(maxOffset, Math.max(minOffset, rawOffset));
+      
+      currentOffset.current = limitedOffset;
+
+      if (listRef.current) {
+        listRef.current.style.transform = `translateY(${limitedOffset}px)`;
+        listRef.current.style.transition = 'none';
+      }
+
+      const timeDiff = now - lastTime.current;
+      if (timeDiff > 0) {
+        velocity.current = (clientY - lastY.current) / timeDiff;
+        lastY.current = clientY;
+        lastTime.current = now;
+      }
+
+      const currentIdx = Math.round(Math.abs(limitedOffset) / itemHeight);
+      if (currentIdx !== currentVal && currentIdx >= 0 && currentIdx <= 9) {
+        onChangeVal(currentIdx);
+        triggerTickVibration();
+      }
+    };
+
+    const handleTouchEnd = () => {
+      let speed = velocity.current;
+      const maxOffset = 0;
+      const minOffset = -9 * itemHeight;
+
+      if (Math.abs(speed) > 0.15) {
+        let lastTickIdx = Math.round(Math.abs(currentOffset.current) / itemHeight);
+        
+        const runMomentum = () => {
+          speed *= 0.94;
+          const nextOffset = currentOffset.current + speed * 16.7;
+          
+          if (nextOffset > maxOffset || nextOffset < minOffset) {
+            speed = 0;
+          }
+          
+          const boundedOffset = Math.min(maxOffset, Math.max(minOffset, nextOffset));
+          currentOffset.current = boundedOffset;
+
+          if (listRef.current) {
+            listRef.current.style.transform = `translateY(${boundedOffset}px)`;
+            listRef.current.style.transition = 'none';
+          }
+
+          const currentIdx = Math.round(Math.abs(boundedOffset) / itemHeight);
+          if (currentIdx !== lastTickIdx && currentIdx >= 0 && currentIdx <= 9) {
+            onChangeVal(currentIdx);
+            triggerTickVibration();
+            lastTickIdx = currentIdx;
+          }
+
+          if (Math.abs(speed) > 0.03) {
+            animationFrameRef.current = requestAnimationFrame(runMomentum);
+          } else {
+            snapToNearest();
+          }
+        };
+
+        animationFrameRef.current = requestAnimationFrame(runMomentum);
+      } else {
+        snapToNearest();
+      }
+    };
+
+    const snapToNearest = () => {
+      const targetIdx = Math.round(Math.abs(currentOffset.current) / itemHeight);
+      const snappedIdx = Math.min(9, Math.max(0, targetIdx));
+      currentOffset.current = -snappedIdx * itemHeight;
+
+      onChangeVal(snappedIdx);
+      triggerTickVibration();
+
+      if (listRef.current) {
+        listRef.current.style.transition = 'transform 0.2s cubic-bezier(0.1, 0.8, 0.25, 1)';
+        listRef.current.style.transform = `translateY(${currentOffset.current}px)`;
+      }
+    };
+
+    const handleMouseWheel = (e) => {
+      e.preventDefault();
+      const direction = e.deltaY > 0 ? 1 : -1;
+      const nextIdx = currentVal + direction;
+      if (nextIdx >= 0 && nextIdx <= 9) {
+        onChangeVal(nextIdx);
+        triggerTickVibration();
+      }
+    };
+
+    const handleItemClick = (idx) => {
+      if (idx !== currentVal) {
+        onChangeVal(idx);
+        triggerTickVibration();
+      }
+    };
+
+    useEffect(() => {
+      return () => {
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+      };
+    }, []);
+
+    const digits = Array.from({ length: 10 }, (_, i) => i);
+
+    return (
+      <div 
+        className="dial-column-box" 
+        onWheel={handleMouseWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className="dial-wheel-mask" />
+        <div className="dial-wheel-center-line" />
+        <div ref={listRef} className="dial-wheel-list">
+          {digits.map((num) => (
+            <div 
+              key={num} 
+              className={`dial-item ${num === currentVal ? 'active' : ''}`}
+              onClick={() => handleItemClick(num)}
+            >
+              {num}
+            </div>
+          ))}
+        </div>
+        <div className="dial-column-label">{label}</div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="dial-picker-wrapper">
+      <div className="dial-picker-title">
+        <span>🏃 Target Survival Distance</span>
+      </div>
+      
+      <div className="dial-picker-container">
+        <WheelColumn label="10km" currentVal={tens} onChangeVal={(v) => handleWheelChange('tens', v)} />
+        <WheelColumn label="1km" currentVal={ones} onChangeVal={(v) => handleWheelChange('ones', v)} />
+        <span className="dial-dot">.</span>
+        <WheelColumn label="0.1km" currentVal={tenths} onChangeVal={(v) => handleWheelChange('tenths', v)} />
+        <span className="dial-km-unit">km</span>
+      </div>
+
+      <div className="dial-result-badge">
+        {value === 0.0 ? "무제한 생존 버티기 (∞)" : `목표 달성 조건: ${value.toFixed(1)} km 완주`}
+      </div>
+    </div>
+  );
+};
 
 function App() {
   const [view, setView] = useState('intro');
@@ -13,6 +245,10 @@ function App() {
   const viewRef = useRef('intro');
   const isGameActiveRef = useRef(false);
   const triggerExitConfirmRef = useRef(null);
+
+  // --- 목표 거리 & 다이얼 셋업 상태 ---
+  const [targetDistance, setTargetDistance] = useState(0.0); // 목표 달리기 거리 (km)
+  const [showSurvivalSetup, setShowSurvivalSetup] = useState(false); // 서바이벌 셋업 레이어 유무
 
   // 화면 전환 및 브라우저 히스토리 관리
   const navigate = (newView) => {
@@ -26,23 +262,15 @@ function App() {
     const handlePopState = (event) => {
       const newView = event.state?.view || 'intro';
 
-      // ──────────────────────────────────────────────────────────────
-      // ✨ [추가] 인트로(메인) 화면에서 뒤로가기 시 sub-page 역주행 전면 차단
-      // ──────────────────────────────────────────────────────────────
+      // 인트로(메인) 화면에서 뒤로가기 시 sub-page 역주행 전면 차단
       if (viewRef.current === 'intro') {
-        // 현재 화면이 인트로인데 뒤로 가려고 하면, 
-        // 히스토리 스택에 다시 인트로를 밀어 넣어 화면 이동을 물리적으로 무력화합니다.
         window.history.pushState({ view: 'intro' }, '', '#intro');
-        return; // 더 이상 아래 view 업데이트 로직이 실행되지 않도록 리턴
+        return;
       }
 
-      // ──────────────────────────────────────────────────────────────
-      // 🧟 [추가] 게임 중(playing) 물리 뒤로가기 시 맵 내부 🔙 버튼과 동일 작동 유도
-      // ──────────────────────────────────────────────────────────────
+      // 게임 중(playing) 물리 뒤로가기 시 맵 내부 🔙 버튼과 동일 작동 유도
       if (viewRef.current === 'playing' && isGameActiveRef.current && triggerExitConfirmRef.current) {
-        // 뒤로 간 히스토리를 다시 playing 상태로 복원하여 오동작 방지
         window.history.pushState({ view: 'playing' }, '', '#playing');
-        // 좀비 앱의 종료 확인 팝업 트리거 작동
         triggerExitConfirmRef.current();
         return;
       }
@@ -68,10 +296,8 @@ function App() {
       try {
         wakeLockSentinelRef.current = await navigator.wakeLock.request('screen');
         console.log('Screen Wake Lock is active!');
-        // Wake Lock이 시스템에 의해 해제될 경우를 대비한 이벤트 리스너
         wakeLockSentinelRef.current.addEventListener('release', () => {
           console.log('Screen Wake Lock was released by the system.');
-          // 필요하다면 여기서 다시 Wake Lock을 요청할 수 있지만, visibilitychange가 대부분의 경우를 처리합니다.
         });
       } catch (err) {
         console.error(`Wake Lock API 에러: ${err.name}, ${err.message}`);
@@ -93,27 +319,25 @@ function App() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && view === 'playing') {
-        requestWakeLock(); // 페이지가 다시 보이면 Wake Lock 재요청
+        requestWakeLock();
       } else if (wakeLockSentinelRef.current) {
-        releaseWakeLock(); // 페이지가 숨겨지면 Wake Lock 해제
+        releaseWakeLock();
       }
     };
 
     if (view === 'playing') {
-      requestWakeLock(); // 게임 시작 시 Wake Lock 요청
+      requestWakeLock();
       document.addEventListener('visibilitychange', handleVisibilityChange);
     } else {
-      releaseWakeLock(); // 게임 종료 또는 인트로 화면 시 Wake Lock 해제
+      releaseWakeLock();
     }
 
-    // 컴포넌트 언마운트 또는 view 변경 시 클린업
     return () => {
       releaseWakeLock();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [view]); // view 상태가 변경될 때마다 useEffect 재실행
+  }, [view]);
 
-  // 글로벌 모바일 프레임 적용
   return (
     <div className="mobile-app-frame">
       {view === 'playing' && (
@@ -122,6 +346,7 @@ function App() {
             key={gameMode + (reusedRoutePath ? '-reused' : '') + (isReplay ? '-replay' : '')}
             gameMode={gameMode}
             initialRoutePath={reusedRoutePath}
+            targetDistance={gameMode === 'survival' ? targetDistance : 0}
             onExit={() => {
               setReusedRoutePath(null);
               setIsReplay(false);
@@ -166,88 +391,89 @@ function App() {
         <div className="App intro-screen" style={{ backgroundImage: `url(${mainImg})`, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
           <h1 className="intro-main-title">Zombies Run</h1>
           <div className="intro-content">
-            {false && (
+            <div className="intro-menu">
+              <button className="menu-btn start-button" onClick={() => {
+                setReusedRoutePath(null);
+                setGameMode('survival');
+                setIsReplay(false);
+                setTargetDistance(0.0); // 초기화
+                setShowSurvivalSetup(true); // 다이얼 셋업 모달 켜기
+              }}>SURVIVAL</button>
+              <button className="menu-btn start-button" onClick={() => {
+                setReusedRoutePath(null);
+                setGameMode('run');
+                setIsReplay(false);
+                navigate('playing');
+              }}>RUN</button>
+              <button className="menu-btn start-button" onClick={() => {
+                setReusedRoutePath(null);
+                setGameMode('record');
+                setIsReplay(false);
+                navigate('playing');
+              }}>경로 만들기</button>
+              <button className="menu-btn start-button" onClick={() => navigate('manual')}>
+                생존 매뉴얼
+              </button>
+              <button className="menu-btn" onClick={() => navigate('favorites')}>
+                기록 보관소
+              </button>
+            </div>
+            <div className="intro-warning-message">
+              <p>※ 일반 도로에서 사용 시 횡단보도나 주위 사물에 주의하며 안전하게 이용해 주세요.</p>
+            </div>
+
+            {/* 🎛️ 서바이벌 목표 설정 다이얼 팝업 모달 */}
+            {showSurvivalSetup && (
               <div style={{
-                margin: '0 auto 1.2rem auto',
-                maxWidth: '340px',
-                backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                border: '1.5px solid #ef4444',
-                borderRadius: '8px',
-                padding: '12px 16px',
-                boxShadow: '0 0 12px rgba(239, 68, 68, 0.3)',
-                color: '#fca5a5',
-                textAlign: 'center',
-                fontSize: '12px',
-                lineHeight: '1.5',
-                boxSizing: 'border-box'
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.82)',
+                backdropFilter: 'blur(6px)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 1000,
+                padding: '20px'
               }}>
-                <strong style={{ color: '#ef4444', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
-                  🚨 위치 권한 비활성화 상태
-                </strong>
-                실시간 GPS 추격 및 경로 매핑을 위해 기기의 <strong>위치 정보(GPS) 권한 허용이 필수</strong>입니다. 상단 브라우저 설정에서 권한을 허용해 주세요.
-                <button 
-                  onClick={() => {
-                    navigator.geolocation.getCurrentPosition(
-                      () => {
-                        setGeoPermissionState('granted');
-                        alert("위치 정보 권한이 성공적으로 허용되었습니다.");
-                      },
-                      (err) => {
-                        alert("위치 권한이 임시 거부되었거나 획득하지 못했습니다. 브라우저 설정에서 직접 변경하셔야 합니다.");
-                      }
-                    );
-                  }}
-                  style={{
-                    marginTop: '8px',
-                    backgroundColor: '#ef4444',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '6px 10px',
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s',
-                    width: '100%'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
-                >
-                  위치 권한 다시 확인하기 / 요청하기
-                </button>
+                <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '100%', maxWidth: '320px', padding: '16px' }}>
+                  <div className="hud-header">
+                    <div className="hud-mode-tag" style={{ color: '#f43f5e' }}>SURVIVAL SETTING</div>
+                    <div className="hud-status-dot" style={{ backgroundColor: '#f43f5e' }}></div>
+                  </div>
+
+                  <div style={{ margin: '12px 0' }}>
+                    <SurvivalDialPicker value={targetDistance} onChange={setTargetDistance} />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+                    <button
+                      onClick={() => {
+                        setShowSurvivalSetup(false);
+                        navigate('playing');
+                      }}
+                      className="hud-reset-btn"
+                      style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none', fontWeight: 'bold' }}
+                    >
+                      질주 시작 🏃‍♂️
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowSurvivalSetup(false);
+                      }}
+                      className="hud-reset-btn"
+                      style={{ flex: 0.8, backgroundColor: '#334155', border: 'none' }}
+                    >
+                      취소
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
-        <div className="intro-menu">
-          <button className="menu-btn start-button" onClick={() => {
-            setReusedRoutePath(null);
-            setGameMode('survival');
-            setIsReplay(false);
-            navigate('playing');
-          }}>SURVIVAL</button>
-          <button className="menu-btn start-button" onClick={() => {
-            setReusedRoutePath(null);
-            setGameMode('run');
-            setIsReplay(false);
-            navigate('playing');
-          }}>RUN</button>
-          <button className="menu-btn start-button" onClick={() => {
-            setReusedRoutePath(null);
-            setGameMode('record');
-            setIsReplay(false);
-            navigate('playing');
-          }}>경로 만들기</button>
-          <button className="menu-btn start-button" onClick={() => navigate('manual')}>
-            생존 매뉴얼
-          </button>
-          <button className="menu-btn" onClick={() => navigate('favorites')}>
-            기록 보관소
-          </button>
+          </div>
         </div>
-        <div className="intro-warning-message">
-          <p>※ 일반 도로에서 사용 시 횡단보도나 주위 사물에 주의하며 안전하게 이용해 주세요.</p>
-        </div>
-      </div>
-      </div>
       )}
     </div>
   );

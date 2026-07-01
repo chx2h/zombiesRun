@@ -34,7 +34,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return Math.round(R * c);
 };
 
-const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTriggerExitConfirm, initialRoutePath }) => {
+const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTriggerExitConfirm, initialRoutePath, targetDistance = 0 }) => {
   // 상태 관리
   const [userPosition, setUserPosition] = useState(null);
   const [zombiePosition, setZombiePosition] = useState(null);
@@ -48,8 +48,15 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const isFollowingUserRef = useRef(true);
   const [showExitConfirm, setShowExitConfirm] = useState(false); // 종료 확인 팝업 상태
   const [showReconfirmPath, setShowReconfirmPath] = useState(false); // 경로 재설정 확인 팝업
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // 즐겨찾기 목록 내 삭제 컨펌 상태
+  const [pendingDeleteId, setPendingDeleteId] = useState(null); // 삭제 대기 중인 즐겨찾기 ID
   const [isFollowingZombie, setIsFollowingZombie] = useState(false); // 좀비 추적 모드 상태
   const isFollowingZombieRef = useRef(false);
+
+  const targetDistanceRef = useRef(targetDistance || 0);
+  useEffect(() => {
+    targetDistanceRef.current = targetDistance || 0;
+  }, [targetDistance]);
 
   useEffect(() => {
     isFollowingUserRef.current = isFollowingUser;
@@ -94,6 +101,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const [isUserMoving, setIsUserMoving] = useState(false);
   const [runnerFrame, setRunnerFrame] = useState(0);
   const userMoveTimerRef = useRef(null);
+
+  // --- 피트니스 실시간 통계 트래킹 상태 ---
+  const [escapeCount, setEscapeCount] = useState(0);
 
   // 테스트 모드 (개발자 및 실내 테스트용 사용자 위치 키보드 제어 상태)
   const [isDebugMode, setIsDebugMode] = useState(false);
@@ -222,9 +232,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   // 즐겨찾기 삭제 함수 (선택 사항)
   const deleteFavorite = (e, id) => {
     e.stopPropagation(); // 경로 로드 전파 방지
-    if (window.confirm("이 경로를 목록에서 삭제하시겠습니까?")) {
-      setFavorites(prev => prev.filter(item => item.id !== id));
-    }
+    setPendingDeleteId(id);
+    setShowDeleteConfirm(true);
   };
 
   // --- [확인 및 추가] 경로 요청 대기 상태 ---
@@ -363,6 +372,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const distanceRef = useRef(null); // 심장박동 펄스 루프에서 최신 거리값을 참조하기 위한 ref
   const vibrationTimerRef = useRef(null); // 진동 간격 제어용 타이머
   const speedIncreaseFrameCountRef = useRef(0); // 서바이벌 모드 실시간 가속용 프레임 카운터
+
+  // 피트니스 데이터 측정용 Refs
+  const gameStartTimeRef = useRef(null);
+  const wasInDangerRef = useRef(false);
 
   // "따라가기" 모드일 때 사용자 위치를 지도 중심에 동기화
   useEffect(() => {
@@ -634,6 +647,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       initAudio();
       if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
 
+      gameStartTimeRef.current = Date.now(); // 운동 시간 측정 시작
+      setEscapeCount(0); // 따돌림 수 리셋
+      wasInDangerRef.current = false;
+
       if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current);
       setCountdown(selectedSpawnDelay);
 
@@ -676,6 +693,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           setZombiePosition(startPos);
           zombiePosRef.current = startPos;
           setCountdown(0);
+          gameStartTimeRef.current = Date.now(); // 좀비 출현 시점 시간 기록 시작
           console.log("좀비출현 (복사된 경로)!");
         }, selectedSpawnDelay * 1000);
       } else {
@@ -685,7 +703,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         zombiePosRef.current = null;
         setCountdown(0);
         setSelectedZombieSpeed(1);
+        gameStartTimeRef.current = Date.now(); // 서바이벌 즉시 시간 측정 시작
       }
+      setEscapeCount(0);
+      wasInDangerRef.current = false;
     }
   }, [initialRoutePath, selectedSpawnDelay, gameMode]);
 
@@ -785,6 +806,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       setZombiePosition(startPos);
       zombiePosRef.current = startPos;
       setCountdown(0);
+      gameStartTimeRef.current = Date.now(); // 일반 목적지 길찾기 시점 시간 측정 시작
+      setEscapeCount(0);
+      wasInDangerRef.current = false;
       console.log("좀비 출현!"); // 좀비 출현 로그
     }, selectedSpawnDelay * 1000);
 
@@ -969,6 +993,16 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       setDistance(d);
       distanceRef.current = d; // 펄스 루프에서 최신 거리 참조용
 
+      // 실시간 좀비 따돌림 극복 감지 (15m 이내 인접 후 35m 밖으로 따돌림)
+      if (d <= 15) {
+        wasInDangerRef.current = true;
+      } else if (d >= 35 && wasInDangerRef.current) {
+        setEscapeCount(prev => prev + 1);
+        wasInDangerRef.current = false;
+        if (navigator.vibrate) navigator.vibrate(150); // 따돌림 성공 햅틱 알림
+        console.log("좀비 따돌림 성공! 카운트업.");
+      }
+
       // 위험 레벨 갱신 (화면 번쩍임 효과 제어)
       if (d <= 10) {
         setDangerLevel(2); // 극도 위험
@@ -1047,6 +1081,25 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         return;
       }
 
+      // 서바이벌 모드 목표 거리 달성 확인 (성공 승리 조건)
+      if (gameMode === 'survival' && targetDistanceRef.current > 0) {
+        const path = recordedPathRef.current;
+        let total = 0;
+        for (let i = 0; i < path.length - 1; i++) {
+          total += calculateDistance(path[i].lat, path[i].lng, path[i + 1].lat, path[i + 1].lng);
+        }
+        const totalKm = total / 1000;
+        if (totalKm >= targetDistanceRef.current) {
+          setIsGameOver(true);
+          setGameResult('win');
+          if (audioCtxRef.current) {
+            gainNodeRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+            ambientGainRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+          }
+          return;
+        }
+      }
+
       // 사용자가 목적지에 도달했는지 확인 (RUN 모드 승리 조건)
       if (gameMode === 'run' && routePath && routePath.length > 0) {
         const destination = routePath[routePath.length - 1];
@@ -1091,9 +1144,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         zombieSpeed: gameMode === 'survival' ? zombieProgress.level : selectedZombieSpeed,
         result: result,
         routePath: activePath,
+        duration: gameStartTimeRef.current ? Math.round((Date.now() - gameStartTimeRef.current) / 1000) : 0,
+        escapeCount: escapeCount
       });
     }
-  }, [isGameOver, gameResult, gameMode, routePath, recordedPath, onSaveRecord, selectedZombieSpeed, zombieProgress.level]);
+  }, [isGameOver, gameResult, gameMode, routePath, recordedPath, onSaveRecord, selectedZombieSpeed, zombieProgress.level, escapeCount]);
 
   // 중간 종료 시 기록 저장
   const handleExitAndSave = () => {
@@ -1116,6 +1171,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         zombieSpeed: gameMode === 'survival' ? zombieProgress.level : selectedZombieSpeed,
         result: '-', // 중간 종료는 '-'로 표시
         routePath: activePath,
+        duration: gameStartTimeRef.current ? Math.round((Date.now() - gameStartTimeRef.current) / 1000) : 0,
+        escapeCount: escapeCount
       });
     }
     // 기록 저장 후 인트로 화면으로 이동
@@ -1925,9 +1982,30 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                   )
                 ) : ( // SURVIVAL 모드일 때
                   recordedPath.length > 0 ? ( // 경로가 설정되었으면 좀비와의 거리 표시
-                    <span>
-                      좀비와의 거리: {distance !== null ? `${distance}m` : countdown}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                      <div>
+                        좀비와의 거리: {distance !== null ? `${distance}m` : countdown}
+                      </div>
+                      {targetDistance > 0 && (() => {
+                        let total = 0;
+                        for (let i = 0; i < recordedPath.length - 1; i++) {
+                          total += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i + 1].lat, recordedPath[i + 1].lng);
+                        }
+                        const runDistKm = total / 1000;
+                        const remainingDist = Math.max(0, targetDistance - runDistKm);
+                        const progressPercent = Math.min(100, (runDistKm / targetDistance) * 100);
+                        return (
+                          <>
+                            <div style={{ fontSize: '0.8rem', color: '#a1a1aa', marginTop: '2px' }}>
+                              목표: {targetDistance.toFixed(1)}km (누적: {runDistKm.toFixed(2)}km, 남음: {remainingDist.toFixed(2)}km)
+                            </div>
+                            <div className="hud-progress-bar-container">
+                              <div className="hud-progress-bar-fill" style={{ width: `${progressPercent}%` }} />
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
                   ) : (
                     <span>탈출구 찾는 중...</span>
                   )
@@ -2070,6 +2148,57 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                 onClick={() => {
                   setShowReconfirmPath(false);
                   setPendingDest(null);
+                }}
+                className="hud-reset-btn"
+                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+              >
+                NO
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 즐겨찾기 개별 삭제 확인 레이어 */}
+      {showDeleteConfirm && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100dvh',
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          zIndex: 2000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
+            <div className="hud-header">
+              <div className="hud-mode-tag">DELETE</div>
+              <div className="hud-status-dot" style={{ backgroundColor: '#ef4444' }}></div>
+            </div>
+            <div className="hud-main-display" style={{ padding: '10px 0' }}>
+              <div className="hud-distance-text" style={{ fontSize: '1rem', color: '#f1f5f9' }}>
+                이 경로를<br />목록에서 삭제하시겠습니까?
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <button
+                onClick={() => {
+                  setFavorites(prev => prev.filter(item => item.id !== pendingDeleteId));
+                  setShowDeleteConfirm(false);
+                  setPendingDeleteId(null);
+                }}
+                className="hud-reset-btn"
+                style={{ flex: 1, backgroundColor: '#ef4444', color: 'white', border: 'none' }}
+              >
+                YES
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setPendingDeleteId(null);
                 }}
                 className="hud-reset-btn"
                 style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}

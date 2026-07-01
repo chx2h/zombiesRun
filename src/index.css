@@ -1120,3 +1120,244 @@ code {
   animation: zombie-chase 0.55s infinite ease-in-out;
   transform-origin: bottom center;
 }
+
+/* --- Stats Tab Styles --- */
+.tab-btn.active-stats {
+  border-color: #4ade80 !important;
+  color: #4ade80 !important;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.25);
+  background-color: rgba(74, 222, 128, 0.05);
+}
+
+.stats-card {
+  background-color: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(74, 222, 128, 0.15);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s;
+  min-height: 80px;
+  box-sizing: border-box;
+}
+
+.stats-card:hover {
+  border-color: rgba(74, 222, 128, 0.4);
+  box-shadow: 0 8px 20px rgba(74, 222, 128, 0.15);
+  transform: translateY(-2px);
+}
+
+.stats-card-icon {
+  font-size: 1.4rem;
+  margin-bottom: 4px;
+}
+
+.stats-card-label {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.stats-card-value {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #f8fafc;
+  font-family: var(--mono);
+}
+
+.stats-card-value small {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: normal;
+}
+
+/* ==========================================================================
+   🎛️ Survival Target Distance Dial Picker & HUD Progress Bar Styles
+   ========================================================================== */
+
+/* 1. 다이얼 피커 외곽 레이아웃 */
+.dial-picker-wrapper {
+  background-color: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 14px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  position: relative;
+  overflow: hidden;
+}
+
+.dial-picker-title {
+  font-size: 0.85rem;
+  color: #f43f5e;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+}
+
+.dial-picker-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  height: 120px;
+  width: 100%;
+  max-width: 240px;
+  background-color: rgba(2, 6, 23, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  user-select: none;
+}
+
+/* 2. 3열 휠 컬럼 정의 */
+.dial-column-box {
+  position: relative;
+  width: 46px;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.dial-column-label {
+  position: absolute;
+  bottom: 4px;
+  font-size: 8px;
+  color: #475569;
+  font-weight: bold;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.dial-wheel-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(2, 6, 23, 0.95) 0%,
+    rgba(2, 6, 23, 0) 35%,
+    rgba(2, 6, 23, 0) 65%,
+    rgba(2, 6, 23, 0.95) 100%
+  );
+  z-index: 5;
+}
+
+.dial-wheel-center-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 36px;
+  transform: translateY(-50%);
+  border-top: 1px dashed rgba(244, 63, 94, 0.4);
+  border-bottom: 1px dashed rgba(244, 63, 94, 0.4);
+  background-color: rgba(244, 63, 94, 0.04);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.dial-wheel-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  transition: transform 0.15s cubic-bezier(0.1, 0.8, 0.25, 1);
+  will-change: transform;
+  padding: 42px 0; /* 중앙 정렬용 상하 패딩 */
+}
+
+.dial-item {
+  height: 36px;
+  line-height: 36px;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #475569;
+  text-align: center;
+  transition: all 0.12s ease-in-out;
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dial-item.active {
+  color: #f43f5e;
+  font-size: 1.55rem;
+  font-family: var(--mono);
+  text-shadow: 0 0 10px rgba(244, 63, 94, 0.6);
+  transform: scale(1.15);
+}
+
+.dial-dot {
+  font-size: 1.8rem;
+  color: #f43f5e;
+  font-weight: 900;
+  align-self: center;
+  margin-top: 8px;
+  line-height: 1;
+  text-shadow: 0 0 8px rgba(244, 63, 94, 0.5);
+  pointer-events: none;
+}
+
+.dial-km-unit {
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: bold;
+  margin-left: 2px;
+  pointer-events: none;
+  font-family: var(--mono);
+}
+
+/* 3. 다이얼 하단 실시간 결과 정보 뱃지 */
+.dial-result-badge {
+  margin-top: 12px;
+  background-color: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: bold;
+  color: #fda4af;
+  font-family: var(--mono);
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.15);
+}
+
+/* 4. HUD 내 실시간 진행률 게이지 바 */
+.hud-progress-bar-container {
+  width: 100%;
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 8px;
+  position: relative;
+}
+
+.hud-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.8);
+  transition: width 0.3s ease-out;
+  width: 0%;
+}
