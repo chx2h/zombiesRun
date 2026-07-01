@@ -97,7 +97,7 @@ const WheelColumn = ({ label, currentVal, onChangeVal }) => {
       let lastTickIdx = Math.round(Math.abs(currentOffset.current) / itemHeight);
 
       const runMomentum = () => {
-        speed *= 0.96; // 💡 기존 0.94에서 0.96으로 수정하면 훨씬 기분 좋게 촤르륵 굴러갑니다!
+        speed *= 0.98; // 💡 기존 0.94에서 0.96으로 수정하면 훨씬 기분 좋게 촤르륵 굴러갑니다!
         const nextOffset = currentOffset.current + speed * 16.7;
 
         if (nextOffset > maxOffset || nextOffset < minOffset) {
@@ -119,7 +119,7 @@ const WheelColumn = ({ label, currentVal, onChangeVal }) => {
           lastTickIdx = currentIdx;
         }
 
-        if (Math.abs(speed) > 0.03) {
+        if (Math.abs(speed) > 0.01) {
           animationFrameRef.current = requestAnimationFrame(runMomentum);
         } else {
           snapToNearest();
