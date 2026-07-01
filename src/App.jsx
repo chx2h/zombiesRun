@@ -15,211 +15,212 @@ const triggerTickVibration = async () => {
     }
   }
 };
+const WheelColumn = ({ label, currentVal, onChangeVal }) => {
+  const listRef = useRef(null);
+  const itemHeight = 36;
 
-/**
- * 🎛️ 서바이벌 모드 목표 거리 세부 설정용 다이얼(Wheel) 피커 컴포넌트
- */
-const SurvivalDialPicker = ({ value, onChange }) => {
-  const valStr = value.toFixed(1).padStart(4, '0'); // "12.5" -> "12.5"
-  const tens = parseInt(valStr[0], 10);
-  const ones = parseInt(valStr[1], 10);
-  const tenths = parseInt(valStr[3], 10);
+  // 모멘텀/관성 물리 속성 refs
+  const startY = useRef(0);
+  const startOffset = useRef(0);
+  const currentOffset = useRef(-currentVal * itemHeight);
 
-  const handleWheelChange = (type, val) => {
-    let nextTens = tens;
-    let nextOnes = ones;
-    let nextTenths = tenths;
+  const lastY = useRef(0);
+  const lastTime = useRef(0);
+  const velocity = useRef(0);
+  const animationFrameRef = useRef(null);
+  // 💡 [추가] 사용자가 손을 대고 있거나 굴러가는 중인지 판별하는 플래그
+  const isUserInteracting = useRef(false);
 
-    if (type === 'tens') nextTens = val;
-    if (type === 'ones') nextOnes = val;
-    if (type === 'tenths') nextTenths = val;
+  useEffect(() => {
+    // 💡 [수정] 사용자가 조작 중이 아닐 때만 외부 값 변경에 따라 스냅 위치 정렬
+    if (!isUserInteracting.current) {
+      currentOffset.current = -currentVal * itemHeight;
+      if (listRef.current) {
+        listRef.current.style.transition = 'transform 0.15s cubic-bezier(0.1, 0.8, 0.25, 1)';
+        listRef.current.style.transform = `translateY(${currentOffset.current}px)`;
+      }
+    }
+  }, [currentVal]);
 
-    const nextVal = nextTens * 10 + nextOnes + nextTenths * 0.1;
-    onChange(parseFloat(nextVal.toFixed(1)));
+  const handleTouchStart = (e) => {
+    isUserInteracting.current = true;
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    startY.current = e.touches[0].clientY;
+    startOffset.current = currentOffset.current;
+
+    lastY.current = e.touches[0].clientY;
+    lastTime.current = Date.now();
+    velocity.current = 0;
   };
 
-  const WheelColumn = ({ label, currentVal, onChangeVal }) => {
-    const listRef = useRef(null);
-    const itemHeight = 36;
+  const handleTouchMove = (e) => {
+    e.preventDefault();
+    const clientY = e.touches[0].clientY;
+    const now = Date.now();
+    const deltaY = clientY - startY.current;
 
-    // 모멘텀/관성 물리 속성 refs
-    const startY = useRef(0);
-    const startOffset = useRef(0);
-    const currentOffset = useRef(-currentVal * itemHeight);
+    const rawOffset = startOffset.current + deltaY;
+    const maxOffset = 0;
+    const minOffset = -9 * itemHeight;
+    const limitedOffset = Math.min(maxOffset, Math.max(minOffset, rawOffset));
 
-    const lastY = useRef(0);
-    const lastTime = useRef(0);
-    const velocity = useRef(0);
-    const animationFrameRef = useRef(null);
-    // 💡 [추가] 사용자가 손을 대고 있거나 굴러가는 중인지 판별하는 플래그
-    const isUserInteracting = useRef(false);
+    currentOffset.current = limitedOffset;
 
-    useEffect(() => {
-      // 💡 [수정] 사용자가 조작 중이 아닐 때만 외부 값 변경에 따라 스냅 위치 정렬
-      if (!isUserInteracting.current) {
-        currentOffset.current = -currentVal * itemHeight;
-        if (listRef.current) {
-          listRef.current.style.transition = 'transform 0.15s cubic-bezier(0.1, 0.8, 0.25, 1)';
-          listRef.current.style.transform = `translateY(${currentOffset.current}px)`;
+    if (listRef.current) {
+      listRef.current.style.transform = `translateY(${limitedOffset}px)`;
+      listRef.current.style.transition = 'none';
+    }
+
+    const timeDiff = now - lastTime.current;
+    if (timeDiff > 0) {
+      velocity.current = (clientY - lastY.current) / timeDiff;
+      lastY.current = clientY;
+      lastTime.current = now;
+    }
+
+    const currentIdx = Math.round(Math.abs(limitedOffset) / itemHeight);
+    if (currentIdx !== currentVal && currentIdx >= 0 && currentIdx <= 9) {
+      onChangeVal(currentIdx);
+      triggerTickVibration();
+    }
+  };
+
+  const handleTouchEnd = () => {
+    let speed = velocity.current;
+    const maxOffset = 0;
+    const minOffset = -9 * itemHeight;
+
+    if (Math.abs(speed) > 0.15) {
+      let lastTickIdx = Math.round(Math.abs(currentOffset.current) / itemHeight);
+
+      const runMomentum = () => {
+        speed *= 0.96; // 💡 기존 0.94에서 0.96으로 수정하면 훨씬 기분 좋게 촤르륵 굴러갑니다!
+        const nextOffset = currentOffset.current + speed * 16.7;
+
+        if (nextOffset > maxOffset || nextOffset < minOffset) {
+          speed = 0;
         }
-      }
-    }, [currentVal]);
 
-    const handleTouchStart = (e) => {
-      isUserInteracting.current = true;
+        const boundedOffset = Math.min(maxOffset, Math.max(minOffset, nextOffset));
+        currentOffset.current = boundedOffset;
+
+        if (listRef.current) {
+          listRef.current.style.transform = `translateY(${boundedOffset}px)`;
+          listRef.current.style.transition = 'none';
+        }
+
+        const currentIdx = Math.round(Math.abs(boundedOffset) / itemHeight);
+        if (currentIdx !== lastTickIdx && currentIdx >= 0 && currentIdx <= 9) {
+          onChangeVal(currentIdx);
+          triggerTickVibration();
+          lastTickIdx = currentIdx;
+        }
+
+        if (Math.abs(speed) > 0.03) {
+          animationFrameRef.current = requestAnimationFrame(runMomentum);
+        } else {
+          snapToNearest();
+        }
+      };
+
+      animationFrameRef.current = requestAnimationFrame(runMomentum);
+    } else {
+      snapToNearest();
+    }
+  };
+
+  const snapToNearest = () => {
+    const targetIdx = Math.round(Math.abs(currentOffset.current) / itemHeight);
+    const snappedIdx = Math.min(9, Math.max(0, targetIdx));
+    currentOffset.current = -snappedIdx * itemHeight;
+
+    isUserInteracting.current = false; // 💡 완벽히 멈춰 서서 정착하기 직전에 간섭 차단 해제!
+    onChangeVal(snappedIdx);
+    triggerTickVibration();
+
+    if (listRef.current) {
+      listRef.current.style.transition = 'transform 0.2s cubic-bezier(0.1, 0.8, 0.25, 1)';
+      listRef.current.style.transform = `translateY(${currentOffset.current}px)`;
+    }
+  };
+
+  const handleMouseWheel = (e) => {
+    e.preventDefault();
+    const direction = e.deltaY > 0 ? 1 : -1;
+    const nextIdx = currentVal + direction;
+    if (nextIdx >= 0 && nextIdx <= 9) {
+      onChangeVal(nextIdx);
+      triggerTickVibration();
+    }
+  };
+
+  const handleItemClick = (idx) => {
+    if (idx !== currentVal) {
+      onChangeVal(idx);
+      triggerTickVibration();
+    }
+  };
+
+  useEffect(() => {
+    return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      startY.current = e.touches[0].clientY;
-      startOffset.current = currentOffset.current;
-
-      lastY.current = e.touches[0].clientY;
-      lastTime.current = Date.now();
-      velocity.current = 0;
     };
+  }, []);
 
-    const handleTouchMove = (e) => {
-      e.preventDefault();
-      const clientY = e.touches[0].clientY;
-      const now = Date.now();
-      const deltaY = clientY - startY.current;
+  const digits = Array.from({ length: 10 }, (_, i) => i);
 
-      const rawOffset = startOffset.current + deltaY;
-      const maxOffset = 0;
-      const minOffset = -9 * itemHeight;
-      const limitedOffset = Math.min(maxOffset, Math.max(minOffset, rawOffset));
-
-      currentOffset.current = limitedOffset;
-
-      if (listRef.current) {
-        listRef.current.style.transform = `translateY(${limitedOffset}px)`;
-        listRef.current.style.transition = 'none';
-      }
-
-      const timeDiff = now - lastTime.current;
-      if (timeDiff > 0) {
-        velocity.current = (clientY - lastY.current) / timeDiff;
-        lastY.current = clientY;
-        lastTime.current = now;
-      }
-
-      const currentIdx = Math.round(Math.abs(limitedOffset) / itemHeight);
-      if (currentIdx !== currentVal && currentIdx >= 0 && currentIdx <= 9) {
-        onChangeVal(currentIdx);
-        triggerTickVibration();
-      }
-    };
-
-    const handleTouchEnd = () => {
-      let speed = velocity.current;
-      const maxOffset = 0;
-      const minOffset = -9 * itemHeight;
-
-      if (Math.abs(speed) > 0.15) {
-        let lastTickIdx = Math.round(Math.abs(currentOffset.current) / itemHeight);
-
-        const runMomentum = () => {
-          speed *= 0.96; // 💡 기존 0.94에서 0.96으로 수정하면 훨씬 기분 좋게 촤르륵 굴러갑니다!
-          const nextOffset = currentOffset.current + speed * 16.7;
-
-          if (nextOffset > maxOffset || nextOffset < minOffset) {
-            speed = 0;
-          }
-
-          const boundedOffset = Math.min(maxOffset, Math.max(minOffset, nextOffset));
-          currentOffset.current = boundedOffset;
-
-          if (listRef.current) {
-            listRef.current.style.transform = `translateY(${boundedOffset}px)`;
-            listRef.current.style.transition = 'none';
-          }
-
-          const currentIdx = Math.round(Math.abs(boundedOffset) / itemHeight);
-          if (currentIdx !== lastTickIdx && currentIdx >= 0 && currentIdx <= 9) {
-            onChangeVal(currentIdx);
-            triggerTickVibration();
-            lastTickIdx = currentIdx;
-          }
-
-          if (Math.abs(speed) > 0.03) {
-            animationFrameRef.current = requestAnimationFrame(runMomentum);
-          } else {
-            snapToNearest();
-          }
-        };
-
-        animationFrameRef.current = requestAnimationFrame(runMomentum);
-      } else {
-        snapToNearest();
-      }
-    };
-
-    const snapToNearest = () => {
-      const targetIdx = Math.round(Math.abs(currentOffset.current) / itemHeight);
-      const snappedIdx = Math.min(9, Math.max(0, targetIdx));
-      currentOffset.current = -snappedIdx * itemHeight;
-
-      isUserInteracting.current = false; // 💡 완벽히 멈춰 서서 정착하기 직전에 간섭 차단 해제!
-      onChangeVal(snappedIdx);
-      triggerTickVibration();
-
-      if (listRef.current) {
-        listRef.current.style.transition = 'transform 0.2s cubic-bezier(0.1, 0.8, 0.25, 1)';
-        listRef.current.style.transform = `translateY(${currentOffset.current}px)`;
-      }
-    };
-
-    const handleMouseWheel = (e) => {
-      e.preventDefault();
-      const direction = e.deltaY > 0 ? 1 : -1;
-      const nextIdx = currentVal + direction;
-      if (nextIdx >= 0 && nextIdx <= 9) {
-        onChangeVal(nextIdx);
-        triggerTickVibration();
-      }
-    };
-
-    const handleItemClick = (idx) => {
-      if (idx !== currentVal) {
-        onChangeVal(idx);
-        triggerTickVibration();
-      }
-    };
-
-    useEffect(() => {
-      return () => {
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-      };
-    }, []);
-
-    const digits = Array.from({ length: 10 }, (_, i) => i);
-
-    return (
-      <div
-        className="dial-column-box"
-        onWheel={handleMouseWheel}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <div className="dial-wheel-mask" />
-        <div className="dial-wheel-center-line" />
-        <div ref={listRef} className="dial-wheel-list">
-          {digits.map((num) => (
-            <div
-              key={num}
-              className={`dial-item ${num === currentVal ? 'active' : ''}`}
-              onClick={() => handleItemClick(num)}
-            >
-              {num}
-            </div>
-          ))}
-        </div>
-        <div className="dial-column-label">{label}</div>
+  return (
+    <div
+      className="dial-column-box"
+      onWheel={handleMouseWheel}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div className="dial-wheel-mask" />
+      <div className="dial-wheel-center-line" />
+      <div ref={listRef} className="dial-wheel-list">
+        {digits.map((num) => (
+          <div
+            key={num}
+            className={`dial-item ${num === currentVal ? 'active' : ''}`}
+            onClick={() => handleItemClick(num)}
+          >
+            {num}
+          </div>
+        ))}
       </div>
-    );
+      <div className="dial-column-label">{label}</div>
+    </div>
+  );
+
+  /**
+   * 🎛️ 서바이벌 모드 목표 거리 세부 설정용 다이얼(Wheel) 피커 컴포넌트
+   */
+  const SurvivalDialPicker = ({ value, onChange }) => {
+    const valStr = value.toFixed(1).padStart(4, '0'); // "12.5" -> "12.5"
+    const tens = parseInt(valStr[0], 10);
+    const ones = parseInt(valStr[1], 10);
+    const tenths = parseInt(valStr[3], 10);
+
+    const handleWheelChange = (type, val) => {
+      let nextTens = tens;
+      let nextOnes = ones;
+      let nextTenths = tenths;
+
+      if (type === 'tens') nextTens = val;
+      if (type === 'ones') nextOnes = val;
+      if (type === 'tenths') nextTenths = val;
+
+      const nextVal = nextTens * 10 + nextOnes + nextTenths * 0.1;
+      onChange(parseFloat(nextVal.toFixed(1)));
+    };
+
+
   };
 
   return (
