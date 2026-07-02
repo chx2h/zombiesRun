@@ -61,6 +61,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const [adCountdown, setAdCountdown] = useState(30); 
   const [reviveUsed, setReviveUsed] = useState(false); 
   const reviveUsedRef = useRef(false);
+  const [reviveCountdown, setReviveCountdown] = useState(0); 
+  const reviveCountdownRef = useRef(0);
+  useEffect(() => {
+    reviveCountdownRef.current = reviveCountdown;
+  }, [reviveCountdown]);
 
   const targetDistanceRef = useRef(targetDistance || 0);
   useEffect(() => {
@@ -130,6 +135,80 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       console.log("테스트 모드 활성화로 인한 기본 가상 위치 설정:", defaultMockPos);
     }
   }, [isDebugMode]);
+
+  // --- 테스트용 이스터에그 및 가상 D-Pad 이동 로직 ---
+  const debugTapCountRef = useRef(0);
+  const moveIntervalRef = useRef(null);
+
+  const handleDebugTap = () => {
+    debugTapCountRef.current += 1;
+    if (debugTapCountRef.current >= 5) {
+      debugTapCountRef.current = 0;
+      setIsDebugMode(prev => {
+        const nextVal = !prev;
+        isDebugModeRef.current = nextVal;
+        try {
+          Haptics.impact({ style: ImpactStyle.Medium });
+        } catch (e) {}
+        console.log("5회 연속 터치 이스터에그 작동: 테스트 모드 토글 ->", nextVal);
+        return nextVal;
+      });
+    }
+  };
+
+  const startMovingUser = (direction) => {
+    if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
+    
+    const moveStep = 0.00003; 
+    const moveStepLng = 0.000035;
+    
+    const tick = () => {
+      const currentPos = userPosRef.current;
+      if (!currentPos || isGameOver) return;
+      
+      let nextPos = { ...currentPos };
+      if (direction === 'up') {
+        nextPos.lat += moveStep;
+      } else if (direction === 'down') {
+        nextPos.lat -= moveStep;
+      } else if (direction === 'left') {
+        nextPos.lng -= moveStepLng;
+      } else if (direction === 'right') {
+        nextPos.lng += moveStepLng;
+      }
+      
+      setUserPosition(nextPos);
+      userPosRef.current = nextPos;
+      
+      // 기록 모드(record) 또는 서바이벌 모드(survival) 시 경로 누적
+      if (isRecording || gameMode === 'survival') {
+        const path = recordedPathRef.current;
+        if (path.length > 0) {
+          const lastPoint = path[path.length - 1];
+          const dist = calculateDistance(lastPoint.lat, lastPoint.lng, nextPos.lat, nextPos.lng);
+          if (dist >= 3) {
+            const point = { lat: nextPos.lat, lng: nextPos.lng, time: Date.now() };
+            setRecordedPath(prev => [...prev, point]);
+            recordedPathRef.current = [...recordedPathRef.current, point];
+          }
+        } else {
+          const point = { lat: nextPos.lat, lng: nextPos.lng, time: Date.now() };
+          setRecordedPath([point]);
+          recordedPathRef.current = [point];
+        }
+      }
+    };
+    
+    tick(); 
+    moveIntervalRef.current = setInterval(tick, 100);
+  };
+
+  const stopMovingUser = () => {
+    if (moveIntervalRef.current) {
+      clearInterval(moveIntervalRef.current);
+      moveIntervalRef.current = null;
+    }
+  };
 
   // 지수 스케일 요구 경험치 계산 함수 (고레벨일수록 더 많은 경험치 필요)
   const getNextLevelXp = useCallback((currentLevel) => {
@@ -389,7 +468,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   // "따라가기" 모드일 때 사용자 위치를 지도 중심에 동기화
   useEffect(() => {
     if (isFollowingUser && userPosition) {
-      setMapCenter(userPosition);
+      if (mapRef.current && window.kakao && window.kakao.maps) {
+        const centerLatLng = new window.kakao.maps.LatLng(userPosition.lat, userPosition.lng);
+        mapRef.current.setCenter(centerLatLng);
+      } else {
+        setMapCenter(userPosition);
+      }
     }
   }, [userPosition, isFollowingUser]);
 
@@ -417,7 +501,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   // "좀비 따라가기" 모드일 때 좀비 위치를 지도 중심에 동기화
   useEffect(() => {
     if (isFollowingZombie && zombiePosition) {
-      setMapCenter(zombiePosition);
+      if (mapRef.current && window.kakao && window.kakao.maps) {
+        const centerLatLng = new window.kakao.maps.LatLng(zombiePosition.lat, zombiePosition.lng);
+        mapRef.current.setCenter(centerLatLng);
+      } else {
+        setMapCenter(zombiePosition);
+      }
     }
   }, [zombiePosition, isFollowingZombie]);
 
@@ -448,16 +537,73 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     setReviveUsed(true);
     reviveUsedRef.current = true;
     
-    // 좀비의 위치를 유저 좌표로부터 약 80미터 이상 안전거리로 후방 재배치
+    const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPathRef.current : routePathRef.current;
     const userPos = userPosRef.current;
-    if (userPos) {
-      const offsetLat = (Math.random() > 0.5 ? 1 : -1) * 0.00075;
-      const offsetLng = (Math.random() > 0.5 ? 1 : -1) * 0.00075;
-      const safeZombiePos = { lat: userPos.lat + offsetLat, lng: userPos.lng + offsetLng };
+    
+    let isSpawnedOnPath = false;
+    let targetSpawnIndex = 0;
+    
+    if (activePath.length > 0 && userPos) {
+      // 1. 사용자 현재 인덱스로부터 역방향 누적 거리 계산으로 80m 뒤쪽 지점 탐색
+      const userIndex = activePath.length - 1;
+      let accumulatedDist = 0;
+      let foundIndex = userIndex;
+      
+      for (let i = userIndex; i > 0; i--) {
+        const dNode = calculateDistance(
+          activePath[i].lat, activePath[i].lng,
+          activePath[i - 1].lat, activePath[i - 1].lng
+        );
+        accumulatedDist += dNode;
+        if (accumulatedDist >= 80) {
+          foundIndex = i - 1;
+          isSpawnedOnPath = true;
+          break;
+        }
+      }
+      
+      // 2. 만약 80m 뒤쪽 지점을 찾았고, 직선거리도 최소 40m 이상 안전하게 떨어져 있는 경우
+      if (isSpawnedOnPath) {
+        const directDist = calculateDistance(userPos.lat, userPos.lng, activePath[foundIndex].lat, activePath[foundIndex].lng);
+        if (directDist >= 40) {
+          targetSpawnIndex = foundIndex;
+        } else {
+          isSpawnedOnPath = false;
+        }
+      }
+    }
+    
+    if (isSpawnedOnPath && activePath[targetSpawnIndex]) {
+      // 경로선 80m 후방 스폰 성공!
+      const spawnNode = activePath[targetSpawnIndex];
+      const safeZombiePos = { lat: spawnNode.lat, lng: spawnNode.lng };
       setZombiePosition(safeZombiePos);
       zombiePosRef.current = safeZombiePos;
-      distanceRef.current = 80;
-      console.log("부활 성공! 좀비 차원 이동:", safeZombiePos);
+      
+      // 좀비가 스폰된 노드에서부터 밟고 가도록 타겟 인덱스 고정 동기화
+      pathIndexRef.current = targetSpawnIndex;
+      
+      if (userPos) {
+        distanceRef.current = calculateDistance(userPos.lat, userPos.lng, safeZombiePos.lat, safeZombiePos.lng);
+        setDistance(distanceRef.current);
+      }
+      console.log("부활 완료! 경로선 80m 후방에 완벽 매칭 스폰 완료. 인덱스:", targetSpawnIndex);
+    } else {
+      // 3. 경로가 너무 짧아서 거리가 확보되지 않은 경우: 출발선(0번 노드)에 스폰하고 3초 대기 카운트다운 구동!
+      const spawnNode = activePath[0] || userPos;
+      if (spawnNode) {
+        const startZombiePos = { lat: spawnNode.lat, lng: spawnNode.lng };
+        setZombiePosition(startZombiePos);
+        zombiePosRef.current = startZombiePos;
+        pathIndexRef.current = 0;
+        
+        if (userPos) {
+          distanceRef.current = calculateDistance(userPos.lat, userPos.lng, startZombiePos.lat, startZombiePos.lng);
+          setDistance(distanceRef.current);
+        }
+      }
+      setReviveCountdown(3);
+      console.log("부활 완료! 경로가 너무 짧아 출발선 복귀 및 3초 대기 구동.");
     }
     
     setIsGamePaused(false);
@@ -473,6 +619,17 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       }
     }
   };
+
+  // 부활 스폰 대기 카운트다운 타이머 이펙트
+  useEffect(() => {
+    let timer;
+    if (reviveCountdown > 0) {
+      timer = setTimeout(() => {
+        setReviveCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [reviveCountdown]);
 
   // 모조 동영상 광고 타이머 이펙트
   useEffect(() => {
@@ -956,6 +1113,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       requestRef.current = requestAnimationFrame(() => animateRef.current && animateRef.current());
       return;
     }
+    if (reviveCountdownRef.current > 0) {
+      requestRef.current = requestAnimationFrame(() => animateRef.current && animateRef.current());
+      return;
+    }
     const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPathRef.current : routePathRef.current;
     if (isGameOver || activePath.length === 0) return;
 
@@ -1039,11 +1200,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
     setZombiePosition(newPos);
     zombiePosRef.current = newPos;
-
-    // 좀비 따라가기 카메라 고정
-    if (isFollowingZombieRef.current) {
-      setMapCenter(newPos);
-    }
 
     // 거리 계산 및 특수 효과
     if (userPosRef.current) {
@@ -1129,13 +1285,24 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
       // 잡힘 판정 (Survival 모드일 때만 5m 이내 종료 또는 부활권 확인)
       if (d <= 5 && gameMode === 'survival') {
+        // 기존의 주기적인 펄스 진동 루프 해제 및 강제 진동 정지
+        if (pulseIntervalRef.current) {
+          clearTimeout(pulseIntervalRef.current);
+          pulseIntervalRef.current = null;
+        }
+        try {
+          Haptics.impact({ style: ImpactStyle.Heavy });
+        } catch (e) {}
+        if (navigator.vibrate) {
+          navigator.vibrate(800); // 잡혔을 때 800ms 강한 단발 충격
+        }
+
         if (!reviveUsedRef.current) {
           setIsGamePaused(true);
           isGamePausedRef.current = true;
           setShowReviveConfirm(true);
           return;
         } else {
-          if ("vibrate" in navigator) navigator.vibrate([1000, 500, 1000]);
           setIsGameOver(true);
           setGameResult('lose');
           if (audioCtxRef.current) {
@@ -1260,6 +1427,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     return () => {
       if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current);
       if (pulseIntervalRef.current) clearTimeout(pulseIntervalRef.current);
+      if (navigator.vibrate) navigator.vibrate(0);
     };
   }, []);
 
@@ -1932,7 +2100,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       {/* 상단 컨트롤 UI (HUD 디자인 적용) */}
       {gameMode === 'record' ? (
         <div className="hud-container">
-          <div className="hud-header">
+          <div className="hud-header" onClick={handleDebugTap} style={{ cursor: 'pointer' }}>
             <div className="hud-mode-tag">MODE: RECORD</div>
             <div className="hud-status-dot" style={{ backgroundColor: isRecording ? '#ef4444' : '#64748b', animation: isRecording ? 'ping 1.5s infinite' : 'none' }}></div>
           </div>
@@ -2020,7 +2188,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         </div>
       ) : (
         <div className="hud-container">
-          <div className="hud-header">
+          <div className="hud-header" onClick={handleDebugTap} style={{ cursor: 'pointer' }}>
             <div className="hud-mode-tag">MODE: {gameMode.toUpperCase()}</div>
             <div className="hud-status-dot"></div>
           </div>
@@ -2437,10 +2605,182 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         </div>
       )}
 
+      {/* 부활 대기 카운트다운 알림 */}
+      {reviveCountdown > 0 && (
+        <div style={{
+          position: 'absolute',
+          top: '40%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 2500,
+          textAlign: 'center',
+          width: '90%',
+          pointerEvents: 'none'
+        }}>
+          <div style={{
+            fontSize: '0.9rem',
+            fontWeight: 'bold',
+            color: '#ef4444',
+            textShadow: '0 0 10px rgba(239, 68, 68, 0.8)',
+            marginBottom: '14px',
+            backgroundColor: 'rgba(0, 0, 0, 0.82)',
+            padding: '10px 18px',
+            borderRadius: '8px',
+            display: 'inline-block',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            boxShadow: '0 0 15px rgba(239, 68, 68, 0.2)'
+          }}>
+            ⚠️ 좀비가 출발선에 있습니다! 3초 후 출발합니다!
+          </div>
+          <div style={{
+            fontSize: '7.5rem',
+            fontWeight: '900',
+            color: '#ef4444',
+            textShadow: '0 0 30px rgba(239, 68, 68, 0.95)',
+            fontFamily: 'var(--mono)'
+          }}>
+            {reviveCountdown}
+          </div>
+        </div>
+      )}
+
       {/* 중앙 카운트다운 */}
       {countdown > 0 && (
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 20, fontSize: '120px', fontWeight: 'bold', color: 'rgba(255, 0, 0, 0.7)', pointerEvents: 'none' }}>
           {countdown}
+        </div>
+      )}
+
+      {/* 🎮 테스트 모드 전용 가상 방향 패드 (D-Pad) */}
+      {isDebugMode && (
+        <div style={{
+          position: 'absolute',
+          bottom: '120px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '130px',
+          height: '130px',
+          zIndex: 1010,
+          display: 'grid',
+          gridTemplateRows: 'repeat(3, 1fr)',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          background: 'rgba(15, 23, 42, 0.72)',
+          backdropFilter: 'blur(6px)',
+          border: '2px dashed #ef4444',
+          borderRadius: '50%',
+          boxShadow: '0 0 20px rgba(239, 68, 68, 0.45)',
+          padding: '8px',
+          boxSizing: 'border-box'
+        }}>
+          <div />
+          <button
+            onTouchStart={() => startMovingUser('up')}
+            onTouchEnd={stopMovingUser}
+            onMouseDown={() => startMovingUser('up')}
+            onMouseUp={stopMovingUser}
+            onMouseLeave={stopMovingUser}
+            style={{
+              background: 'rgba(239, 68, 68, 0.25)',
+              border: '1.5px solid rgba(239, 68, 68, 0.5)',
+              borderRadius: '8px',
+              color: '#f87171',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '14px',
+              userSelect: 'none',
+              touchAction: 'none'
+            }}
+          >
+            ▲
+          </button>
+          <div />
+
+          <button
+            onTouchStart={() => startMovingUser('left')}
+            onTouchEnd={stopMovingUser}
+            onMouseDown={() => startMovingUser('left')}
+            onMouseUp={stopMovingUser}
+            onMouseLeave={stopMovingUser}
+            style={{
+              background: 'rgba(239, 68, 68, 0.25)',
+              border: '1.5px solid rgba(239, 68, 68, 0.5)',
+              borderRadius: '8px',
+              color: '#f87171',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '14px',
+              userSelect: 'none',
+              touchAction: 'none'
+            }}
+          >
+            ◀
+          </button>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '10px',
+            color: '#ef4444',
+            fontWeight: 'bold',
+            userSelect: 'none'
+          }}>
+            T-PAD
+          </div>
+          <button
+            onTouchStart={() => startMovingUser('right')}
+            onTouchEnd={stopMovingUser}
+            onMouseDown={() => startMovingUser('right')}
+            onMouseUp={stopMovingUser}
+            onMouseLeave={stopMovingUser}
+            style={{
+              background: 'rgba(239, 68, 68, 0.25)',
+              border: '1.5px solid rgba(239, 68, 68, 0.5)',
+              borderRadius: '8px',
+              color: '#f87171',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '14px',
+              userSelect: 'none',
+              touchAction: 'none'
+            }}
+          >
+            ▶
+          </button>
+
+          <div />
+          <button
+            onTouchStart={() => startMovingUser('down')}
+            onTouchEnd={stopMovingUser}
+            onMouseDown={() => startMovingUser('down')}
+            onMouseUp={stopMovingUser}
+            onMouseLeave={stopMovingUser}
+            style={{
+              background: 'rgba(239, 68, 68, 0.25)',
+              border: '1.5px solid rgba(239, 68, 68, 0.5)',
+              borderRadius: '8px',
+              color: '#f87171',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '14px',
+              userSelect: 'none',
+              touchAction: 'none'
+            }}
+          >
+            ▼
+          </button>
+          <div />
         </div>
       )}
 

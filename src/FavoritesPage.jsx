@@ -819,6 +819,60 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
             }}>
               🟢 출발지 / 🔴 도착지 경로 매핑 미리보기
             </div>
+
+            {/* 액션 버튼 */}
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              padding: '12px 16px 16px 16px',
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)'
+            }}>
+              <button
+                onClick={() => {
+                  if (onReplayRecord) {
+                    onReplayRecord({ routePath: previewPath, mode: 'run' });
+                    setShowMapPreview(false);
+                  }
+                }}
+                className="hud-reset-btn"
+                style={{
+                  flex: 1,
+                  backgroundColor: '#4ade80',
+                  color: '#0f172a',
+                  border: 'none',
+                  fontWeight: 'bold',
+                  fontSize: '11px',
+                  padding: '10px 0',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                🏁 이 경로로 재도전 (RUN)
+              </button>
+              <button
+                onClick={() => {
+                  if (onReplayRecord) {
+                    onReplayRecord({ routePath: previewPath, mode: 'survival' });
+                    setShowMapPreview(false);
+                  }
+                }}
+                className="hud-reset-btn"
+                style={{
+                  flex: 1,
+                  backgroundColor: '#f43f5e',
+                  color: 'white',
+                  border: 'none',
+                  fontWeight: 'bold',
+                  fontSize: '11px',
+                  padding: '10px 0',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                🏃‍♂️ 서바이벌 가이드선 사용
+              </button>
+            </div>
           </div>
         </div>
       )}

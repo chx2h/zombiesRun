@@ -398,10 +398,6 @@ function App() {
               navigate('intro');
             }}
             onSaveRecord={(record) => {
-              if (isReplay) {
-                console.log("리플레이 세션이므로 기록을 누적하지 않습니다.");
-                return;
-              }
               const savedRecords = JSON.parse(localStorage.getItem('gameRecords') || '[]');
               savedRecords.push(record);
               localStorage.setItem('gameRecords', JSON.stringify(savedRecords));
