@@ -256,21 +256,33 @@ function App() {
   const viewRef = useRef('intro');
   const isGameActiveRef = useRef(false);
   const triggerExitConfirmRef = useRef(null);
+  const handleHardwareBackRef = useRef(null);
 
   // --- 목표 거리 & 다이얼 셋업 상태 ---
   const [targetDistance, setTargetDistance] = useState(0.0); // 목표 달리기 거리 (km)
   const [showSurvivalSetup, setShowSurvivalSetup] = useState(false); // 서바이벌 셋업 레이어 유무
   const [showAppExitConfirm, setShowAppExitConfirm] = useState(false); // 앱 종료 확인 팝업 유무
   const showAppExitConfirmRef = useRef(false);
+  const showSurvivalSetupRef = useRef(false);
+
   useEffect(() => {
     showAppExitConfirmRef.current = showAppExitConfirm;
   }, [showAppExitConfirm]);
 
+  useEffect(() => {
+    showSurvivalSetupRef.current = showSurvivalSetup;
+  }, [showSurvivalSetup]);
+
   // 화면 전환 및 브라우저 히스토리 관리
   const navigate = (newView) => {
+    handleHardwareBackRef.current = null; // 뷰 전환 시 뒤로가기 위임 초기화
     setView(newView);
     viewRef.current = newView;
     window.history.pushState({ view: newView }, '', `#${newView}`);
+  };
+
+  const setHandleHardwareBack = (handler) => {
+    handleHardwareBackRef.current = handler;
   };
 
   useEffect(() => {
@@ -308,8 +320,16 @@ function App() {
       const currentView = viewRef.current;
       console.log("안드로이드 하드웨어 뒤로가기 감지. 현재 뷰:", currentView);
 
+      // 하위 컴포넌트(ZombieMapApp, FavoritesPage)에서 뒤로가기 이벤트를 소비했을 때 우선 리턴
+      if (handleHardwareBackRef.current) {
+        const handled = handleHardwareBackRef.current();
+        if (handled) return;
+      }
+
       if (currentView === 'intro') {
-        if (showAppExitConfirmRef.current) {
+        if (showSurvivalSetupRef.current) {
+          setShowSurvivalSetup(false);
+        } else if (showAppExitConfirmRef.current) {
           setShowAppExitConfirm(false);
         } else {
           setShowAppExitConfirm(true);
@@ -408,6 +428,7 @@ function App() {
             setTriggerExitConfirm={(trigger) => {
               triggerExitConfirmRef.current = trigger;
             }}
+            setHandleHardwareBack={setHandleHardwareBack}
           />
         </div>
       )}
@@ -425,6 +446,7 @@ function App() {
             setIsReplay(true);
             navigate('playing');
           }}
+          setHandleHardwareBack={setHandleHardwareBack}
         />
       )}
 
@@ -465,21 +487,14 @@ function App() {
 
             {/* 🎛️ 서바이벌 목표 설정 다이얼 팝업 모달 */}
             {showSurvivalSetup && (
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.82)',
-                backdropFilter: 'blur(6px)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                zIndex: 1000,
-                padding: '20px'
-              }}>
-                <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '100%', maxWidth: '320px', padding: '16px' }}>
+              <div
+                className="app-modal-overlay"
+                onClick={() => setShowSurvivalSetup(false)}
+              >
+                <div
+                  className="app-modal-container app-modal-size-survival"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="hud-header">
                     <div className="hud-mode-tag" style={{ color: '#f43f5e' }}>SURVIVAL SETTING</div>
                     <div className="hud-status-dot" style={{ backgroundColor: '#f43f5e' }}></div>
@@ -493,21 +508,21 @@ function App() {
                     <button
                       onClick={() => {
                         setShowSurvivalSetup(false);
+                      }}
+                      className="hud-reset-btn"
+                      style={{ flex: 0.8, backgroundColor: '#334155', border: 'none' }}
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowSurvivalSetup(false);
                         navigate('playing');
                       }}
                       className="hud-reset-btn"
                       style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none', fontWeight: 'bold' }}
                     >
                       질주 시작 🏃‍♂️
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowSurvivalSetup(false);
-                      }}
-                      className="hud-reset-btn"
-                      style={{ flex: 0.8, backgroundColor: '#334155', border: 'none' }}
-                    >
-                      취소
                     </button>
                   </div>
                 </div>
@@ -516,21 +531,14 @@ function App() {
 
             {/* 🎛️ 앱 종료 확인 팝업 모달 */}
             {showAppExitConfirm && (
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.82)',
-                backdropFilter: 'blur(6px)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                zIndex: 2000,
-                padding: '20px'
-              }}>
-                <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '100%', maxWidth: '300px', padding: '16px' }}>
+              <div
+                className="app-modal-overlay"
+                onClick={() => setShowAppExitConfirm(false)}
+              >
+                <div
+                  className="app-modal-container app-modal-size-exit"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="hud-header">
                     <div className="hud-mode-tag" style={{ color: '#ef4444' }}>EXIT APP</div>
                     <div className="hud-status-dot" style={{ backgroundColor: '#ef4444' }}></div>
@@ -538,20 +546,11 @@ function App() {
 
                   <div className="hud-main-display" style={{ padding: '12px 0', border: 'none', background: 'none', boxShadow: 'none' }}>
                     <div className="hud-distance-text" style={{ fontSize: '0.95rem', color: '#f1f5f9', lineHeight: '1.4' }}>
-                      생존을 잠시 중단하고<br />구역을 완전히 이탈하시겠습니까?
+                      탈출을 잠시 중단하고<br />구역을 완전히 이탈하시겠습니까?
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-                    <button
-                      onClick={() => {
-                        CapApp.exitApp();
-                      }}
-                      className="hud-reset-btn"
-                      style={{ flex: 1, backgroundColor: '#ef4444', color: 'white', border: 'none', fontWeight: 'bold' }}
-                    >
-                      종료 (YES)
-                    </button>
                     <button
                       onClick={() => {
                         setShowAppExitConfirm(false);
@@ -560,6 +559,15 @@ function App() {
                       style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
                     >
                       취소 (NO)
+                    </button>
+                    <button
+                      onClick={() => {
+                        CapApp.exitApp();
+                      }}
+                      className="hud-reset-btn"
+                      style={{ flex: 1, backgroundColor: '#ef4444', color: 'white', border: 'none', fontWeight: 'bold' }}
+                    >
+                      종료 (YES)
                     </button>
                   </div>
                 </div>

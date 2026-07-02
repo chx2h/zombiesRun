@@ -5,11 +5,11 @@ import zombieSfx from './assets/dragon-studio-female-zombie-screams-324744.mp3';
 // 레벨 1부터 50까지의 좀비 이모지를 반환하는 헬퍼 함수
 const getZombieEmoji = (level) => {
   const emojis = [
-    "🦠", "🐛", "🐌", "🍄", "💀", "👻", "👽", "🎃", "🦇", "🐺",  // 1 ~ 10
-    "🐗", "🕷️", "🦂", "🐍", "🦎", "🐊", "🐅", "🐆", "🦍", "🧟‍♀️", // 11 ~ 20
-    "🧟‍♂️", "🧟", "🧟‍♀️", "🧟‍♂️", "🧛‍♀️", "🧛‍♂️", "🧛", "🧙‍♀️", "🧙‍♂️", "🧙", // 21 ~ 30
-    "👹", "👺", "👾", "🤖", "🦖", "🦕", "🐉", "🐊", "👹", "👺", // 31 ~ 40
-    "⚡", "🔥", "❄️", "☠️", "👿", "🌋", "☣️", "🌀", "👹", "👑" // 41 ~ 50
+    "🧍", "🧍‍♂️", "🧍‍♀️", "🥵", "😰", "😱", "🤒", "🤕", "😷", "🤢",
+    "🤮", "🥶", "💀", "🧛", "🧛‍♂️", "🧛‍♀️", "🧟", "🧟‍♂️", "🧟‍♀️", "🧟",
+    "🧟‍♂️", "🧟‍♀️", "😈", "👿", "👹", "👺", "🧟", "🧟‍♂️", "🧟‍♀️", "💀",
+    "☠️", "🧟", "😈", "👿", "👹", "👺", "💀", "☠️", "🧟", "🧟‍♂️",
+    "🧟‍♀️", "🧟‍♀️", "🧟‍♀️", "🧟‍♀️", "🧟‍♀️", "🧟‍♀️", "🧟‍♀️", "🧟‍♀️", "🧟‍♀️", "👑"
   ];
 
   const idx = Math.min(Math.max(1, Number(level)), 50) - 1;
@@ -34,7 +34,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return Math.round(R * c);
 };
 
-const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTriggerExitConfirm, initialRoutePath, targetDistance = 0 }) => {
+const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTriggerExitConfirm, initialRoutePath, targetDistance = 0, setHandleHardwareBack }) => {
   // 상태 관리
   const [userPosition, setUserPosition] = useState(null);
   const [zombiePosition, setZombiePosition] = useState(null);
@@ -56,12 +56,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   // --- 리워드형 부활(비상 구급 상자) 시스템 관련 상태 ---
   const [isGamePaused, setIsGamePaused] = useState(false);
   const isGamePausedRef = useRef(false);
-  const [showReviveConfirm, setShowReviveConfirm] = useState(false); 
-  const [showAdPlayer, setShowAdPlayer] = useState(false); 
-  const [adCountdown, setAdCountdown] = useState(30); 
-  const [reviveUsed, setReviveUsed] = useState(false); 
+  const [showReviveConfirm, setShowReviveConfirm] = useState(false);
+  const [showAdPlayer, setShowAdPlayer] = useState(false);
+  const [adCountdown, setAdCountdown] = useState(30);
+  const [reviveUsed, setReviveUsed] = useState(false);
   const reviveUsedRef = useRef(false);
-  const [reviveCountdown, setReviveCountdown] = useState(0); 
+  const [reviveCountdown, setReviveCountdown] = useState(0);
   const reviveCountdownRef = useRef(0);
   useEffect(() => {
     reviveCountdownRef.current = reviveCountdown;
@@ -149,7 +149,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         isDebugModeRef.current = nextVal;
         try {
           Haptics.impact({ style: ImpactStyle.Medium });
-        } catch (e) {}
+        } catch (e) { }
         console.log("5회 연속 터치 이스터에그 작동: 테스트 모드 토글 ->", nextVal);
         return nextVal;
       });
@@ -158,14 +158,14 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
   const startMovingUser = (direction) => {
     if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
-    
-    const moveStep = 0.00003; 
+
+    const moveStep = 0.00003;
     const moveStepLng = 0.000035;
-    
+
     const tick = () => {
       const currentPos = userPosRef.current;
       if (!currentPos || isGameOver) return;
-      
+
       let nextPos = { ...currentPos };
       if (direction === 'up') {
         nextPos.lat += moveStep;
@@ -176,10 +176,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       } else if (direction === 'right') {
         nextPos.lng += moveStepLng;
       }
-      
+
       setUserPosition(nextPos);
       userPosRef.current = nextPos;
-      
+
       // 기록 모드(record) 또는 서바이벌 모드(survival) 시 경로 누적
       if (isRecording || gameMode === 'survival') {
         const path = recordedPathRef.current;
@@ -198,8 +198,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         }
       }
     };
-    
-    tick(); 
+
+    tick();
     moveIntervalRef.current = setInterval(tick, 100);
   };
 
@@ -345,39 +345,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   };
 
 
-  // --- [수정] 생성된 경로를 최신순으로 '지금까지 했던 경로 리스트'에 자동 등록 ---
-  useEffect(() => {
-    if (gameMode === 'record') return; // 기록 모드일 때는 자동 추가 방지
-    if (routePath && routePath.length > 0) {
-      setFavorites(prev => {
-        // 완전히 동일한 출발지/목적지를 가진 경로가 이미 있는지 체크
-        const isDuplicate = prev.some(fav =>
-          fav.routePath.length === routePath.length &&
-          fav.routePath[0]?.lat === routePath[0]?.lat &&
-          fav.routePath[0]?.lng === routePath[0]?.lng &&
-          fav.routePath[routePath.length - 1]?.lat === routePath[routePath.length - 1]?.lat &&
-          fav.routePath[routePath.length - 1]?.lng === routePath[routePath.length - 1]?.lng
-        );
 
-        if (isDuplicate) return prev; // 이미 있다면 추가하지 않음
-
-        // 현재 시간을 포함한 기본 제목 생성 (예: 경로 1 (6/22 15:30))
-        const now = new Date();
-        const defaultTitle = `경로 ${prev.length + 1} (${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')})`;
-
-        // [변경 포인트] 최신 경로를 배열의 가장 앞에 배치하고, 기존 목록(...prev)을 뒤로 보냅니다.
-        return [
-          {
-            id: Date.now(),
-            title: defaultTitle,
-            routePath: routePath,
-            isCustom: false // 일반 조회 경로 플래그 추가
-          },
-          ...prev
-        ];
-      });
-    }
-  }, [routePath, gameMode]);
 
   // 설정값이 변경될 때마다 localStorage에 저장 (서바이벌 모드는 제외)
   useEffect(() => {
@@ -408,6 +376,72 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const lastUserPosForExpRef = useRef(null);
   const accumulatedUserDistanceRef = useRef(0);
   const decodedZombieBufferRef = useRef(null);
+
+  // 안드로이드 하드웨어 백 버튼 처리용 핸들러 위임 등록
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      if (showSaveSuccess) {
+        setShowSaveSuccess(false);
+        return true;
+      }
+      if (showCancelConfirm) {
+        setShowCancelConfirm(false);
+        return true;
+      }
+      if (showSaveModal) {
+        setShowSaveModal(false);
+        return true;
+      }
+      if (showAdPlayer) {
+        setShowAdPlayer(false);
+        return true;
+      }
+      if (showReviveConfirm) {
+        setShowReviveConfirm(false);
+        return true;
+      }
+      if (showDeleteConfirm) {
+        setShowDeleteConfirm(false);
+        setPendingDeleteId(null);
+        return true;
+      }
+      if (showReconfirmPath) {
+        setShowReconfirmPath(false);
+        setPendingDest(null);
+        return true;
+      }
+      if (showExitConfirm) {
+        setShowExitConfirm(false);
+        return true;
+      }
+      if (showRouteConfirm) {
+        setShowRouteConfirm(false);
+        setPendingCoords(null);
+        return true;
+      }
+      if (showFavorites) {
+        setShowFavorites(false);
+        return true;
+      }
+      return false;
+    };
+
+    if (setHandleHardwareBack) {
+      setHandleHardwareBack(handleHardwareBack);
+    }
+  }, [
+    showSaveSuccess,
+    showCancelConfirm,
+    showSaveModal,
+    showAdPlayer,
+    showReviveConfirm,
+    showDeleteConfirm,
+    showReconfirmPath,
+    showExitConfirm,
+    showRouteConfirm,
+    showFavorites,
+    setHandleHardwareBack
+  ]);
 
   // 지도를 지정 좌표로 스와이프하듯이 부드럽게 이동시키는 함수 (Lerp 애니메이션)
   const animatePanTo = (targetLat, targetLng, duration = 800) => {
@@ -536,19 +570,19 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const handleReviveSuccess = () => {
     setReviveUsed(true);
     reviveUsedRef.current = true;
-    
+
     const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPathRef.current : routePathRef.current;
     const userPos = userPosRef.current;
-    
+
     let isSpawnedOnPath = false;
     let targetSpawnIndex = 0;
-    
+
     if (activePath.length > 0 && userPos) {
       // 1. 사용자 현재 인덱스로부터 역방향 누적 거리 계산으로 80m 뒤쪽 지점 탐색
       const userIndex = activePath.length - 1;
       let accumulatedDist = 0;
       let foundIndex = userIndex;
-      
+
       for (let i = userIndex; i > 0; i--) {
         const dNode = calculateDistance(
           activePath[i].lat, activePath[i].lng,
@@ -561,7 +595,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           break;
         }
       }
-      
+
       // 2. 만약 80m 뒤쪽 지점을 찾았고, 직선거리도 최소 40m 이상 안전하게 떨어져 있는 경우
       if (isSpawnedOnPath) {
         const directDist = calculateDistance(userPos.lat, userPos.lng, activePath[foundIndex].lat, activePath[foundIndex].lng);
@@ -572,17 +606,17 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         }
       }
     }
-    
+
     if (isSpawnedOnPath && activePath[targetSpawnIndex]) {
       // 경로선 80m 후방 스폰 성공!
       const spawnNode = activePath[targetSpawnIndex];
       const safeZombiePos = { lat: spawnNode.lat, lng: spawnNode.lng };
       setZombiePosition(safeZombiePos);
       zombiePosRef.current = safeZombiePos;
-      
+
       // 좀비가 스폰된 노드에서부터 밟고 가도록 타겟 인덱스 고정 동기화
       pathIndexRef.current = targetSpawnIndex;
-      
+
       if (userPos) {
         distanceRef.current = calculateDistance(userPos.lat, userPos.lng, safeZombiePos.lat, safeZombiePos.lng);
         setDistance(distanceRef.current);
@@ -596,7 +630,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         setZombiePosition(startZombiePos);
         zombiePosRef.current = startZombiePos;
         pathIndexRef.current = 0;
-        
+
         if (userPos) {
           distanceRef.current = calculateDistance(userPos.lat, userPos.lng, startZombiePos.lat, startZombiePos.lng);
           setDistance(distanceRef.current);
@@ -605,7 +639,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       setReviveCountdown(3);
       console.log("부활 완료! 경로가 너무 짧아 출발선 복귀 및 3초 대기 구동.");
     }
-    
+
     setIsGamePaused(false);
     isGamePausedRef.current = false;
 
@@ -1292,7 +1326,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         }
         try {
           Haptics.impact({ style: ImpactStyle.Heavy });
-        } catch (e) {}
+        } catch (e) { }
         if (navigator.vibrate) {
           navigator.vibrate(800); // 잡혔을 때 800ms 강한 단발 충격
         }
@@ -1565,7 +1599,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
               className={isUserMoving ? 'runner-active-dash' : ''}
               style={{ fontSize: '32px', userSelect: 'none' }}
             >
-              {isUserMoving ? (runnerFrame === 0 ? "🏃" : "🏃‍♀️") : "🏃"}
+              {/* {isUserMoving ? (runnerFrame === 0 ? "🏃" : "🏃‍♀️") : "🏃"} */}
+              🏃
             </div>
           </CustomOverlayMap>
         )}
@@ -1844,179 +1879,202 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
       {/* --- [수정] 화면 정중앙으로 이동된 즐겨찾기 레이어 팝업 (모달 스타일) --- */}
       {showFavorites && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 50, // HUD나 다른 이펙트보다 확실하게 위에 오도록 zIndex를 높게 설정
-          backgroundColor: 'rgba(15, 23, 42, 0.98)', // 중앙 팝업 집중도를 위해 살짝 더 어둡고 불투명하게 조정
-          border: '2px solid #334155',
-          borderRadius: '12px',
-          width: '320px', // 화면 중앙 레이아웃에 맞춰 가로폭을 살짝 늘림
-          maxHeight: '420px',
-          overflowY: 'auto',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.7)',
-          padding: '16px',
-          color: 'white'
-        }}>
-          <h4 style={{
-            margin: '0 0 12px 0',
-            borderBottom: '1px solid #334155',
-            paddingBottom: '8px',
-            fontSize: '15px',
-            color: '#cbd5e1',
+        <div
+          onClick={() => setShowFavorites(false)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)', // 뒷배경 오버레이 추가
+            zIndex: 1000,
             display: 'flex',
-            justifyContent: 'space-between',
+            justifyContent: 'center',
             alignItems: 'center'
-          }}>
-            <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span>📋 저장된 탐색 경로</span>
-              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'normal' }}>이름 클릭 시 수정 가능</span>
-            </span>
-            {/* 팝업 닫기 버튼 추가 */}
-            <button
-              onClick={() => setShowFavorites(false)}
-              style={{
-                backgroundColor: 'transparent',
-                border: 'none',
-                color: '#94a3b8',
-                cursor: 'pointer',
-                fontSize: '18px',
-                padding: '4px',
-                lineHeight: '1'
-              }}
-              title="닫기"
-            >
-              ✕
-            </button>
-          </h4>
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()} // 내부 클릭 시 닫힘 방지
+            style={{
+              backgroundColor: 'rgba(15, 23, 42, 0.98)', // 중앙 팝업 집중도를 위해 살짝 더 어둡고 불투명하게 조정
+              border: '2px solid #334155',
+              borderRadius: '12px',
+              width: '320px', // 화면 중앙 레이아웃에 맞춰 가로폭을 살짝 늘림
+              maxHeight: '420px',
+              overflowY: 'auto',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.7)',
+              padding: '16px',
+              color: 'white'
+            }}
+          >
+            <h4 style={{
+              margin: '0 0 12px 0',
+              borderBottom: '1px solid #334155',
+              paddingBottom: '8px',
+              fontSize: '15px',
+              color: '#cbd5e1',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span>📋 저장된 탐색 경로</span>
+                <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'normal' }}>이름 클릭 시 수정 가능</span>
+              </span>
+              {/* 팝업 닫기 버튼 추가 */}
+              <button
+                onClick={() => setShowFavorites(false)}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  padding: '4px',
+                  lineHeight: '1'
+                }}
+                title="닫기"
+              >
+                ✕
+              </button>
+            </h4>
 
-          {favorites.length === 0 ? (
-            <div style={{ color: '#64748b', fontSize: '13px', textAlign: 'center', padding: '30px 0', lineHeight: '1.5' }}>
-              아직 기록된 경로가 없습니다.<br />지도를 클릭하여 경로를 만들어보세요!
-            </div>
-          ) : (
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {/* 🔍 favorites 앞에 [...favorites].sort(...) 를 추가하여 ID(시간)가 큰 순서대로 정렬합니다. */}
-              {[...favorites].sort((a, b) => b.id - a.id).map((fav) => (
-                <li
-                  key={fav.id}
-                  onClick={() => loadFavoriteRoute(fav)}
-                  style={{
-                    backgroundColor: 'rgba(30, 41, 59, 0.6)',
-                    border: '1px solid #475569',
-                    borderRadius: '6px',
-                    padding: '10px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    transition: 'background-color 0.2s',
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.8)'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(30, 41, 59, 0.6)'}
-                >
-                  <div style={{ flex: 1, marginRight: '8px', display: 'flex', flexDirection: 'column' }}>
-                    {editingId === fav.id ? (
-                      <input
-                        type="text"
-                        value={editingTitle}
-                        onChange={(e) => setEditingTitle(e.target.value)}
-                        onBlur={() => saveTitle(fav.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveTitle(fav.id);
-                          if (e.key === 'Escape') setEditingId(null);
-                        }}
-                        autoFocus
-                        onClick={(e) => e.stopPropagation()} // 인풋 클릭 시 경로 로드 방지
-                        style={{
-                          width: '100%',
-                          backgroundColor: '#1e293b',
-                          border: '1px solid #4ade80',
-                          color: 'white',
-                          borderRadius: '4px',
-                          padding: '2px 6px',
-                          fontSize: '13px',
-                          outline: 'none'
-                        }}
-                      />
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                        <span
-                          onClick={(e) => startEditing(e, fav)}
-                          title="클릭하여 이름 수정"
-                          style={{
-                            fontSize: '13px',
-                            fontWeight: 'bold',
-                            color: '#f8fafc',
-                            borderBottom: '1px dashed #64748b',
-                            paddingBottom: '1px',
-                            alignSelf: 'flex-start'
-                          }}
-                        >
-                          {fav.title}
-                        </span>
-                        {fav.isCustom ? (
-                          <span style={{ fontSize: '9px', backgroundColor: '#2563eb', color: 'white', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>직접 기록</span>
-                        ) : (
-                          <span style={{ fontSize: '9px', backgroundColor: '#334155', color: '#94a3b8', padding: '1px 4px', borderRadius: '4px', fontWeight: 'normal', whiteSpace: 'nowrap' }}>조회 경로</span>
-                        )}
-                      </div>
-                    )}
-                    <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-                      📍 웨이포인트: {fav.routePath.length}개 포인트
-                    </span>
-                  </div>
-
-                  {/* 삭제 버튼 */}
-                  <button
-                    onClick={(e) => deleteFavorite(e, fav.id)}
+            {favorites.length === 0 ? (
+              <div style={{ color: '#64748b', fontSize: '13px', textAlign: 'center', padding: '30px 0', lineHeight: '1.5' }}>
+                아직 기록된 경로가 없습니다.<br />지도를 클릭하여 경로를 만들어보세요!
+              </div>
+            ) : (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {/* 🔍 favorites 앞에 [...favorites].sort(...) 를 추가하여 ID(시간)가 큰 순서대로 정렬합니다. */}
+                {[...favorites].sort((a, b) => b.id - a.id).map((fav) => (
+                  <li
+                    key={fav.id}
+                    onClick={() => loadFavoriteRoute(fav)}
                     style={{
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      color: '#ef4444',
+                      backgroundColor: 'rgba(30, 41, 59, 0.6)',
+                      border: '1px solid #475569',
+                      borderRadius: '6px',
+                      padding: '10px',
                       cursor: 'pointer',
-                      fontSize: '14px',
-                      padding: '4px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      transition: 'background-color 0.2s',
                     }}
-                    title="삭제"
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.8)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(30, 41, 59, 0.6)'}
                   >
-                    🗑️
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                    <div style={{ flex: 1, marginRight: '8px', display: 'flex', flexDirection: 'column' }}>
+                      {editingId === fav.id ? (
+                        <input
+                          type="text"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onBlur={() => saveTitle(fav.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveTitle(fav.id);
+                            if (e.key === 'Escape') setEditingId(null);
+                          }}
+                          autoFocus
+                          onClick={(e) => e.stopPropagation()} // 인풋 클릭 시 경로 로드 방지
+                          style={{
+                            width: '100%',
+                            backgroundColor: '#1e293b',
+                            border: '1px solid #4ade80',
+                            color: 'white',
+                            borderRadius: '4px',
+                            padding: '2px 6px',
+                            fontSize: '13px',
+                            outline: 'none'
+                          }}
+                        />
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span
+                            onClick={(e) => startEditing(e, fav)}
+                            title="클릭하여 이름 수정"
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 'bold',
+                              color: '#f8fafc',
+                              borderBottom: '1px dashed #64748b',
+                              paddingBottom: '1px',
+                              alignSelf: 'flex-start'
+                            }}
+                          >
+                            {fav.title}
+                          </span>
+                          {fav.isCustom ? (
+                            <span style={{ fontSize: '9px', backgroundColor: '#2563eb', color: 'white', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>직접 기록</span>
+                          ) : (
+                            <span style={{ fontSize: '9px', backgroundColor: '#334155', color: '#94a3b8', padding: '1px 4px', borderRadius: '4px', fontWeight: 'normal', whiteSpace: 'nowrap' }}>조회 경로</span>
+                          )}
+                        </div>
+                      )}
+                      <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                        📍 웨이포인트: {fav.routePath.length}개 포인트
+                      </span>
+                    </div>
+
+                    {/* 삭제 버튼 */}
+                    <button
+                      onClick={(e) => deleteFavorite(e, fav.id)}
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        padding: '4px',
+                      }}
+                      title="삭제"
+                    >
+                      🗑️
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
 
       {/* --- [추가] 경로 탐색 최종 확인 레이어 팝업 --- */}
       {showRouteConfirm && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.65)', // 뒷배경을 어둡게 가림
-          backdropFilter: 'blur(4px)',           // 지도 화면 살짝 블러 처리
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 60,                             // 모든 HUD 및 즐겨찾기보다 위에 위치
-        }}>
-          <div style={{
-            backgroundColor: 'rgba(15, 23, 42, 0.98)',
-            border: '2px solid #ef4444',          // 좀비 게임에 어울리는 경고 레드 테두리
-            borderRadius: '12px',
-            padding: '24px',
-            width: '300px',
-            textAlign: 'center',
-            boxShadow: '0 0 25px rgba(239, 68, 68, 0.4)', // 네온 레드 글로우 효과
-            color: 'white',
-            animation: 'fadeIn 0.2s ease-out'
-          }}>
+        <div
+          onClick={() => {
+            setShowRouteConfirm(false);
+            setPendingCoords(null);
+          }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)', // 뒷배경을 어둡게 가림
+            backdropFilter: 'blur(4px)',           // 지도 화면 살짝 블러 처리
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1010,                             // 모든 HUD 및 즐겨찾기보다 위에 위치
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()} // 내부 상자 클릭 시 닫힘 방지
+            style={{
+              backgroundColor: 'rgba(15, 23, 42, 0.98)',
+              border: '2px solid #ef4444',          // 좀비 게임에 어울리는 경고 레드 테두리
+              borderRadius: '12px',
+              padding: '24px',
+              width: '300px',
+              textAlign: 'center',
+              boxShadow: '0 0 25px rgba(239, 68, 68, 0.4)', // 네온 레드 글로우 효과
+              color: 'white',
+              animation: 'fadeIn 0.2s ease-out'
+            }}
+          >
             {/* 팝업 헤더 */}
             <h3 style={{
               margin: '0 0 14px 0',
@@ -2042,6 +2100,27 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
             {/* 팝업 버튼 영역 */}
             <div style={{ display: 'flex', gap: '12px' }}>
+              {/* 거절 버튼 */}
+              <button
+                onClick={() => {
+                  setShowRouteConfirm(false);
+                  setPendingCoords(null); // 예약된 좌표 취소
+                }}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#334155',
+                  color: '#94a3b8',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                취소
+              </button>
+
               {/* 수락 버튼 */}
               <button
                 onClick={() => {
@@ -2070,27 +2149,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                 onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
               >
                 확인 (RUN)
-              </button>
-
-              {/* 거절 버튼 */}
-              <button
-                onClick={() => {
-                  setShowRouteConfirm(false);
-                  setPendingCoords(null); // 예약된 좌표 취소
-                }}
-                style={{
-                  flex: 1,
-                  backgroundColor: '#334155',
-                  color: '#94a3b8',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
-              >
-                취소
               </button>
             </div>
           </div>
@@ -2303,19 +2361,26 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
       {/* 종료 확인 레이어 */}
       {showExitConfirm && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100dvh',
-          backgroundColor: 'rgba(0,0,0,0.6)',
-          zIndex: 200,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}>
+        <div
+          onClick={() => setShowExitConfirm(false)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100dvh',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="hud-container"
+            style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}
+          >
             <div className="hud-header">
               <div className="hud-mode-tag">WARNING</div>
               <div className="hud-status-dot"></div>
@@ -2327,18 +2392,18 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
               <button
-                onClick={handleExitAndSave}
-                className="hud-reset-btn"
-                style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
-              >
-                YES
-              </button>
-              <button
                 onClick={() => setShowExitConfirm(false)}
                 className="hud-reset-btn"
                 style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
               >
                 NO
+              </button>
+              <button
+                onClick={handleExitAndSave}
+                className="hud-reset-btn"
+                style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
+              >
+                YES
               </button>
             </div>
           </div>
@@ -2347,19 +2412,29 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
       {/* 경로 재설정 확인 레이어 */}
       {showReconfirmPath && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100dvh',
-          backgroundColor: 'rgba(0,0,0,0.6)',
-          zIndex: 200,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}>
+        <div
+          onClick={() => {
+            setShowReconfirmPath(false);
+            setPendingDest(null);
+          }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100dvh',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="hud-container"
+            style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}
+          >
             <div className="hud-header">
               <div className="hud-mode-tag">RECONFIRM</div>
               <div className="hud-status-dot"></div>
@@ -2373,6 +2448,16 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
               <button
                 onClick={() => {
                   setShowReconfirmPath(false);
+                  setPendingDest(null);
+                }}
+                className="hud-reset-btn"
+                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+              >
+                NO
+              </button>
+              <button
+                onClick={() => {
+                  setShowReconfirmPath(false);
                   if (pendingDest) startPathFinding(pendingDest);
                   setPendingDest(null);
                 }}
@@ -2381,16 +2466,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
               >
                 YES
               </button>
-              <button
-                onClick={() => {
-                  setShowReconfirmPath(false);
-                  setPendingDest(null);
-                }}
-                className="hud-reset-btn"
-                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
-              >
-                NO
-              </button>
             </div>
           </div>
         </div>
@@ -2398,19 +2473,29 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
       {/* 즐겨찾기 개별 삭제 확인 레이어 */}
       {showDeleteConfirm && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100dvh',
-          backgroundColor: 'rgba(0,0,0,0.6)',
-          zIndex: 2000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
+        <div
+          onClick={() => {
+            setShowDeleteConfirm(false);
+            setPendingDeleteId(null);
+          }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100dvh',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="hud-container"
+            style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}
+          >
             <div className="hud-header">
               <div className="hud-mode-tag">DELETE</div>
               <div className="hud-status-dot" style={{ backgroundColor: '#ef4444' }}></div>
@@ -2423,6 +2508,16 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
               <button
                 onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setPendingDeleteId(null);
+                }}
+                className="hud-reset-btn"
+                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+              >
+                NO
+              </button>
+              <button
+                onClick={() => {
                   setFavorites(prev => prev.filter(item => item.id !== pendingDeleteId));
                   setShowDeleteConfirm(false);
                   setPendingDeleteId(null);
@@ -2432,16 +2527,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
               >
                 YES
               </button>
-              <button
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  setPendingDeleteId(null);
-                }}
-                className="hud-reset-btn"
-                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
-              >
-                NO
-              </button>
             </div>
           </div>
         </div>
@@ -2449,20 +2534,39 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
       {/* 🏥 비상 구급 상자 (부활 확인) 레이어 */}
       {showReviveConfirm && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100dvh',
-          backgroundColor: 'rgba(0,0,0,0.8)',
-          backdropFilter: 'blur(5px)',
-          zIndex: 2000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '310px', padding: '16px' }}>
+        <div
+          onClick={() => {
+            setShowReviveConfirm(false);
+            setIsGamePaused(false);
+            isGamePausedRef.current = false;
+            setTimeout(() => {
+              setIsGameOver(true);
+              setGameResult('lose');
+              if (audioCtxRef.current) {
+                gainNodeRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+                ambientGainRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+              }
+            }, 100);
+          }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100dvh',
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            backdropFilter: 'blur(5px)',
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="hud-container"
+            style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '310px', padding: '16px' }}
+          >
             <div className="hud-header">
               <div className="hud-mode-tag" style={{ color: '#10b981' }}>AD RECOVERY</div>
               <div className="hud-status-dot" style={{ backgroundColor: '#10b981' }}></div>
@@ -2482,17 +2586,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
               <button
                 onClick={() => {
                   setShowReviveConfirm(false);
-                  setShowAdPlayer(true);
-                  setAdCountdown(30);
-                }}
-                className="hud-reset-btn"
-                style={{ flex: 1.2, backgroundColor: '#10b981', color: 'white', border: 'none', fontWeight: 'bold' }}
-              >
-                광고 보고 부활 💊
-              </button>
-              <button
-                onClick={() => {
-                  setShowReviveConfirm(false);
                   setIsGamePaused(false);
                   isGamePausedRef.current = false;
                   setTimeout(() => {
@@ -2509,6 +2602,17 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
               >
                 포기하기 (사망)
               </button>
+              <button
+                onClick={() => {
+                  setShowReviveConfirm(false);
+                  setShowAdPlayer(true);
+                  setAdCountdown(30);
+                }}
+                className="hud-reset-btn"
+                style={{ flex: 1.2, backgroundColor: '#10b981', color: 'white', border: 'none', fontWeight: 'bold' }}
+              >
+                광고 보고 부활 💊
+              </button>
             </div>
           </div>
         </div>
@@ -2516,38 +2620,44 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
       {/* 📺 모조 광고 재생기 레이어 */}
       {showAdPlayer && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100dvh',
-          backgroundColor: '#090d16',
-          zIndex: 3000,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          padding: '20px',
-          boxSizing: 'border-box'
-        }}>
-          <div style={{
-            width: '100%',
-            maxWidth: '360px',
-            flex: 1,
+        <div
+          onClick={() => setShowAdPlayer(false)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100dvh',
+            backgroundColor: '#090d16',
+            zIndex: 3000,
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
             alignItems: 'center',
-            border: '2px solid #38bdf8',
-            borderRadius: '16px',
-            padding: '24px',
-            background: 'radial-gradient(circle, #1e293b 0%, #0f172a 100%)',
-            boxShadow: '0 0 30px rgba(56, 189, 248, 0.25)',
-            position: 'relative',
+            justifyContent: 'center',
+            color: 'white',
+            padding: '20px',
             boxSizing: 'border-box'
-          }}>
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '360px',
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              border: '2px solid #38bdf8',
+              borderRadius: '16px',
+              padding: '24px',
+              background: 'radial-gradient(circle, #1e293b 0%, #0f172a 100%)',
+              boxShadow: '0 0 30px rgba(56, 189, 248, 0.25)',
+              position: 'relative',
+              boxSizing: 'border-box'
+            }}
+          >
             <div style={{
               position: 'absolute',
               top: '16px',
@@ -2582,8 +2692,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
               }} />
             </div>
 
-            <button 
-              disabled 
+            <button
+              disabled
               style={{
                 backgroundColor: '#334155',
                 color: '#64748b',
@@ -2796,19 +2906,26 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
       {/* 경로 저장 확인 모달 */}
       {showSaveModal && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100dvh',
-          backgroundColor: 'rgba(0,0,0,0.6)',
-          zIndex: 200,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
+        <div
+          onClick={() => setShowSaveModal(false)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100dvh',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="hud-container"
+            style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}
+          >
             <div className="hud-header">
               <div className="hud-mode-tag">SAVE ROUTE</div>
               <div className="hud-status-dot"></div>
@@ -2834,6 +2951,13 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
               />
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="hud-reset-btn"
+                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+              >
+                취소
+              </button>
               <button
                 onClick={() => {
                   const finalTitle = customRouteTitle.trim() || `기록 경로 (${new Date().toLocaleDateString()})`;
@@ -2880,13 +3004,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
               >
                 저장
               </button>
-              <button
-                onClick={() => setShowSaveModal(false)}
-                className="hud-reset-btn"
-                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
-              >
-                취소
-              </button>
             </div>
           </div>
         </div>
@@ -2894,19 +3011,26 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
       {/* 경로 기록 취소 확인 모달 */}
       {showCancelConfirm && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100dvh',
-          backgroundColor: 'rgba(0,0,0,0.6)',
-          zIndex: 250,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
+        <div
+          onClick={() => setShowCancelConfirm(false)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100dvh',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            zIndex: 250,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="hud-container"
+            style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}
+          >
             <div className="hud-header">
               <div className="hud-mode-tag">CANCEL RECORD</div>
               <div className="hud-status-dot" style={{ backgroundColor: '#f43f5e' }}></div>
@@ -2918,6 +3042,13 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
               <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="hud-reset-btn"
+                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+              >
+                NO
+              </button>
+              <button
                 onClick={() => {
                   setShowCancelConfirm(false);
                   onExit();
@@ -2927,13 +3058,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
               >
                 YES
               </button>
-              <button
-                onClick={() => setShowCancelConfirm(false)}
-                className="hud-reset-btn"
-                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
-              >
-                NO
-              </button>
             </div>
           </div>
         </div>
@@ -2941,19 +3065,29 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
       {/* 경로 저장 성공 모달 */}
       {showSaveSuccess && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100dvh',
-          backgroundColor: 'rgba(0,0,0,0.6)',
-          zIndex: 250,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
+        <div
+          onClick={() => {
+            setShowSaveSuccess(false);
+            onExit();
+          }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100dvh',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            zIndex: 250,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="hud-container"
+            style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}
+          >
             <div className="hud-header">
               <div className="hud-mode-tag">SUCCESS</div>
               <div className="hud-status-dot" style={{ backgroundColor: '#4ade80' }}></div>

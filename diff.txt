@@ -1,0 +1,3076 @@
+﻿diff --git a/src/ZombieMapApp.jsx b/src/ZombieMapApp.jsx
+index 594664d..82cb34b 100644
+--- a/src/ZombieMapApp.jsx
++++ b/src/ZombieMapApp.jsx
+@@ -1,6 +1,7 @@
+ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+ import { Map, Polyline, CustomOverlayMap, Circle } from 'react-kakao-maps-sdk';
+ import zombieSfx from './assets/dragon-studio-female-zombie-screams-324744.mp3';
++import { Haptics, ImpactStyle } from '@capacitor/haptics';
+ 
+ // ?덈꺼 1遺??50源뚯???醫鍮??대え吏瑜?諛섑솚?섎뒗 ?ы띁 ?⑥닔
+ const getZombieEmoji = (level) => {
+@@ -56,12 +57,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+   // --- 由ъ썙?쒗삎 遺??鍮꾩긽 援ш툒 ?곸옄) ?쒖뒪??愿???곹깭 ---
+   const [isGamePaused, setIsGamePaused] = useState(false);
+   const isGamePausedRef = useRef(false);
+-  const [showReviveConfirm, setShowReviveConfirm] = useState(false); 
+-  const [showAdPlayer, setShowAdPlayer] = useState(false); 
+-  const [adCountdown, setAdCountdown] = useState(30); 
+-  const [reviveUsed, setReviveUsed] = useState(false); 
++  const [showReviveConfirm, setShowReviveConfirm] = useState(false);
++  const [showAdPlayer, setShowAdPlayer] = useState(false);
++  const [adCountdown, setAdCountdown] = useState(30);
++  const [reviveUsed, setReviveUsed] = useState(false);
+   const reviveUsedRef = useRef(false);
+-  const [reviveCountdown, setReviveCountdown] = useState(0); 
++  const [reviveCountdown, setReviveCountdown] = useState(0);
+   const reviveCountdownRef = useRef(0);
+   useEffect(() => {
+     reviveCountdownRef.current = reviveCountdown;
+@@ -80,6 +81,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+     isFollowingZombieRef.current = isFollowingZombie;
+   }, [isFollowingZombie]);
+ 
++  const isGameOverRef = useRef(false);
++  useEffect(() => {
++    isGameOverRef.current = isGameOver;
++  }, [isGameOver]);
++
+   const [pendingDest, setPendingDest] = useState(null); // ?湲?以묒씤 紐⑹쟻吏
+   const [dangerLevel, setDangerLevel] = useState(0); // 0: ?덉쟾, 1: 寃쎄퀬(25m), 2: ?꾪뿕(10m)
+ 
+@@ -107,8 +113,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+     return saved !== null ? Number(saved) : 1;
+   });
+ 
+-  // --- 醫鍮??ㅼ떆媛??덈꺼??諛??쒖씠??議곗젅 ?쒖뒪??---
+   const [zombieProgress, setZombieProgress] = useState({ level: 1, xp: 0 });
++  const zombieProgressRef = useRef({ level: 1, xp: 0 });
++  useEffect(() => {
++    zombieProgressRef.current = zombieProgress;
++  }, [zombieProgress]);
+   const [isLevelUpFlashing, setIsLevelUpFlashing] = useState(false);
+ 
+   // --- ?좎? ?щ━湲??좊땲硫붿씠???꾩슜 ?곹깭 ---
+@@ -149,7 +158,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+         isDebugModeRef.current = nextVal;
+         try {
+           Haptics.impact({ style: ImpactStyle.Medium });
+-        } catch (e) {}
++        } catch (e) { }
+         console.log("5???곗냽 ?곗튂 ?댁뒪?곗뿉洹??묐룞: ?뚯뒪??紐⑤뱶 ?좉? ->", nextVal);
+         return nextVal;
+       });
+@@ -158,14 +167,14 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+ 
+   const startMovingUser = (direction) => {
+     if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
+-    
+-    const moveStep = 0.00003; 
++
++    const moveStep = 0.00003;
+     const moveStepLng = 0.000035;
+-    
++
+     const tick = () => {
+       const currentPos = userPosRef.current;
+       if (!currentPos || isGameOver) return;
+-      
++
+       let nextPos = { ...currentPos };
+       if (direction === 'up') {
+         nextPos.lat += moveStep;
+@@ -176,10 +185,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+       } else if (direction === 'right') {
+         nextPos.lng += moveStepLng;
+       }
+-      
++
+       setUserPosition(nextPos);
+       userPosRef.current = nextPos;
+-      
++
+       // 湲곕줉 紐⑤뱶(record) ?먮뒗 ?쒕컮?대쾶 紐⑤뱶(survival) ??寃쎈줈 ?꾩쟻
+       if (isRecording || gameMode === 'survival') {
+         const path = recordedPathRef.current;
+@@ -198,8 +207,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+         }
+       }
+     };
+-    
+-    tick(); 
++
++    tick();
+     moveIntervalRef.current = setInterval(tick, 100);
+   };
+ 
+@@ -264,6 +273,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+   const [showFavorites, setShowFavorites] = useState(false); // 由ъ뒪???쒖떆 ?щ?
+   const [editingId, setEditingId] = useState(null);          // ?꾩옱 ?섏젙 以묒씤 寃쎈줈 ID
+   const [editingTitle, setEditingTitle] = useState('');      // ?섏젙 以묒씤 ?쒕ぉ ?띿뒪??+  const isCancelledRef = useRef(false);
+ 
+   // 利먭꺼李얘린 紐⑸줉??蹂寃쎈맆 ?뚮쭏??濡쒖뺄 ?ㅽ넗由ъ????먮룞 ???   useEffect(() => {
+@@ -274,6 +284,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+   const loadFavoriteRoute = (fav) => {
+     if (!fav.routePath || fav.routePath.length === 0) return;
+ 
++    if (pulseIntervalRef.current) {
++      clearTimeout(pulseIntervalRef.current);
++      pulseIntervalRef.current = null;
++    }
++    if (navigator.vibrate) navigator.vibrate(0);
++
+     // 寃뚯엫 ?곹깭 珥덇린??諛??덈줈??寃쎈줈 二쇱엯
+     setIsGameOver(false);
+     setGameResult(null);
+@@ -305,6 +321,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+   // ?쒕ぉ ?대┃ ???섏젙 紐⑤뱶濡??꾪솚?섎뒗 ?⑥닔
+   const startEditing = (e, fav) => {
+     e.stopPropagation(); // 遺紐???ぉ??'寃쎈줈 濡쒕뱶 ?대┃ ?대깽?? ?꾪뙆 諛⑹?
++    isCancelledRef.current = false;
+     setEditingId(fav.id);
+     setEditingTitle(fav.title);
+   };
+@@ -536,19 +553,19 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+   const handleReviveSuccess = () => {
+     setReviveUsed(true);
+     reviveUsedRef.current = true;
+-    
++
+     const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPathRef.current : routePathRef.current;
+     const userPos = userPosRef.current;
+-    
++
+     let isSpawnedOnPath = false;
+     let targetSpawnIndex = 0;
+-    
++
+     if (activePath.length > 0 && userPos) {
+       // 1. ?ъ슜???꾩옱 ?몃뜳?ㅻ줈遺????갑???꾩쟻 嫄곕━ 怨꾩궛?쇰줈 80m ?ㅼそ 吏???먯깋
+       const userIndex = activePath.length - 1;
+       let accumulatedDist = 0;
+       let foundIndex = userIndex;
+-      
++
+       for (let i = userIndex; i > 0; i--) {
+         const dNode = calculateDistance(
+           activePath[i].lat, activePath[i].lng,
+@@ -561,7 +578,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+           break;
+         }
+       }
+-      
++
+       // 2. 留뚯빟 80m ?ㅼそ 吏?먯쓣 李얠븯怨? 吏곸꽑嫄곕━??理쒖냼 40m ?댁긽 ?덉쟾?섍쾶 ?⑥뼱???덈뒗 寃쎌슦
+       if (isSpawnedOnPath) {
+         const directDist = calculateDistance(userPos.lat, userPos.lng, activePath[foundIndex].lat, activePath[foundIndex].lng);
+@@ -572,17 +589,17 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+         }
+       }
+     }
+-    
++
+     if (isSpawnedOnPath && activePath[targetSpawnIndex]) {
+       // 寃쎈줈??80m ?꾨갑 ?ㅽ룿 ?깃났!
+       const spawnNode = activePath[targetSpawnIndex];
+       const safeZombiePos = { lat: spawnNode.lat, lng: spawnNode.lng };
+       setZombiePosition(safeZombiePos);
+       zombiePosRef.current = safeZombiePos;
+-      
++
+       // 醫鍮꾧? ?ㅽ룿???몃뱶?먯꽌遺??諛잕퀬 媛?꾨줉 ?寃??몃뜳??怨좎젙 ?숆린??       pathIndexRef.current = targetSpawnIndex;
+-      
++
+       if (userPos) {
+         distanceRef.current = calculateDistance(userPos.lat, userPos.lng, safeZombiePos.lat, safeZombiePos.lng);
+         setDistance(distanceRef.current);
+@@ -596,7 +613,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+         setZombiePosition(startZombiePos);
+         zombiePosRef.current = startZombiePos;
+         pathIndexRef.current = 0;
+-        
++
+         if (userPos) {
+           distanceRef.current = calculateDistance(userPos.lat, userPos.lng, startZombiePos.lat, startZombiePos.lng);
+           setDistance(distanceRef.current);
+@@ -605,7 +622,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+       setReviveCountdown(3);
+       console.log("遺???꾨즺! 寃쎈줈媛 ?덈Т 吏㏃븘 異쒕컻??蹂듦? 諛?3珥??湲?援щ룞.");
+     }
+-    
++
+     setIsGamePaused(false);
+     isGamePausedRef.current = false;
+ 
+@@ -633,17 +650,23 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+ 
+   // 紐⑥“ ?숈쁺??愿묎퀬 ??대㉧ ?댄럺??   useEffect(() => {
+-    let adInterval;
+-    if (showAdPlayer && adCountdown > 0) {
+-      adInterval = setInterval(() => {
+-        setAdCountdown(prev => prev - 1);
+-      }, 1000);
+-    } else if (showAdPlayer && adCountdown === 0) {
+-      setShowAdPlayer(false);
+-      handleReviveSuccess();
+-    }
++    if (!showAdPlayer) return;
++
++    let remaining = 30;
++    setAdCountdown(remaining);
++
++    const adInterval = setInterval(() => {
++      remaining -= 1;
++      setAdCountdown(remaining);
++      if (remaining <= 0) {
++        clearInterval(adInterval);
++        setShowAdPlayer(false);
++        handleReviveSuccess();
++      }
++    }, 1000);
++
+     return () => clearInterval(adInterval);
+-  }, [showAdPlayer, adCountdown]);
++  }, [showAdPlayer]);
+ 
+   // 移댁슫?몃떎????대㉧
+   useEffect(() => {
+@@ -744,34 +767,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+     return () => window.removeEventListener('keydown', handleKeyDown);
+   }, [isGameOver]);
+ 
+-  // ?좎? ?대룞 ??5m留덈떎 醫鍮?寃쏀뿕移??띾뱷 泥섎━ (嫄곕━ 鍮꾨?) - 鍮꾪솢?깊솕 (二쇱꽍 泥섎━)
+-  /*
+-  useEffect(() => {
+-    if (gameMode !== 'survival' || isGameOver || !userPosition) {
+-      lastUserPosForExpRef.current = null;
+-      return;
+-    }
+-
+-    if (lastUserPosForExpRef.current) {
+-      const dist = calculateDistance(
+-        lastUserPosForExpRef.current.lat,
+-        lastUserPosForExpRef.current.lng,
+-        userPosition.lat,
+-        userPosition.lng
+-      );
+-      if (dist > 0) {
+-        accumulatedUserDistanceRef.current += dist;
+-        if (accumulatedUserDistanceRef.current >= 5) {
+-          const expEarned = Math.floor(accumulatedUserDistanceRef.current / 5) * 2; // 湲곗〈 5m??1 XP?먯꽌 2諛곕줈 ?곹뼢
+-          accumulatedUserDistanceRef.current %= 5;
+-          gainZombieXp(expEarned);
+-        }
+-      }
+-    }
+-    lastUserPosForExpRef.current = userPosition;
+-  }, [userPosition, gameMode, isGameOver, gainZombieXp]);
+-  */
+-
+   // 而댄룷?뚰듃 ?몃쭏?댄듃 ???ㅻ뵒??諛???대㉧ ?뺣━
+   useEffect(() => {
+     return () => {
+@@ -942,6 +937,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+    * ?ㅼ젣 寃쎈줈 ?먯깋???섑뻾?섎뒗 ?⑥닔
+    */
+   const startPathFinding = useCallback(async (latLng) => {
++    if (!userPosition) return;
+     initAudio();
+     if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume(); // ?ㅻ뵒??而⑦뀓?ㅽ듃 ?ш컻
+ 
+@@ -1025,24 +1021,16 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+ 
+   }, [userPosition, initAudio, selectedSpawnDelay, TMAP_API_KEY]);
+ 
+-  /**
+-   * 吏???대┃ ???뺤씤 李쎌쓣 ?꾩슦嫄곕굹 寃쎈줈 ?먯깋 ?쒖옉
+-   */
+-  const onMapClick = useCallback((latLng) => {
+-    if (isGameOver || !userPosition) return;
+-
+-    if (routePath.length > 0) {
+-      setPendingDest(latLng);
+-      setShowReconfirmPath(true);
+-    } else {
+-      startPathFinding(latLng);
+-    }
+-  }, [isGameOver, userPosition, routePath.length, startPathFinding]);
+-
+   /**
+    * 醫鍮꾨? ?ㅼ떆 泥섏쓬 ?꾩튂濡??섎룎由щ뒗 珥덇린???⑥닔
+    */
+   const handleResetZombie = useCallback(() => {
++    if (pulseIntervalRef.current) {
++      clearTimeout(pulseIntervalRef.current);
++      pulseIntervalRef.current = null;
++    }
++    if (navigator.vibrate) navigator.vibrate(0);
++
+     hasSavedRef.current = false; // ????곹깭 由ъ뀑
+     setZombieProgress({ level: 1, xp: 0 }); // ?덈꺼 諛?寃쏀뿕移?珥덇린??     initAudio();
+@@ -1123,7 +1111,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+     // ?쒕컮?대쾶 紐⑤뱶 ?ㅼ떆媛?媛??(30m ?댁긽 踰뚯뼱吏????쒓컙 鍮꾨? 寃쏀뿕移??띾뱷, ?덈꺼 ?쒗븳 100)
+     if (gameMode === 'survival' && !isGameOver && zombiePosRef.current && userPosRef.current) {
+       const d = distanceRef.current;
+-      if (d !== null && d >= 30 && zombieProgress.level < 100) {
++      if (d !== null && d >= 30 && zombieProgressRef.current.level < 100) {
+         speedIncreaseFrameCountRef.current += 1;
+         if (speedIncreaseFrameCountRef.current >= 60) {
+           speedIncreaseFrameCountRef.current = 0;
+@@ -1242,29 +1230,18 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+       if (heartbeatGainRef.current && audioCtxRef.current) {
+         if (!pulseIntervalRef.current) { // ?명꽣踰뚯씠 ?놁쓣 ?뚮쭔 ?덈줈 ?쒖옉
+           const runPulse = () => {
++            if (isGameOverRef.current) {
++              pulseIntervalRef.current = null;
++              return;
++            }
+             const currentDist = distanceRef.current; // ref濡?理쒖떊 嫄곕━媛?李몄“
+             if (currentDist === null || currentDist >= 50) {
+               pulseIntervalRef.current = setTimeout(runPulse, 1200); // 硫由??덉쓣 ??1.2珥?媛꾧꺽
+               return;
+             }
+ 
+-            // ?ъ옣 諛뺣룞 ?ъ슫???앹꽦 (鍮꾪솢?깊솕)
+-            /*
+-            const now = audioCtxRef.current.currentTime;
+-            const osc = audioCtxRef.current.createOscillator();
+-            osc.type = 'sine';
+-            osc.frequency.setValueAtTime(60, now);
+-            osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.3);
+-            const oscGain = audioCtxRef.current.createGain();
+-            const rawVol = (50 - currentDist) / 50;
+-            oscGain.gain.setValueAtTime(0, now);
+-            oscGain.gain.linearRampToValueAtTime(Math.min(1.2, Math.pow(rawVol, 2) * 1.5 * 0.8), now + 0.05);
+-            oscGain.gain.linearRampToValueAtTime(0, now + 0.3);
+-            osc.connect(oscGain);
+-            oscGain.connect(heartbeatGainRef.current);
+-            osc.start(now);
+-            osc.stop(now + 0.35);
+-            */
++            // ?ъ옣 諛뺣룞 ?ъ슫???앹꽦 (鍮꾪솢?깊솕??
++
+ 
+             // 嫄곕━ 湲곕컲 吏꾨룞 ?⑦꽩 (?ъ옣諛뺣룞怨??숆린??
+             if (navigator.vibrate) {
+@@ -1292,7 +1269,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+         }
+         try {
+           Haptics.impact({ style: ImpactStyle.Heavy });
+-        } catch (e) {}
++        } catch (e) { }
+         if (navigator.vibrate) {
+           navigator.vibrate(800); // ?≫삍????800ms 媛뺥븳 ?⑤컻 異⑷꺽
+         }
+@@ -1333,8 +1310,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+       }
+ 
+       // ?ъ슜?먭? 紐⑹쟻吏???꾨떖?덈뒗吏 ?뺤씤 (RUN 紐⑤뱶 ?밸━ 議곌굔)
+-      if (gameMode === 'run' && routePath && routePath.length > 0) {
+-        const destination = routePath[routePath.length - 1];
++      if (gameMode === 'run' && routePathRef.current && routePathRef.current.length > 0) {
++        const destination = routePathRef.current[routePathRef.current.length - 1];
+         const distToFinish = calculateDistance(userPosRef.current.lat, userPosRef.current.lng, destination.lat, destination.lng);
+         if (distToFinish <= 15) { // 15誘명꽣 ?대궡 ?꾩갑 ???밸━
+           setIsGameOver(true);
+@@ -1449,37 +1426,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+   }, [routePath.length, isGameOver]); // 寃뚯엫 吏꾪뻾 ?곹깭媛 諛붾??뚮쭏??由ъ뒪?덈? ?ы룊媛
+ 
+   return (
+-    <div style={{
+-      width: '100%',
+-      height: '100dvh',
+-      position: 'relative',
+-      boxShadow: isLevelUpFlashing ? 'inset 0 0 50px rgba(239, 68, 68, 0.95)' : 'none',
+-      transition: 'box-shadow 0.15s ease-in-out',
+-      overflow: 'hidden'
+-    }}>
++    <div className={`zombie-game-viewport ${isLevelUpFlashing ? 'level-up-flash' : ''}`}>
+       {/* ?뚯뒪??紐⑤뱶 ?좉? 踰꾪듉 (?쒖꽦???곹깭?먯꽌留?痍⑥냼?⑹쑝濡??붾㈃ ?곗륫 ?곷떒 ?몄텧) */}
+       {isDebugMode && (
+         <button
+           onClick={() => setIsDebugMode(false)}
+-          style={{
+-            position: 'absolute',
+-            top: '12px',
+-            right: '12px',
+-            zIndex: 1010,
+-            backgroundColor: '#ef4444',
+-            border: '1.5px solid rgba(255,255,255,0.2)',
+-            borderRadius: '8px',
+-            color: '#fff',
+-            padding: '6px 10px',
+-            fontSize: '0.75rem',
+-            fontWeight: 'bold',
+-            cursor: 'pointer',
+-            display: 'flex',
+-            alignItems: 'center',
+-            gap: '4px',
+-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+-            transition: 'all 0.2s'
+-          }}
++          className="test-mode-off-btn"
+         >
+           ?썱截??뚯뒪??紐⑤뱶 OFF
+         </button>
+@@ -1487,50 +1439,20 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+ 
+       {/* ?뚯뒪??紐⑤뱶 媛?대뱶 媛?쒗솕 */}
+       {isDebugMode && (
+-        <div style={{
+-          position: 'absolute',
+-          top: '55px',
+-          left: '50%',
+-          transform: 'translateX(-50%)',
+-          zIndex: 1009,
+-          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+-          border: '1px solid #ef4444',
+-          borderRadius: '20px',
+-          color: '#fca5a5',
+-          padding: '6px 14px',
+-          fontSize: '0.7rem',
+-          fontWeight: 'bold',
+-          pointerEvents: 'none',
+-          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+-          whiteSpace: 'nowrap',
+-          textAlign: 'center'
+-        }}>
++        <div className="test-mode-guide">
+           ?렜 諛⑺뼢??/ WASD ?ㅻ줈 ?ъ슜???꾩튂 議곗옉 媛??         </div>
+       )}
+       {/* ?꾩옱 ?꾩튂 濡쒕뵫 以??쒖떆 */}
+       {!userPosition && (
+-        <div style={{
+-          position: 'absolute',
+-          top: '50%',
+-          left: '50%',
+-          transform: 'translate(-50%, -50%)',
+-          zIndex: 1000,
+-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+-          color: 'white',
+-          padding: '20px 40px',
+-          borderRadius: '15px',
+-          textAlign: 'center',
+-          fontWeight: 'bold',
+-          boxShadow: '0 4px 15px rgba(0,0,0,0.5)'
+-        }}>
++        <div className="pos-loading-overlay">
+           ?꾩옱 ?꾩튂瑜?李얜뒗 以묒엯?덈떎...
+         </div>
+       )}
+       <Map
+         center={mapCenter}
+         isPanto={true} // 以묒떖醫뚰몴 蹂寃???遺?쒕읇寃??대룞(PanTo)?섎룄濡??ㅼ젙
+-        style={{ width: "100%", height: "100%" }}
++        className="kakao-map-canvas"
+         level={4} // 珥덇린 以??덈꺼??4濡?議곗젙?섏뿬 醫 ???볦? ?쒖빞 ?쒓났
+         onCreate={(map) => (mapRef.current = map)}
+         onDragStart={() => {
+@@ -1543,1445 +1465,1294 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
+           setMapCenter({ lat: center.getLat(), lng: center.getLng() });
+         }}
+         onClick={(_t, mouseEvent) => {
+-          if (isGameOver || gameMode === 'record' || gameMode === 'survival') return; // 寃뚯엫 ?ㅻ쾭 ?곹깭?닿굅??寃쎈줈 湲곕줉/?쒕컮?대쾶 紐⑤뱶???뚮뒗 ?대┃ 臾댁떆
+-
+-          // [議곌굔 泥댄겕] ?대? ?좏깮??寃쎈줈(routePath)媛 議댁옱?섎뒗吏 ?뺤씤
+-          if (routePath && routePath.length > 0) {
+-            // [?섏젙] ?먮컮?ㅽ겕由쏀듃 媛앹껜濡?蹂?섑븯吏 ?딄퀬, 移댁뭅??怨좎쑀??latLng 媛앹껜 ?먮낯??洹몃?濡??꾨떖?⑸땲??
+-            setPendingDest(mouseEvent.latLng);
+-
+-            setShowReconfirmPath(true); // 寃쎈줈 ?ы솗???덉씠???앹뾽 耳쒓린
+-          } else {
+-            // 2. 泥섏쓬 寃쎈줈瑜??먯깋?섎뒗 ?곹깭?쇰㈃ ???앹뾽 ?놁씠 諛붾줈 寃쎈줈 李얘린 ?ㅽ뻾
+-            // 湲곗〈???곗떆???⑥닔紐낆씠 onMapClick ?대씪硫??꾨옒 洹몃?濡??먯떆硫??섍퀬,
+-            // 蹂꾨룄濡?handleMapClick ?⑥닔瑜?留뚮뱶?⑤떎硫?handleMapClick(mouseEvent.latLng) ?쇰줈 諛붽퓭二쇱꽭??
+-            handleMapClick(_t, mouseEvent);
+-          }
+-        }} // 移댁뭅?ㅻ㏊??latLng 媛앹껜瑜?吏곸젒 ?꾨떖
+-      >
+-        {userPosition && (
+-          <CustomOverlayMap position={userPosition} zIndex={1}>
+-            <div
+-              className={isUserMoving ? 'runner-active-dash' : ''}
+-              style={{ fontSize: '32px', userSelect: 'none' }}
+-            >
+-              {isUserMoving ? (runnerFrame === 0 ? "?룂" : "?룂?띯?截?) : "?룂"}
+-            </div>
+-          </CustomOverlayMap>
+-        )}
+-        {zombiePosition && (
+-          <CustomOverlayMap position={zombiePosition}>
+-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+-              <div
+-                className={!isGameOver ? 'zombie-active-chase' : ''}
+-                style={{ fontSize: '32px', userSelect: 'none' }}
+-              >
+-                {getZombieEmoji(zombieProgress.level)}
+-              </div>
+-              {gameMode === 'survival' && (
+-                <div style={{
+-                  marginTop: '1px',
+-                  backgroundColor: 'rgba(15, 23, 42, 0.85)',
+-                  border: '1px solid rgba(244, 63, 94, 0.5)',
+-                  borderRadius: '4px',
+-                  padding: '2px 4px',
+-                  display: 'flex',
+-                  flexDirection: 'column',
+-                  alignItems: 'center',
+-                  gap: '2px',
+-                  width: '40px',
+-                  boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
+-                }}>
+-                  {/* EXP 寃뚯씠吏 諛?*/}
+-                  <div style={{
+-                    width: '100%',
+-                    height: '3px',
+-                    backgroundColor: '#1e293b',
+-                    borderRadius: '1.5px',
+-                    overflow: 'hidden',
+-                    position: 'relative'
+-                  }}>
+-                    <div style={{
+-                      width: `${Math.min(100, (zombieProgress.xp / getNextLevelXp(zombieProgress.level)) * 100)}%`,
+-                      height: '100%',
+-                      backgroundColor: '#f43f5e',
+-                      transition: 'width 0.2s'
+-                    }} />
+-                  </div>
+-                </div>
+-              )}
+-            </div>
+-          </CustomOverlayMap>
+-        )}
+-        {/* 媛?대뱶 寃쎈줈 (RUN 紐⑤뱶??紐⑺몴 寃쎈줈 ?먮뒗 ?쒕컮?대쾶 紐⑤뱶?먯꽌 利먭꺼李얘린濡?遺덈윭??媛?대뱶 寃쎈줈) */}
+-        {routePath && routePath.length > 0 && (
+-          <Polyline
+-            key={`guide-path-${routePath.length}`}
+-            path={routePath}
+-            strokeWeight={5}
+-            strokeColor={gameMode === 'survival' ? "#10b981" : "#FF0000"} // ?쒕컮?대쾶 媛?대뱶??珥덈줉?? RUN 紐⑤뱶??鍮④컙??-            strokeOpacity={gameMode === 'survival' ? 0.5 : 0.8}
+-            strokeStyle={"solid"}
+-          />
+-        )}
+-        {/* ?ㅼ젣 ?꾨낫 湲곕줉 寃쎈줈 (湲곕줉 紐⑤뱶 ?먮뒗 ?쒕컮?대쾶 紐⑤뱶???대룞 沅ㅼ쟻) */}
+-        {(gameMode === 'record' || gameMode === 'survival') && recordedPath && recordedPath.length > 0 && (
+-          <Polyline
+-            key={`live-path-${recordedPath.length}`}
+-            path={recordedPath}
+-            strokeWeight={5}
+-            strokeColor={"#FF0000"} // 醫鍮꾧? 已볦븘?ㅻ뒗 鍮④컙 ?ㅼ떆媛?寃쎈줈
+-            strokeOpacity={0.8}
+-            strokeStyle={"solid"}
+-          />
+-        )}
+-        {userPosition && (
+-          <Circle
+-            center={userPosition}
+-            radius={5} // 5誘명꽣 諛섍꼍
+-            strokeWeight={1}
+-            strokeColor={'#0000FF'}
+-            strokeOpacity={0.5}
+-            strokeStyle={'solid'}
+-            fillColor={'#0000FF'}
+-            fillOpacity={0.1} // ?고븯寃??쒖떆
+-          />
+-        )}
+-      </Map>
+-
+-      {/* ??踰꾪듉 */}
+-      {/* ?ㅻ줈媛湲?踰꾪듉 (?섎떒 醫뚯륫?쇰줈 ?대룞) */}
+-      <button
+-        onClick={() => {
+-          const isActive = (gameMode === 'record' || gameMode === 'survival') ? recordedPath.length > 0 : routePath.length > 0;
+-          if (isActive && !isGameOver) {
+-            setShowExitConfirm(true);
+-          } else {
+-            onExit();
+-          }
+-        }}
+-        style={{
+-          position: 'absolute',
+-          bottom: '20px',
+-          left: '20px',
+-          zIndex: 99999,
+-          background: 'rgba(15, 23, 42, 0.85)',
+-          backdropFilter: 'blur(10px)',
+-          border: '1px solid rgba(30, 41, 59, 0.8)',
+-          borderRadius: '50%',
+-          width: '60px',
+-          height: '60px',
+-          display: 'flex',
+-          alignItems: 'center',
+-          justifyContent: 'center',
+-          fontSize: '32px',
+-          cursor: 'pointer',
+-          color: 'white',
+-          boxShadow: '0 4px 15px rgba(0,0,0,0.5)'
+-        }}
+-      >
+-        ?뵗
+-      </button>
+-
+-      {/* ?꾩옱 ?꾩튂濡??대룞 踰꾪듉 */}
+-      {userPosition && (
+-        <button
+-          onClick={() => {
+-            const nextState = !isFollowingUser;
+-            setIsFollowingUser(nextState);
+-            if (nextState) {
+-              setIsFollowingZombie(false); // ?ъ슜??異붿쟻 ??醫鍮?異붿쟻? ?댁젣
+-              if (userPosition) {
+-                animatePanTo(userPosition.lat, userPosition.lng);
+-              }
+-            }
+-          }}
+-          style={{
+-            position: 'absolute',
+-            bottom: '20px',
+-            right: '20px', // 踰꾪듉 ?꾩튂瑜??곗륫 ?섎떒?쇰줈 蹂寃?-            zIndex: 10,
+-            background: isFollowingUser ? '#f43f5e' : 'rgba(15, 23, 42, 0.85)',
+-            color: 'white',
+-            border: isFollowingUser ? '2px solid #f43f5e' : '1px solid rgba(30, 41, 59, 0.8)',
+-            borderRadius: '50%',
+-            width: '60px',
+-            height: '60px',
+-            display: 'flex',
+-            alignItems: 'center',
+-            justifyContent: 'center',
+-            fontSize: '32px',
+-            cursor: 'pointer',
+-            boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+-            transition: 'all 0.2s',
+-            opacity: isFollowingUser ? 1 : 0.6
+-          }}
+-        >
+-          ?룂
+-        </button>
+-      )}
++          if (isGameOver || gameMode === 'record' || gameMode === 'survival') return;
+ 
+-      {/* 醫鍮?異붿쟻 ON/OFF 踰꾪듉 */}
+-      {((gameMode === 'record' || gameMode === 'survival') ? recordedPath.length > 0 : routePath.length > 0) && !isGameOver && (
+-        <button
+-          onClick={() => {
+-            const nextState = !isFollowingZombie;
+-            setIsFollowingZombie(nextState);
+-            if (nextState) {
+-              setIsFollowingUser(false); // 醫鍮?異붿쟻 ???ъ슜??異붿쟻? ?댁젣
+-              if (zombiePosition) {
+-                animatePanTo(zombiePosition.lat, zombiePosition.lng);
+-              }
+-            }
+-          }}
+-          style={{
+-            position: 'absolute',
+-            bottom: '95px', // ?ъ슜??異붿쟻 踰꾪듉 ?꾩뿉 諛곗튂 (20px + 60px + 15px)
+-            right: '20px',  // ?곗륫?쇰줈 諛곗튂 蹂寃?-            zIndex: 10,
+-            background: isFollowingZombie ? '#f43f5e' : 'rgba(15, 23, 42, 0.85)',
+-            color: 'white',
+-            border: isFollowingZombie ? '2px solid #f43f5e' : '1px solid rgba(30, 41, 59, 0.8)',
+-            borderRadius: '50%',
+-            width: '60px',
+-            height: '60px',
+-            display: 'flex',
+-            alignItems: 'center',
+-            justifyContent: 'center',
+-            fontSize: '32px',
+-            cursor: 'pointer',
+-            boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+-            transition: 'all 0.2s',
+-            opacity: isFollowingZombie ? 1 : 0.6
+-          }}
+-        >
+-          {getZombieEmoji(selectedZombieSpeed)}
+-        </button>
+-      )}
++          // 湲곗〈 寃쎈줈媛 議댁옱??寃쎌슦 紐⑹쟻吏 ?ъ꽕???앹뾽???꾩슦怨? 洹몃젃吏 ?딆쑝硫?利됱떆 寃쎈줈 ?먯깋??     {/* --- [?섏젙] ?붾㈃ ?뺤쨷?숈쑝濡??대룞??利먭꺼李얘린 ?덉씠???앹뾽 (紐⑤떖 ?ㅽ??? --- */}
++          {
++            showFavorites && (
++              <div className="favs-list-modal">
++                <h4 className="favs-list-header">
++                  <span className="favs-list-header-title-box">
++                    <span>?뱥 ??λ맂 ?먯깋 寃쎈줈</span>
++                    <span className="favs-list-header-guide">?대쫫 ?대┃ ???섏젙 媛??/span>
++                  </span>
++                  {/* ?앹뾽 ?リ린 踰꾪듉 異붽? */}
++                  <button
++                    onClick={() => setShowFavorites(false)}
++                    className="favs-list-close-btn"
++                    title="?リ린"
++                  >
++                    ??+                  </button>
++                </h4>
+ 
+-      {/* 寃쎈줈 ?쒖옉?먯쑝濡??대룞 踰꾪듉 */}
+-      {((routePath && routePath.length > 0) || (recordedPath && recordedPath.length > 0)) && (
+-        <button
+-          onClick={() => {
+-            const targetPath = routePath.length > 0 ? routePath : recordedPath;
+-            if (targetPath && targetPath.length > 0) {
+-              animatePanTo(targetPath[0].lat, targetPath[0].lng);
+-              setIsFollowingUser(false);
+-              setIsFollowingZombie(false);
+-            }
+-          }}
+-          style={{
+-            position: 'absolute',
+-            bottom: '170px', // 醫鍮?異붿쟻 踰꾪듉 ?꾩뿉 諛곗튂 (95px + 60px + 15px)
+-            right: '20px',
+-            zIndex: 10,
+-            background: 'rgba(15, 23, 42, 0.85)',
+-            color: 'white',
+-            border: '1px solid rgba(30, 41, 59, 0.8)',
+-            borderRadius: '50%',
+-            width: '60px',
+-            height: '60px',
+-            display: 'flex',
+-            alignItems: 'center',
+-            justifyContent: 'center',
+-            fontSize: '32px',
+-            cursor: 'pointer',
+-            boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+-            transition: 'all 0.2s',
+-            opacity: 0.8
+-          }}
+-          title="寃쎈줈 ?쒖옉?먯쑝濡??대룞"
+-        >
+-          ?슜
+-        </button>
+-      )}
++                {favorites.length === 0 ? (
++                  <div className="favs-list-empty">
++                    ?꾩쭅 湲곕줉??寃쎈줈媛 ?놁뒿?덈떎.<br />吏?꾨? ?대┃?섏뿬 寃쎈줈瑜?留뚮뱾?대낫?몄슂!
++                  </div>
++                ) : (
++                  <ul className="favs-list-items">
++                    {/* ?뵇 favorites ?욎뿉 [...favorites].sort(...) 瑜?異붽??섏뿬 ID(?쒓컙)媛 ???쒖꽌?濡??뺣젹?⑸땲?? */}
++                    {[...favorites].sort((a, b) => b.id - a.id).map((fav) => (
++                      <li
++                        key={fav.id}
++                        onClick={() => loadFavoriteRoute(fav)}
++                        className="favs-list-item"
++                      >
++                        <div className="favs-list-item-content">
++                          {editingId === fav.id ? (
++                            <input
++                              type="text"
++                              value={editingTitle}
++                              onChange={(e) => setEditingTitle(e.target.value)}
++                              onBlur={() => {
++                                if (isCancelledRef.current) {
++                                  isCancelledRef.current = false;
++                                  return;
++                                }
++                                saveTitle(fav.id);
++                              }}
++                              onKeyDown={(e) => {
++                                if (e.key === 'Enter') {
++                                  e.target.blur();
++                                }
++                                if (e.key === 'Escape') {
++                                  isCancelledRef.current = true;
++                                  setEditingId(null);
++                                }
++                              }}
++                              autoFocus
++                              onClick={(e) => e.stopPropagation()} // ?명뭼 ?대┃ ??寃쎈줈 濡쒕뱶 諛⑹?
++                              className="favs-list-item-input"
++                            />
++                          ) : (
++                            <div className="favs-list-item-title-box">
++                              <span
++                                onClick={(e) => startEditing(e, fav)}
++                                title="?대┃?섏뿬 ?대쫫 ?섏젙"
++                                className="favs-list-item-title"
++                              >
++                                {fav.title}
++                              </span>
++                              {fav.isCustom ? (
++                                <span className="badge-fav-custom">吏곸젒 湲곕줉</span>
++                              ) : (
++                                <span className="badge-fav-inquiry">議고쉶 寃쎈줈</span>
++                              )}
++                            </div>
++                          )}
++                          <span className="favs-list-item-waypoints">
++                            ?뱧 ?⑥씠?ъ씤?? {fav.routePath.length}媛??ъ씤??+                          </span>
++                        </div>
+ 
++                        {/* ??젣 踰꾪듉 */}
++                        <button
++                          onClick={(e) => deleteFavorite(e, fav.id)}
++                          className="favs-list-delete-btn"
++                          title="??젣"
++                        >
++                          ?뿊截?+                        </button>
++                      </li>
++                    ))}
++                  </ul>
++                )}
++              </div>
++            )
++          } keLinecap = "round"
++          strokeLinejoin = "round"
++            >
++            <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
++            <line x1="9" y1="10" x2="15" y2="10"></line>
++            <line x1="9" y1="14" x2="13" y2="14"></line>
++          </svg>
++        </button >
++      </div >
+ 
+-      {/* --- [?섏젙] ?섎떒 醫뚯륫 (?ㅻ줈媛湲?踰꾪듉 ?? 寃쎈줈 利먭꺼李얘린 ?좉? 踰꾪듉 --- */}
+-      <div style={{ position: 'absolute', bottom: '95px', left: '20px', zIndex: 30 }}>
++  {/* --- [?섏젙] ?붾㈃ ?뺤쨷?숈쑝濡??대룞??利먭꺼李얘린 ?덉씠???앹뾽 (紐⑤떖 ?ㅽ??? --- */ }
++{
++  showFavorites && (
++    <div style={{
++      position: 'absolute',
++      top: '50%',
++      left: '50%',
++      transform: 'translate(-50%, -50%)',
++      zIndex: 50, // HUD???ㅻⅨ ?댄럺?몃낫???뺤떎?섍쾶 ?꾩뿉 ?ㅻ룄濡?zIndex瑜??믨쾶 ?ㅼ젙
++      backgroundColor: 'rgba(15, 23, 42, 0.98)', // 以묒븰 ?앹뾽 吏묒쨷?꾨? ?꾪빐 ?댁쭩 ???대몼怨?遺덊닾紐낇븯寃?議곗젙
++      border: '2px solid #334155',
++      borderRadius: '12px',
++      width: '320px', // ?붾㈃ 以묒븰 ?덉씠?꾩썐??留욎떠 媛濡쒗룺???댁쭩 ?섎┝
++      maxHeight: '420px',
++      overflowY: 'auto',
++      boxShadow: '0 20px 40px rgba(0,0,0,0.7)',
++      padding: '16px',
++      color: 'white'
++    }}>
++      <h4 style={{
++        margin: '0 0 12px 0',
++        borderBottom: '1px solid #334155',
++        paddingBottom: '8px',
++        fontSize: '15px',
++        color: '#cbd5e1',
++        display: 'flex',
++        justifyContent: 'space-between',
++        alignItems: 'center'
++      }}>
++        <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
++          <span>?뱥 ??λ맂 ?먯깋 寃쎈줈</span>
++          <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'normal' }}>?대쫫 ?대┃ ???섏젙 媛??/span>
++        </span>
++        {/* ?앹뾽 ?リ린 踰꾪듉 異붽? */}
+         <button
+-          onClick={() => setShowFavorites(!showFavorites)}
+-          title={`寃쎈줈 ?덉뒪?좊━/利먭꺼李얘린 紐⑸줉 蹂닿린 (${favorites.length})`}
++          onClick={() => setShowFavorites(false)}
+           style={{
+-            backgroundColor: showFavorites ? '#4ade80' : 'rgba(30, 41, 59, 0.9)',
+-            color: showFavorites ? '#0f172a' : '#4ade80',
+-
+-            // 利먭꺼李얘린留뚯쓽 ?뺤껜?깆쓣 ?꾪빐 ?뚮몢由??됱긽? ?곕몢??#4ade80) ?좎?
+-            border: '2px solid #4ade80',
+-            borderRadius: '50%',
+-
+-            // ?ㅻ줈媛湲?踰꾪듉怨??숈씪?섍쾶 ?몃? 踰꾪듉 ?ш린瑜?60px濡?議곗젙
+-            width: '60px',
+-            height: '60px',
+-
+-            display: 'flex',
+-            alignItems: 'center',
+-            justifyContent: 'center',
++            backgroundColor: 'transparent',
++            border: 'none',
++            color: '#94a3b8',
+             cursor: 'pointer',
+-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+-            transition: 'all 0.2s',
+-            padding: 0,
+-            outline: 'none',
++            fontSize: '18px',
++            padding: '4px',
++            lineHeight: '1'
+           }}
++          title="?リ린"
+         >
+-          {/* 遺곷쭏??由ъ뒪??SVG ?꾩씠肄?*/}
+-          <svg
+-            width="30"
+-            height="30"
+-            viewBox="0 0 24 24"
+-            fill="none"
+-            stroke="currentColor"
+-            strokeWidth="2.2"
+-            strokeLinecap="round"
+-            strokeLinejoin="round"
+-          >
+-            <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+-            <line x1="9" y1="10" x2="15" y2="10"></line>
+-            <line x1="9" y1="14" x2="13" y2="14"></line>
+-          </svg>
++          ??         </button>
+-      </div>
++      </h4>
+ 
+-      {/* --- [?섏젙] ?붾㈃ ?뺤쨷?숈쑝濡??대룞??利먭꺼李얘린 ?덉씠???앹뾽 (紐⑤떖 ?ㅽ??? --- */}
+-      {showFavorites && (
+-        <div style={{
+-          position: 'absolute',
+-          top: '50%',
+-          left: '50%',
+-          transform: 'translate(-50%, -50%)',
+-          zIndex: 50, // HUD???ㅻⅨ ?댄럺?몃낫???뺤떎?섍쾶 ?꾩뿉 ?ㅻ룄濡?zIndex瑜??믨쾶 ?ㅼ젙
+-          backgroundColor: 'rgba(15, 23, 42, 0.98)', // 以묒븰 ?앹뾽 吏묒쨷?꾨? ?꾪빐 ?댁쭩 ???대몼怨?遺덊닾紐낇븯寃?議곗젙
+-          border: '2px solid #334155',
+-          borderRadius: '12px',
+-          width: '320px', // ?붾㈃ 以묒븰 ?덉씠?꾩썐??留욎떠 媛濡쒗룺???댁쭩 ?섎┝
+-          maxHeight: '420px',
+-          overflowY: 'auto',
+-          boxShadow: '0 20px 40px rgba(0,0,0,0.7)',
+-          padding: '16px',
+-          color: 'white'
+-        }}>
+-          <h4 style={{
+-            margin: '0 0 12px 0',
+-            borderBottom: '1px solid #334155',
+-            paddingBottom: '8px',
+-            fontSize: '15px',
+-            color: '#cbd5e1',
+-            display: 'flex',
+-            justifyContent: 'space-between',
+-            alignItems: 'center'
+-          }}>
+-            <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+-              <span>?뱥 ??λ맂 ?먯깋 寃쎈줈</span>
+-              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'normal' }}>?대쫫 ?대┃ ???섏젙 媛??/span>
+-            </span>
+-            {/* ?앹뾽 ?リ린 踰꾪듉 異붽? */}
+-            <button
+-              onClick={() => setShowFavorites(false)}
++      {favorites.length === 0 ? (
++        <div style={{ color: '#64748b', fontSize: '13px', textAlign: 'center', padding: '30px 0', lineHeight: '1.5' }}>
++          ?꾩쭅 湲곕줉??寃쎈줈媛 ?놁뒿?덈떎.<br />吏?꾨? ?대┃?섏뿬 寃쎈줈瑜?留뚮뱾?대낫?몄슂!
++        </div>
++      ) : (
++        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
++          {/* ?뵇 favorites ?욎뿉 [...favorites].sort(...) 瑜?異붽??섏뿬 ID(?쒓컙)媛 ???쒖꽌?濡??뺣젹?⑸땲?? */}
++          {[...favorites].sort((a, b) => b.id - a.id).map((fav) => (
++            <li
++              key={fav.id}
++              onClick={() => loadFavoriteRoute(fav)}
+               style={{
+-                backgroundColor: 'transparent',
+-                border: 'none',
+-                color: '#94a3b8',
++                backgroundColor: 'rgba(30, 41, 59, 0.6)',
++                border: '1px solid #475569',
++                borderRadius: '6px',
++                padding: '10px',
+                 cursor: 'pointer',
+-                fontSize: '18px',
+-                padding: '4px',
+-                lineHeight: '1'
++                display: 'flex',
++                justifyContent: 'space-between',
++                alignItems: 'center',
++                transition: 'background-color 0.2s',
+               }}
+-              title="?リ린"
++              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.8)'}
++              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(30, 41, 59, 0.6)'}
+             >
+-              ??-            </button>
+-          </h4>
+-
+-          {favorites.length === 0 ? (
+-            <div style={{ color: '#64748b', fontSize: '13px', textAlign: 'center', padding: '30px 0', lineHeight: '1.5' }}>
+-              ?꾩쭅 湲곕줉??寃쎈줈媛 ?놁뒿?덈떎.<br />吏?꾨? ?대┃?섏뿬 寃쎈줈瑜?留뚮뱾?대낫?몄슂!
+-            </div>
+-          ) : (
+-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+-              {/* ?뵇 favorites ?욎뿉 [...favorites].sort(...) 瑜?異붽??섏뿬 ID(?쒓컙)媛 ???쒖꽌?濡??뺣젹?⑸땲?? */}
+-              {[...favorites].sort((a, b) => b.id - a.id).map((fav) => (
+-                <li
+-                  key={fav.id}
+-                  onClick={() => loadFavoriteRoute(fav)}
+-                  style={{
+-                    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+-                    border: '1px solid #475569',
+-                    borderRadius: '6px',
+-                    padding: '10px',
+-                    cursor: 'pointer',
+-                    display: 'flex',
+-                    justifyContent: 'space-between',
+-                    alignItems: 'center',
+-                    transition: 'background-color 0.2s',
+-                  }}
+-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.8)'}
+-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(30, 41, 59, 0.6)'}
+-                >
+-                  <div style={{ flex: 1, marginRight: '8px', display: 'flex', flexDirection: 'column' }}>
+-                    {editingId === fav.id ? (
+-                      <input
+-                        type="text"
+-                        value={editingTitle}
+-                        onChange={(e) => setEditingTitle(e.target.value)}
+-                        onBlur={() => saveTitle(fav.id)}
+-                        onKeyDown={(e) => {
+-                          if (e.key === 'Enter') saveTitle(fav.id);
+-                          if (e.key === 'Escape') setEditingId(null);
+-                        }}
+-                        autoFocus
+-                        onClick={(e) => e.stopPropagation()} // ?명뭼 ?대┃ ??寃쎈줈 濡쒕뱶 諛⑹?
+-                        style={{
+-                          width: '100%',
+-                          backgroundColor: '#1e293b',
+-                          border: '1px solid #4ade80',
+-                          color: 'white',
+-                          borderRadius: '4px',
+-                          padding: '2px 6px',
+-                          fontSize: '13px',
+-                          outline: 'none'
+-                        }}
+-                      />
++              <div style={{ flex: 1, marginRight: '8px', display: 'flex', flexDirection: 'column' }}>
++                {editingId === fav.id ? (
++                  <input
++                    type="text"
++                    value={editingTitle}
++                    onChange={(e) => setEditingTitle(e.target.value)}
++                    onBlur={() => {
++                      if (isCancelledRef.current) {
++                        isCancelledRef.current = false;
++                        return;
++                      }
++                      saveTitle(fav.id);
++                    }}
++                    onKeyDown={(e) => {
++                      if (e.key === 'Enter') {
++                        e.target.blur();
++                      }
++                      if (e.key === 'Escape') {
++                        isCancelledRef.current = true;
++                        setEditingId(null);
++                      }
++                    }}
++                    autoFocus
++                    onClick={(e) => e.stopPropagation()} // ?명뭼 ?대┃ ??寃쎈줈 濡쒕뱶 諛⑹?
++                    style={{
++                      width: '100%',
++                      backgroundColor: '#1e293b',
++                      border: '1px solid #4ade80',
++                      color: 'white',
++                      borderRadius: '4px',
++                      padding: '2px 6px',
++                      fontSize: '13px',
++                      outline: 'none'
++                    }}
++                  />
++                ) : (
++                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
++                    <span
++                      onClick={(e) => startEditing(e, fav)}
++                      title="?대┃?섏뿬 ?대쫫 ?섏젙"
++                      style={{
++                        fontSize: '13px',
++                        fontWeight: 'bold',
++                        color: '#f8fafc',
++                        borderBottom: '1px dashed #64748b',
++                        paddingBottom: '1px',
++                        alignSelf: 'flex-start'
++                      }}
++                    >
++                      {fav.title}
++                    </span>
++                    {fav.isCustom ? (
++                      <span style={{ fontSize: '9px', backgroundColor: '#2563eb', color: 'white', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>吏곸젒 湲곕줉</span>
+                     ) : (
+-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+-                        <span
+-                          onClick={(e) => startEditing(e, fav)}
+-                          title="?대┃?섏뿬 ?대쫫 ?섏젙"
+-                          style={{
+-                            fontSize: '13px',
+-                            fontWeight: 'bold',
+-                            color: '#f8fafc',
+-                            borderBottom: '1px dashed #64748b',
+-                            paddingBottom: '1px',
+-                            alignSelf: 'flex-start'
+-                          }}
+-                        >
+-                          {fav.title}
+-                        </span>
+-                        {fav.isCustom ? (
+-                          <span style={{ fontSize: '9px', backgroundColor: '#2563eb', color: 'white', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>吏곸젒 湲곕줉</span>
+-                        ) : (
+-                          <span style={{ fontSize: '9px', backgroundColor: '#334155', color: '#94a3b8', padding: '1px 4px', borderRadius: '4px', fontWeight: 'normal', whiteSpace: 'nowrap' }}>議고쉶 寃쎈줈</span>
+-                        )}
+-                      </div>
++                      <span style={{ fontSize: '9px', backgroundColor: '#334155', color: '#94a3b8', padding: '1px 4px', borderRadius: '4px', fontWeight: 'normal', whiteSpace: 'nowrap' }}>議고쉶 寃쎈줈</span>
+                     )}
+-                    <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+-                      ?뱧 ?⑥씠?ъ씤?? {fav.routePath.length}媛??ъ씤??-                    </span>
+                   </div>
++                )}
++                <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
++                  ?뱧 ?⑥씠?ъ씤?? {fav.routePath.length}媛??ъ씤??+                </span>
++              </div>
+ 
+-                  {/* ??젣 踰꾪듉 */}
+-                  <button
+-                    onClick={(e) => deleteFavorite(e, fav.id)}
+-                    style={{
+-                      backgroundColor: 'transparent',
+-                      border: 'none',
+-                      color: '#ef4444',
+-                      cursor: 'pointer',
+-                      fontSize: '14px',
+-                      padding: '4px',
+-                    }}
+-                    title="??젣"
+-                  >
+-                    ?뿊截?-                  </button>
+-                </li>
+-              ))}
+-            </ul>
+-          )}
+-        </div>
+-      )}
+-
+-      {/* --- [異붽?] 寃쎈줈 ?먯깋 理쒖쥌 ?뺤씤 ?덉씠???앹뾽 --- */}
+-      {showRouteConfirm && (
+-        <div style={{
+-          position: 'absolute',
+-          top: 0,
+-          left: 0,
+-          right: 0,
+-          bottom: 0,
+-          backgroundColor: 'rgba(0, 0, 0, 0.65)', // ?룸같寃쎌쓣 ?대몼寃?媛由?-          backdropFilter: 'blur(4px)',           // 吏???붾㈃ ?댁쭩 釉붾윭 泥섎━
+-          display: 'flex',
+-          justifyContent: 'center',
+-          alignItems: 'center',
+-          zIndex: 60,                             // 紐⑤뱺 HUD 諛?利먭꺼李얘린蹂대떎 ?꾩뿉 ?꾩튂
+-        }}>
+-          <div style={{
+-            backgroundColor: 'rgba(15, 23, 42, 0.98)',
+-            border: '2px solid #ef4444',          // 醫鍮?寃뚯엫???댁슱由щ뒗 寃쎄퀬 ?덈뱶 ?뚮몢由?-            borderRadius: '12px',
+-            padding: '24px',
+-            width: '300px',
+-            textAlign: 'center',
+-            boxShadow: '0 0 25px rgba(239, 68, 68, 0.4)', // ?ㅼ삩 ?덈뱶 湲濡쒖슦 ?④낵
+-            color: 'white',
+-            animation: 'fadeIn 0.2s ease-out'
+-          }}>
+-            {/* ?앹뾽 ?ㅻ뜑 */}
+-            <h3 style={{
+-              margin: '0 0 14px 0',
+-              color: '#ff3366',
+-              fontSize: '18px',
+-              fontWeight: 'bold',
+-              display: 'flex',
+-              alignItems: 'center',
+-              justifyContent: 'center',
+-              gap: '6px'
+-            }}>
+-              ?슚 ?묒쟾 寃쎈줈 ?먯깋
+-            </h3>
+-
+-            {/* ?앹뾽 蹂몃Ц */}
+-            <p style={{ fontSize: '14px', color: '#cbd5e1', margin: '0 0 24px 0', lineHeight: '1.6' }}>
+-              ?좏깮?섏떊 吏?먯쑝濡?<span style={{ color: '#4ade80', fontWeight: 'bold' }}>?꾨낫 ?덉텧 寃쎈줈</span>瑜?br />
+-              遺꾩꽍?섏떆寃좎뒿?덇퉴?
+-              <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+-                (?뺤씤 ??醫鍮?異붽꺽 ?쒕??덉씠?섏씠 ?ъ떆?묐맗?덈떎)
+-              </span>
+-            </p>
+-
+-            {/* ?앹뾽 踰꾪듉 ?곸뿭 */}
+-            <div style={{ display: 'flex', gap: '12px' }}>
+-              {/* ?섎씫 踰꾪듉 */}
++              {/* ??젣 踰꾪듉 */}
+               <button
+-                onClick={() => {
+-                  if (pendingCoords) {
+-                    // ?먮옒 援ы쁽?섏뼱 ?덈뜕 Tmap 湲몄갼湲??듭떖 ?⑥닔瑜??몄텧?⑸땲??
+-                    // (留뚯빟 湲곗〈 ?⑥닔紐낆씠 ?ㅻⅤ硫?startPathFinding ????대떦 ?⑥닔紐낆쓣 ?곸뼱二쇱꽭??
+-                    startPathFinding(pendingCoords);
+-                  }
+-                  setShowRouteConfirm(false);
+-                  setPendingCoords(null);
+-                }}
++                onClick={(e) => deleteFavorite(e, fav.id)}
+                 style={{
+-                  flex: 1,
+-                  backgroundColor: '#4ade80', // ?덉젙?곸씤 ?곕몢???쒕컮?대쾶 而щ윭
+-                  color: '#0f172a',
++                  backgroundColor: 'transparent',
+                   border: 'none',
+-                  borderRadius: '6px',
+-                  padding: '12px',
+-                  fontSize: '14px',
+-                  fontWeight: 'bold',
++                  color: '#ef4444',
+                   cursor: 'pointer',
+-                  boxShadow: '0 4px 12px rgba(74, 222, 128, 0.2)',
+-                  transition: 'transform 0.1s'
+-                }}
+-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
+-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+-              >
+-                ?뺤씤 (RUN)
+-              </button>
+-
+-              {/* 嫄곗젅 踰꾪듉 */}
+-              <button
+-                onClick={() => {
+-                  setShowRouteConfirm(false);
+-                  setPendingCoords(null); // ?덉빟??醫뚰몴 痍⑥냼
+-                }}
+-                style={{
+-                  flex: 1,
+-                  backgroundColor: '#334155',
+-                  color: '#94a3b8',
+-                  border: 'none',
+-                  borderRadius: '6px',
+-                  padding: '12px',
+                   fontSize: '14px',
+-                  fontWeight: 'bold',
+-                  cursor: 'pointer'
++                  padding: '4px',
+                 }}
++                title="??젣"
+               >
+-                痍⑥냼
++                ?뿊截?               </button>
+-            </div>
+-          </div>
+-        </div>
++            </li>
++          ))}
++        </ul>
+       )}
++    </div>
++  )
++}
+ 
+-      {/* ?곷떒 而⑦듃濡?UI (HUD ?붿옄???곸슜) */}
+-      {gameMode === 'record' ? (
+-        <div className="hud-container">
+-          <div className="hud-header" onClick={handleDebugTap} style={{ cursor: 'pointer' }}>
+-            <div className="hud-mode-tag">MODE: RECORD</div>
+-            <div className="hud-status-dot" style={{ backgroundColor: isRecording ? '#ef4444' : '#64748b', animation: isRecording ? 'ping 1.5s infinite' : 'none' }}></div>
+-          </div>
++{/* --- [異붽?] 寃쎈줈 ?먯깋 理쒖쥌 ?뺤씤 ?덉씠???앹뾽 --- */ }
++{
++  showRouteConfirm && (
++    <div style={{
++      position: 'absolute',
++      top: 0,
++      left: 0,
++      right: 0,
++      bottom: 0,
++      backgroundColor: 'rgba(0, 0, 0, 0.65)', // ?룸같寃쎌쓣 ?대몼寃?媛由?+      backdropFilter: 'blur(4px)',           // 吏???붾㈃ ?댁쭩 釉붾윭 泥섎━
++      display: 'flex',
++      justifyContent: 'center',
++      alignItems: 'center',
++      zIndex: 60,                             // 紐⑤뱺 HUD 諛?利먭꺼李얘린蹂대떎 ?꾩뿉 ?꾩튂
++    }}>
++      <div style={{
++        backgroundColor: 'rgba(15, 23, 42, 0.98)',
++        border: '2px solid #ef4444',          // 醫鍮?寃뚯엫???댁슱由щ뒗 寃쎄퀬 ?덈뱶 ?뚮몢由?+        borderRadius: '12px',
++        padding: '24px',
++        width: '300px',
++        textAlign: 'center',
++        boxShadow: '0 0 25px rgba(239, 68, 68, 0.4)', // ?ㅼ삩 ?덈뱶 湲濡쒖슦 ?④낵
++        color: 'white',
++        animation: 'fadeIn 0.2s ease-out'
++      }}>
++        {/* ?앹뾽 ?ㅻ뜑 */}
++        <h3 style={{
++          margin: '0 0 14px 0',
++          color: '#ff3366',
++          fontSize: '18px',
++          fontWeight: 'bold',
++          display: 'flex',
++          alignItems: 'center',
++          justifyContent: 'center',
++          gap: '6px'
++        }}>
++          ?슚 ?묒쟾 寃쎈줈 ?먯깋
++        </h3>
++
++        {/* ?앹뾽 蹂몃Ц */}
++        <p style={{ fontSize: '14px', color: '#cbd5e1', margin: '0 0 24px 0', lineHeight: '1.6' }}>
++          ?좏깮?섏떊 吏?먯쑝濡?<span style={{ color: '#4ade80', fontWeight: 'bold' }}>?꾨낫 ?덉텧 寃쎈줈</span>瑜?br />
++          遺꾩꽍?섏떆寃좎뒿?덇퉴?
++          <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
++            (?뺤씤 ??醫鍮?異붽꺽 ?쒕??덉씠?섏씠 ?ъ떆?묐맗?덈떎)
++          </span>
++        </p>
++
++        {/* ?앹뾽 踰꾪듉 ?곸뿭 */}
++        <div style={{ display: 'flex', gap: '12px' }}>
++          {/* ?섎씫 踰꾪듉 */}
++          <button
++            onClick={() => {
++              if (pendingCoords) {
++                // ?먮옒 援ы쁽?섏뼱 ?덈뜕 Tmap 湲몄갼湲??듭떖 ?⑥닔瑜??몄텧?⑸땲??
++                // (留뚯빟 湲곗〈 ?⑥닔紐낆씠 ?ㅻⅤ硫?startPathFinding ????대떦 ?⑥닔紐낆쓣 ?곸뼱二쇱꽭??
++                startPathFinding(pendingCoords);
++              }
++              setShowRouteConfirm(false);
++              setPendingCoords(null);
++            }}
++            style={{
++              flex: 1,
++              backgroundColor: '#4ade80', // ?덉젙?곸씤 ?곕몢???쒕컮?대쾶 而щ윭
++              color: '#0f172a',
++              border: 'none',
++              borderRadius: '6px',
++              padding: '12px',
++              fontSize: '14px',
++              fontWeight: 'bold',
++              cursor: 'pointer',
++              boxShadow: '0 4px 12px rgba(74, 222, 128, 0.2)',
++              transition: 'transform 0.1s'
++            }}
++            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
++            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
++          >
++            ?뺤씤 (RUN)
++          </button>
+ 
+-          <div className="hud-main-display">
+-            <div className="hud-distance-text">
+-              {isRecording ? '?슯 ?ㅼ떆媛?寃쎈줈 湲곕줉 以?..' : (recordedPath.length > 0 ? '??湲곕줉 ?쇱떆?뺤??? : '??湲곕줉 ?쒖옉 ?湲?以?)}
+-              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '2px', fontWeight: 'normal' }}>
+-                <span>?ъ씤???섏쭛: {recordedPath.length}媛?/span>
+-                <span>珥?嫄곕━: {(() => {
+-                  let total = 0;
+-                  for (let i = 0; i < recordedPath.length - 1; i++) {
+-                    total += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i + 1].lat, recordedPath[i + 1].lng);
+-                  }
+-                  return total;
+-                })()}m</span>
+-              </div>
+-            </div>
++          {/* 嫄곗젅 踰꾪듉 */}
++          <button
++            onClick={() => {
++              setShowRouteConfirm(false);
++              setPendingCoords(null); // ?덉빟??醫뚰몴 痍⑥냼
++            }}
++            style={{
++              flex: 1,
++              backgroundColor: '#334155',
++              color: '#94a3b8',
++              border: 'none',
++              borderRadius: '6px',
++              padding: '12px',
++              fontSize: '14px',
++              fontWeight: 'bold',
++              cursor: 'pointer'
++            }}
++          >
++            痍⑥냼
++          </button>
++        </div>
++      </div>
++    </div>
++  )
++}
++
++{/* ?곷떒 而⑦듃濡?UI (HUD ?붿옄???곸슜) */ }
++{
++  gameMode === 'record' ? (
++    <div className="hud-container">
++      <div className="hud-header" onClick={handleDebugTap} style={{ cursor: 'pointer' }}>
++        <div className="hud-mode-tag">MODE: RECORD</div>
++        <div className="hud-status-dot" style={{ backgroundColor: isRecording ? '#ef4444' : '#64748b', animation: isRecording ? 'ping 1.5s infinite' : 'none' }}></div>
++      </div>
++
++      <div className="hud-main-display">
++        <div className="hud-distance-text">
++          {isRecording ? '?슯 ?ㅼ떆媛?寃쎈줈 湲곕줉 以?..' : (recordedPath.length > 0 ? '??湲곕줉 ?쇱떆?뺤??? : '??湲곕줉 ?쒖옉 ?湲?以?)}
++          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '2px', fontWeight: 'normal' }}>
++            <span>?ъ씤???섏쭛: {recordedPath.length}媛?/span>
++            <span>珥?嫄곕━: {(() => {
++              let total = 0;
++              for (let i = 0; i < recordedPath.length - 1; i++) {
++                total += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i + 1].lat, recordedPath[i + 1].lng);
++              }
++              return total;
++            })()}m</span>
+           </div>
++        </div>
++      </div>
+ 
+-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+-            <button
+-              onClick={() => setIsRecording(!isRecording)}
+-              className="hud-reset-btn"
+-              style={{
+-                backgroundColor: isRecording ? 'rgba(239, 68, 68, 0.15)' : 'rgba(74, 222, 128, 0.15)',
+-                color: isRecording ? '#ef4444' : '#4ade80',
+-                borderColor: isRecording ? 'rgba(239, 68, 68, 0.4)' : 'rgba(74, 222, 128, 0.4)',
+-                margin: 0
+-              }}
+-            >
+-              {isRecording ? '湲곕줉 ?쇱떆?뺤?' : (recordedPath.length > 0 ? '湲곕줉 ?ㅼ떆 ?쒖옉' : '湲곕줉 ?쒖옉')}
+-            </button>
++      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
++        <button
++          onClick={() => setIsRecording(!isRecording)}
++          className="hud-reset-btn"
++          style={{
++            backgroundColor: isRecording ? 'rgba(239, 68, 68, 0.15)' : 'rgba(74, 222, 128, 0.15)',
++            color: isRecording ? '#ef4444' : '#4ade80',
++            borderColor: isRecording ? 'rgba(239, 68, 68, 0.4)' : 'rgba(74, 222, 128, 0.4)',
++            margin: 0
++          }}
++        >
++          {isRecording ? '湲곕줉 ?쇱떆?뺤?' : (recordedPath.length > 0 ? '湲곕줉 ?ㅼ떆 ?쒖옉' : '湲곕줉 ?쒖옉')}
++        </button>
+ 
+-            {recordedPath.length > 0 && (
+-              <button
+-                onClick={() => {
+-                  setIsRecording(false);
+-                  setCustomRouteTitle(`湲곕줉 寃쎈줈 (${new Date().getMonth() + 1}/${new Date().getDate()} ${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')})`);
+-                  setShowSaveModal(true);
+-                }}
+-                className="hud-reset-btn"
+-                style={{
+-                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
+-                  color: '#60a5fa',
+-                  borderColor: 'rgba(59, 130, 246, 0.4)',
+-                  margin: 0
+-                }}
+-              >
+-                湲곕줉 ?꾨즺 & ???-              </button>
+-            )}
++        {recordedPath.length > 0 && (
++          <button
++            onClick={() => {
++              setIsRecording(false);
++              setCustomRouteTitle(`湲곕줉 寃쎈줈 (${new Date().getMonth() + 1}/${new Date().getDate()} ${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')})`);
++              setShowSaveModal(true);
++            }}
++            className="hud-reset-btn"
++            style={{
++              backgroundColor: 'rgba(59, 130, 246, 0.15)',
++              color: '#60a5fa',
++              borderColor: 'rgba(59, 130, 246, 0.4)',
++              margin: 0
++            }}
++          >
++            湲곕줉 ?꾨즺 & ???+          </button>
++        )}
+ 
+-            <button
+-              onClick={() => {
+-                setShowCancelConfirm(true);
+-              }}
+-              className="hud-reset-btn"
+-              style={{
+-                backgroundColor: 'rgba(100, 116, 139, 0.15)',
+-                color: '#94a3b8',
+-                borderColor: 'rgba(100, 116, 139, 0.4)',
+-                margin: 0
+-              }}
+-            >
+-              痍⑥냼
+-            </button>
++        <button
++          onClick={() => {
++            setShowCancelConfirm(true);
++          }}
++          className="hud-reset-btn"
++          style={{
++            backgroundColor: 'rgba(100, 116, 139, 0.15)',
++            color: '#94a3b8',
++            borderColor: 'rgba(100, 116, 139, 0.4)',
++            margin: 0
++          }}
++        >
++          痍⑥냼
++        </button>
+ 
+-            {/* 醫鍮??띾룄 議곗젅 諛??쒓컙 ?ㅼ젙 (寃쎈줈 留뚮뱾湲???醫鍮?異붽꺽???꾪빐 異붽?) */}
+-            <div className="hud-control-row" style={{ marginTop: '8px' }}>
+-              <label className="hud-label">醫鍮??띾룄 ({selectedZombieSpeed}/50)</label>
+-              <input type="range" min="1" max="50" value={selectedZombieSpeed} onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} style={{ flexGrow: 1, accentColor: '#f43f5e' }} />
+-            </div>
++        {/* 醫鍮??띾룄 議곗젅 諛??쒓컙 ?ㅼ젙 (寃쎈줈 留뚮뱾湲???醫鍮?異붽꺽???꾪빐 異붽?) */}
++        <div className="hud-control-row" style={{ marginTop: '8px' }}>
++          <label className="hud-label">醫鍮??띾룄 ({selectedZombieSpeed}/50)</label>
++          <input type="range" min="1" max="50" value={selectedZombieSpeed} onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} style={{ flexGrow: 1, accentColor: '#f43f5e' }} />
++        </div>
+ 
+-            <div className="hud-control-row">
+-              <label className="hud-label">醫鍮?諛쒖깮 ?쒓컙</label>
+-              <select className="hud-select" value={selectedSpawnDelay} onChange={(e) => setSelectedSpawnDelay(Number(e.target.value))}>
+-                <option value={0}>利됱떆</option>
+-                <option value={10}>10珥?/option>
+-                <option value={30}>30珥?/option>
+-                <option value={60}>60珥?/option>
+-              </select>
+-            </div>
+-          </div>
++        <div className="hud-control-row">
++          <label className="hud-label">醫鍮?諛쒖깮 ?쒓컙</label>
++          <select className="hud-select" value={selectedSpawnDelay} onChange={(e) => setSelectedSpawnDelay(Number(e.target.value))}>
++            <option value={0}>利됱떆</option>
++            <option value={10}>10珥?/option>
++            <option value={30}>30珥?/option>
++            <option value={60}>60珥?/option>
++          </select>
+         </div>
+-      ) : (
+-        <div className="hud-container">
+-          <div className="hud-header" onClick={handleDebugTap} style={{ cursor: 'pointer' }}>
+-            <div className="hud-mode-tag">MODE: {gameMode.toUpperCase()}</div>
+-            <div className="hud-status-dot"></div>
+-          </div>
++      </div>
++    </div>
++  ) : (
++  <div className="hud-container">
++    <div className="hud-header" onClick={handleDebugTap} style={{ cursor: 'pointer' }}>
++      <div className="hud-mode-tag">MODE: {gameMode.toUpperCase()}</div>
++      <div className="hud-status-dot"></div>
++    </div>
+ 
+-          <div className="hud-main-display">
+-            {isGameOver ? (
+-              <span style={{ color: gameResult === 'win' ? '#44ff44' : '#ef4444', fontWeight: '900', fontSize: '1rem' }}>
+-                {gameResult === 'win' ? '?덉텧 ?깃났!' : (gameMode === 'run' ? '醫鍮꾧? 癒쇱? ?꾩갑??' : '?≫삍?듬땲??')}
+-              </span>
+-            ) : (
+-              <div className="hud-distance-text">
+-                {gameMode === 'run' ? ( // RUN 紐⑤뱶????-                  routePath.length > 0 ? ( // 寃쎈줈媛 ?ㅼ젙?섏뿀?쇰㈃ 紐⑹쟻吏源뚯???嫄곕━ ?쒖떆
+-                    (() => {
+-                      const destination = routePath[routePath.length - 1];
+-                      const distUserToDest = userPosition ? calculateDistance(userPosition.lat, userPosition.lng, destination.lat, destination.lng) : '...';
+-                      const zPos = zombiePosition || routePath[0];
+-                      const distZombieToDest = calculateDistance(zPos.lat, zPos.lng, destination.lat, destination.lng);
+-                      return (
+-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+-                          <div>?섏쓽 紐⑹쟻吏源뚯?: {distUserToDest}m</div>
+-                          <div>醫鍮꾩쓽 紐⑹쟻吏源뚯?: {distZombieToDest}m</div>
+-                        </div>
+-                      );
+-                    })()
+-                  ) : ( // 寃쎈줈媛 ?ㅼ젙?섏? ?딆븯?쇰㈃ ?덈궡 臾멸뎄
+-                    <span>寃쎈줈瑜?吏?뺥븯?몄슂</span>
+-                  )
+-                ) : ( // SURVIVAL 紐⑤뱶????-                  recordedPath.length > 0 ? ( // 寃쎈줈媛 ?ㅼ젙?섏뿀?쇰㈃ 醫鍮꾩???嫄곕━ ?쒖떆
+-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+-                      <div>
+-                        醫鍮꾩???嫄곕━: {distance !== null ? `${distance}m` : countdown}
++    <div className="hud-main-display">
++      {isGameOver ? (
++        <span style={{ color: gameResult === 'win' ? '#44ff44' : '#ef4444', fontWeight: '900', fontSize: '1rem' }}>
++          {gameResult === 'win' ? '?덉텧 ?깃났!' : (gameMode === 'run' ? '醫鍮꾧? 癒쇱? ?꾩갑??' : '?≫삍?듬땲??')}
++        </span>
++      ) : (
++        <div className="hud-distance-text">
++          {gameMode === 'run' ? ( // RUN 紐⑤뱶????+            routePath.length > 0 ? ( // 寃쎈줈媛 ?ㅼ젙?섏뿀?쇰㈃ 紐⑹쟻吏源뚯???嫄곕━ ?쒖떆
++              (() => {
++                const destination = routePath[routePath.length - 1];
++                const distUserToDest = userPosition ? calculateDistance(userPosition.lat, userPosition.lng, destination.lat, destination.lng) : '...';
++                const zPos = zombiePosition || routePath[0];
++                const distZombieToDest = calculateDistance(zPos.lat, zPos.lng, destination.lat, destination.lng);
++                return (
++                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
++                    <div>?섏쓽 紐⑹쟻吏源뚯?: {distUserToDest}m</div>
++                    <div>醫鍮꾩쓽 紐⑹쟻吏源뚯?: {distZombieToDest}m</div>
++                  </div>
++                );
++              })()
++            ) : ( // 寃쎈줈媛 ?ㅼ젙?섏? ?딆븯?쇰㈃ ?덈궡 臾멸뎄
++              <span>寃쎈줈瑜?吏?뺥븯?몄슂</span>
++            )
++          ) : ( // SURVIVAL 紐⑤뱶????+            recordedPath.length > 0 ? ( // 寃쎈줈媛 ?ㅼ젙?섏뿀?쇰㈃ 醫鍮꾩???嫄곕━ ?쒖떆
++              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
++                <div>
++                  醫鍮꾩???嫄곕━: {distance !== null ? `${distance}m` : countdown}
++                </div>
++                {targetDistance > 0 && (() => {
++                  let total = 0;
++                  for (let i = 0; i < recordedPath.length - 1; i++) {
++                    total += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i + 1].lat, recordedPath[i + 1].lng);
++                  }
++                  const runDistKm = total / 1000;
++                  const remainingDist = Math.max(0, targetDistance - runDistKm);
++                  const progressPercent = Math.min(100, (runDistKm / targetDistance) * 100);
++                  return (
++                    <>
++                      <div style={{ fontSize: '0.8rem', color: '#a1a1aa', marginTop: '2px' }}>
++                        紐⑺몴: {targetDistance.toFixed(1)}km (?꾩쟻: {runDistKm.toFixed(2)}km, ?⑥쓬: {remainingDist.toFixed(2)}km)
+                       </div>
+-                      {targetDistance > 0 && (() => {
+-                        let total = 0;
+-                        for (let i = 0; i < recordedPath.length - 1; i++) {
+-                          total += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i + 1].lat, recordedPath[i + 1].lng);
+-                        }
+-                        const runDistKm = total / 1000;
+-                        const remainingDist = Math.max(0, targetDistance - runDistKm);
+-                        const progressPercent = Math.min(100, (runDistKm / targetDistance) * 100);
+-                        return (
+-                          <>
+-                            <div style={{ fontSize: '0.8rem', color: '#a1a1aa', marginTop: '2px' }}>
+-                              紐⑺몴: {targetDistance.toFixed(1)}km (?꾩쟻: {runDistKm.toFixed(2)}km, ?⑥쓬: {remainingDist.toFixed(2)}km)
+-                            </div>
+-                            <div className="hud-progress-bar-container">
+-                              <div className="hud-progress-bar-fill" style={{ width: `${progressPercent}%` }} />
+-                            </div>
+-                          </>
+-                        );
+-                      })()}
+-                    </div>
+-                  ) : (
+-                    <span>?덉텧援?李얜뒗 以?..</span>
+-                  )
+-                )}
++                      <div className="hud-progress-bar-container">
++                        <div className="hud-progress-bar-fill" style={{ width: `${progressPercent}%` }} />
++                      </div>
++                    </>
++                  );
++                })()}
+               </div>
+-            )}
+-          </div>
++            ) : (
++              <span>?덉텧援?李얜뒗 以?..</span>
++            )
++          )}
++        </div>
++      )}
++    </div>
+ 
+-          {gameMode === 'survival' ? (
+-            <>
+-              <div className="hud-control-row" style={{ justifyContent: 'center', padding: '4px 0' }}>
+-                <span className="hud-label" style={{ fontSize: '0.8rem', color: '#ef4444' }}>
+-                  ?쭫 醫鍮??덈꺼: <strong style={{ fontSize: '0.95rem', marginLeft: '4px' }}>Lv.{zombieProgress.level}</strong> (EXP: {zombieProgress.xp}/{getNextLevelXp(zombieProgress.level)})
+-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: '8px' }}>
+-                    (理쒓퀬: Lv.{maxZombieLevel})
+-                  </span>
+-                </span>
+-              </div>
+-              {/*
++    {gameMode === 'survival' ? (
++      <>
++        <div className="hud-control-row" style={{ justifyContent: 'center', padding: '4px 0' }}>
++          <span className="hud-label" style={{ fontSize: '0.8rem', color: '#ef4444' }}>
++            ?쭫 醫鍮??덈꺼: <strong style={{ fontSize: '0.95rem', marginLeft: '4px' }}>Lv.{zombieProgress.level}</strong> (EXP: {zombieProgress.xp}/{getNextLevelXp(zombieProgress.level)})
++            <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: '8px' }}>
++              (理쒓퀬: Lv.{maxZombieLevel})
++            </span>
++          </span>
++        </div>
++        {/*
+                 <span className="hud-label" style={{ fontSize: '0.8rem', color: '#ef4444' }}>
+                   ?쭫 醫鍮??덈꺼: <strong style={{ fontSize: '0.95rem', marginLeft: '4px' }}>Lv.{zombieLevel}</strong> (EXP: {zombieXp}/{getNextLevelXp(zombieLevel)})
+             </div>
+               */}
+-            </>
+-          ) : (
+-            /* ?ㅻⅨ 紐⑤뱶??湲곗〈 ?щ씪?대뜑 ?좎? */
+-            <div className="hud-control-row">
+-              <label className="hud-label">醫鍮??띾룄 ({selectedZombieSpeed}/50)</label>
+-              <input
+-                type="range"
+-                min="1"
+-                max="50"
+-                value={selectedZombieSpeed}
+-                onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))}
+-                style={{ flexGrow: 1, accentColor: '#f43f5e' }}
+-              />
+-            </div>
+-          )}
+-
+-          <div className="hud-control-row">
+-            <label className="hud-label">醫鍮?諛쒖깮 ?쒓컙</label>
+-            <select className="hud-select" value={selectedSpawnDelay} onChange={(e) => setSelectedSpawnDelay(Number(e.target.value))}>
+-              <option value={0}>利됱떆</option>
+-              <option value={10}>10珥?/option>
+-              <option value={30}>30珥?/option>
+-              <option value={60}>60珥?/option>
+-            </select>
+-          </div>
++      </>
++    ) : (
++      /* ?ㅻⅨ 紐⑤뱶??湲곗〈 ?щ씪?대뜑 ?좎? */
++      <div className="hud-control-row">
++        <label className="hud-label">醫鍮??띾룄 ({selectedZombieSpeed}/50)</label>
++        <input
++          type="range"
++          min="1"
++          max="50"
++          value={selectedZombieSpeed}
++          onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))}
++          style={{ flexGrow: 1, accentColor: '#f43f5e' }}
++        />
++      </div>
++    )}
++
++    <div className="hud-control-row">
++      <label className="hud-label">醫鍮?諛쒖깮 ?쒓컙</label>
++      <select className="hud-select" value={selectedSpawnDelay} onChange={(e) => setSelectedSpawnDelay(Number(e.target.value))}>
++        <option value={0}>利됱떆</option>
++        <option value={10}>10珥?/option>
++        <option value={30}>30珥?/option>
++        <option value={60}>60珥?/option>
++      </select>
++    </div>
+ 
+-          {//((gameMode === 'survival' && recordedPath.length > 0) || (gameMode !== 'survival' && routePath.length > 0)) && (
+-            ((gameMode !== 'survival' && routePath.length > 0)) && (
+-              <button onClick={handleResetZombie} className="hud-reset-btn">
+-                RESTART PURSUIT
+-              </button>
+-            )}
+-        </div>
++    {//((gameMode === 'survival' && recordedPath.length > 0) || (gameMode !== 'survival' && routePath.length > 0)) && (
++      ((gameMode !== 'survival' && routePath.length > 0)) && (
++        <button onClick={handleResetZombie} className="hud-reset-btn">
++          RESTART PURSUIT
++        </button>
+       )}
++  </div>
++)
++}
+ 
+-      {/* 醫낅즺 ?뺤씤 ?덉씠??*/}
+-      {showExitConfirm && (
+-        <div style={{
+-          position: 'absolute',
+-          top: 0,
+-          left: 0,
+-          width: '100vw',
+-          height: '100dvh',
+-          backgroundColor: 'rgba(0,0,0,0.6)',
+-          zIndex: 200,
+-          display: 'flex',
+-          alignItems: 'center',
+-          justifyContent: 'center'
+-        }}>
+-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}>
+-            <div className="hud-header">
+-              <div className="hud-mode-tag">WARNING</div>
+-              <div className="hud-status-dot"></div>
+-            </div>
+-            <div className="hud-main-display">
+-              <div className="hud-distance-text" style={{ fontSize: '1.1rem' }}>
+-                寃뚯엫??醫낅즺?섍퀬<br />硫붿씤 ?붾㈃?쇰줈 ?섍컝源뚯슂?
+-              </div>
+-            </div>
+-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+-              <button
+-                onClick={handleExitAndSave}
+-                className="hud-reset-btn"
+-                style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
+-              >
+-                YES
+-              </button>
+-              <button
+-                onClick={() => setShowExitConfirm(false)}
+-                className="hud-reset-btn"
+-                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+-              >
+-                NO
+-              </button>
+-            </div>
+-          </div>
++{/* 醫낅즺 ?뺤씤 ?덉씠??*/ }
++{
++  showExitConfirm && (
++    <div style={{
++      position: 'absolute',
++      top: 0,
++      left: 0,
++      width: '100vw',
++      height: '100dvh',
++      backgroundColor: 'rgba(0,0,0,0.6)',
++      zIndex: 200,
++      display: 'flex',
++      alignItems: 'center',
++      justifyContent: 'center'
++    }}>
++      <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}>
++        <div className="hud-header">
++          <div className="hud-mode-tag">WARNING</div>
++          <div className="hud-status-dot"></div>
+         </div>
+-      )}
+-
+-      {/* 寃쎈줈 ?ъ꽕???뺤씤 ?덉씠??*/}
+-      {showReconfirmPath && (
+-        <div style={{
+-          position: 'absolute',
+-          top: 0,
+-          left: 0,
+-          width: '100vw',
+-          height: '100dvh',
+-          backgroundColor: 'rgba(0,0,0,0.6)',
+-          zIndex: 200,
+-          display: 'flex',
+-          alignItems: 'center',
+-          justifyContent: 'center'
+-        }}>
+-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}>
+-            <div className="hud-header">
+-              <div className="hud-mode-tag">RECONFIRM</div>
+-              <div className="hud-status-dot"></div>
+-            </div>
+-            <div className="hud-main-display">
+-              <div className="hud-distance-text" style={{ fontSize: '1.1rem' }}>
+-                ?대떦 寃쎈줈濡?br />蹂寃??섏떆寃좎뒿?덇퉴?
+-              </div>
+-            </div>
+-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+-              <button
+-                onClick={() => {
+-                  setShowReconfirmPath(false);
+-                  if (pendingDest) startPathFinding(pendingDest);
+-                  setPendingDest(null);
+-                }}
+-                className="hud-reset-btn"
+-                style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
+-              >
+-                YES
+-              </button>
+-              <button
+-                onClick={() => {
+-                  setShowReconfirmPath(false);
+-                  setPendingDest(null);
+-                }}
+-                className="hud-reset-btn"
+-                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+-              >
+-                NO
+-              </button>
+-            </div>
++        <div className="hud-main-display">
++          <div className="hud-distance-text" style={{ fontSize: '1.1rem' }}>
++            寃뚯엫??醫낅즺?섍퀬<br />硫붿씤 ?붾㈃?쇰줈 ?섍컝源뚯슂?
+           </div>
+         </div>
+-      )}
+-
+-      {/* 利먭꺼李얘린 媛쒕퀎 ??젣 ?뺤씤 ?덉씠??*/}
+-      {showDeleteConfirm && (
+-        <div style={{
+-          position: 'absolute',
+-          top: 0,
+-          left: 0,
+-          width: '100vw',
+-          height: '100dvh',
+-          backgroundColor: 'rgba(0,0,0,0.6)',
+-          zIndex: 2000,
+-          display: 'flex',
+-          alignItems: 'center',
+-          justifyContent: 'center'
+-        }}>
+-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
+-            <div className="hud-header">
+-              <div className="hud-mode-tag">DELETE</div>
+-              <div className="hud-status-dot" style={{ backgroundColor: '#ef4444' }}></div>
+-            </div>
+-            <div className="hud-main-display" style={{ padding: '10px 0' }}>
+-              <div className="hud-distance-text" style={{ fontSize: '1rem', color: '#f1f5f9' }}>
+-                ??寃쎈줈瑜?br />紐⑸줉?먯꽌 ??젣?섏떆寃좎뒿?덇퉴?
+-              </div>
+-            </div>
+-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+-              <button
+-                onClick={() => {
+-                  setFavorites(prev => prev.filter(item => item.id !== pendingDeleteId));
+-                  setShowDeleteConfirm(false);
+-                  setPendingDeleteId(null);
+-                }}
+-                className="hud-reset-btn"
+-                style={{ flex: 1, backgroundColor: '#ef4444', color: 'white', border: 'none' }}
+-              >
+-                YES
+-              </button>
+-              <button
+-                onClick={() => {
+-                  setShowDeleteConfirm(false);
+-                  setPendingDeleteId(null);
+-                }}
+-                className="hud-reset-btn"
+-                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+-              >
+-                NO
+-              </button>
+-            </div>
+-          </div>
++        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
++          <button
++            onClick={handleExitAndSave}
++            className="hud-reset-btn"
++            style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
++          >
++            YES
++          </button>
++          <button
++            onClick={() => setShowExitConfirm(false)}
++            className="hud-reset-btn"
++            style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
++          >
++            NO
++          </button>
+         </div>
+-      )}
++      </div>
++    </div>
++  )
++}
+ 
+-      {/* ?룯 鍮꾩긽 援ш툒 ?곸옄 (遺???뺤씤) ?덉씠??*/}
+-      {showReviveConfirm && (
+-        <div style={{
+-          position: 'absolute',
+-          top: 0,
+-          left: 0,
+-          width: '100vw',
+-          height: '100dvh',
+-          backgroundColor: 'rgba(0,0,0,0.8)',
+-          backdropFilter: 'blur(5px)',
+-          zIndex: 2000,
+-          display: 'flex',
+-          alignItems: 'center',
+-          justifyContent: 'center'
+-        }}>
+-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '310px', padding: '16px' }}>
+-            <div className="hud-header">
+-              <div className="hud-mode-tag" style={{ color: '#10b981' }}>AD RECOVERY</div>
+-              <div className="hud-status-dot" style={{ backgroundColor: '#10b981' }}></div>
+-            </div>
+-            <div className="hud-main-display" style={{ padding: '12px 0', border: 'none', background: 'none', boxShadow: 'none' }}>
+-              <div style={{ fontSize: '1.2rem', color: '#10b981', fontWeight: 'bold', marginBottom: '8px', textAlign: 'center' }}>
+-                ?슚 ?щ쭩 吏곸쟾 寃쎈낫!
+-              </div>
+-              <div className="hud-distance-text" style={{ fontSize: '0.85rem', color: '#cbd5e1', lineHeight: '1.4', textAlign: 'center' }}>
+-                醫鍮꾩뿉寃??꾩쟾???ъ쐞?뱁뻽?듬땲??<br />
+-                <strong>鍮꾩긽 援ш툒 ?곸옄(遺?쒓텒)</strong>瑜??ъ슜?섏뿬<br />
+-                ???꾩튂?먯꽌 怨꾩냽 ?앹〈?섏떆寃좎뒿?덇퉴?<br />
+-                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>(30珥??숈쁺??愿묎퀬 ?쒖껌 ?꾨즺 ??吏湲?</span>
+-              </div>
+-            </div>
+-            <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+-              <button
+-                onClick={() => {
+-                  setShowReviveConfirm(false);
+-                  setShowAdPlayer(true);
+-                  setAdCountdown(30);
+-                }}
+-                className="hud-reset-btn"
+-                style={{ flex: 1.2, backgroundColor: '#10b981', color: 'white', border: 'none', fontWeight: 'bold' }}
+-              >
+-                愿묎퀬 蹂닿퀬 遺???뭻
+-              </button>
+-              <button
+-                onClick={() => {
+-                  setShowReviveConfirm(false);
+-                  setIsGamePaused(false);
+-                  isGamePausedRef.current = false;
+-                  setTimeout(() => {
+-                    setIsGameOver(true);
+-                    setGameResult('lose');
+-                    if (audioCtxRef.current) {
+-                      gainNodeRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+-                      ambientGainRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+-                    }
+-                  }, 100);
+-                }}
+-                className="hud-reset-btn"
+-                style={{ flex: 0.8, backgroundColor: '#ef4444', border: 'none' }}
+-              >
+-                ?ш린?섍린 (?щ쭩)
+-              </button>
+-            </div>
+-          </div>
++{/* 寃쎈줈 ?ъ꽕???뺤씤 ?덉씠??*/ }
++{
++  showReconfirmPath && (
++    <div style={{
++      position: 'absolute',
++      top: 0,
++      left: 0,
++      width: '100vw',
++      height: '100dvh',
++      backgroundColor: 'rgba(0,0,0,0.6)',
++      zIndex: 200,
++      display: 'flex',
++      alignItems: 'center',
++      justifyContent: 'center'
++    }}>
++      <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}>
++        <div className="hud-header">
++          <div className="hud-mode-tag">RECONFIRM</div>
++          <div className="hud-status-dot"></div>
+         </div>
+-      )}
+-
+-      {/* ?벟 紐⑥“ 愿묎퀬 ?ъ깮湲??덉씠??*/}
+-      {showAdPlayer && (
+-        <div style={{
+-          position: 'absolute',
+-          top: 0,
+-          left: 0,
+-          width: '100vw',
+-          height: '100dvh',
+-          backgroundColor: '#090d16',
+-          zIndex: 3000,
+-          display: 'flex',
+-          flexDirection: 'column',
+-          alignItems: 'center',
+-          justifyContent: 'center',
+-          color: 'white',
+-          padding: '20px',
+-          boxSizing: 'border-box'
+-        }}>
+-          <div style={{
+-            width: '100%',
+-            maxWidth: '360px',
+-            flex: 1,
+-            display: 'flex',
+-            flexDirection: 'column',
+-            justifyContent: 'center',
+-            alignItems: 'center',
+-            border: '2px solid #38bdf8',
+-            borderRadius: '16px',
+-            padding: '24px',
+-            background: 'radial-gradient(circle, #1e293b 0%, #0f172a 100%)',
+-            boxShadow: '0 0 30px rgba(56, 189, 248, 0.25)',
+-            position: 'relative',
+-            boxSizing: 'border-box'
+-          }}>
+-            <div style={{
+-              position: 'absolute',
+-              top: '16px',
+-              right: '16px',
+-              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+-              border: '1px solid #38bdf8',
+-              borderRadius: '20px',
+-              padding: '4px 12px',
+-              fontSize: '12px',
+-              fontWeight: 'bold',
+-              color: '#38bdf8',
+-              fontFamily: 'var(--mono)'
+-            }}>
+-              ??愿묎퀬 蹂댁긽 ?湲? {adCountdown}珥?-            </div>
+-
+-            <div style={{ fontSize: '3.5rem', marginBottom: '15px' }}>?렜</div>
+-            <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#38bdf8', marginBottom: '8px', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+-              Zombie Apocalypse
+-            </h3>
+-            <p style={{ fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center', margin: '0 0 20px 0', lineHeight: '1.4' }}>
+-              醫鍮??ы깭 諛쒕컻! ?섎쭔??湲곗?瑜?援ъ텞?섍퀬 ?앹〈???숇즺?ㅼ쓣 紐⑥븘 醫낅쭚 ?멸퀎?먯꽌 ?앷퉴吏 ?댁븘?⑥쑝?몄슂!
+-            </p>
+-
+-            <div style={{ width: '100%', height: '8px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden', marginBottom: '16px' }}>
+-              <div style={{
+-                height: '100%',
+-                backgroundColor: '#38bdf8',
+-                boxShadow: '0 0 10px #38bdf8',
+-                width: `${((30 - adCountdown) / 30) * 100}%`,
+-                transition: 'width 1s linear'
+-              }} />
+-            </div>
+-
+-            <button 
+-              disabled 
+-              style={{
+-                backgroundColor: '#334155',
+-                color: '#64748b',
+-                border: 'none',
+-                borderRadius: '8px',
+-                padding: '10px 24px',
+-                fontSize: '13px',
+-                fontWeight: 'bold',
+-                cursor: 'not-allowed'
+-              }}
+-            >
+-              ?쒖껌???꾨즺?섎㈃ ?먮룞?쇰줈 遺?쒗빀?덈떎
+-            </button>
+-          </div>
+-
+-          <div style={{ fontSize: '11px', color: '#475569', marginTop: '12px' }}>
+-            ?????붾㈃? 援ш툒?곸옄 由ъ썙??吏湲됱쓣 ?꾪븳 ?쒕??덉씠?섏슜 愿묎퀬 ?쒖껌湲곗엯?덈떎.
++        <div className="hud-main-display">
++          <div className="hud-distance-text" style={{ fontSize: '1.1rem' }}>
++            ?대떦 寃쎈줈濡?br />蹂寃??섏떆寃좎뒿?덇퉴?
+           </div>
+         </div>
+-      )}
+-
+-      {/* 遺???湲?移댁슫?몃떎???뚮┝ */}
+-      {reviveCountdown > 0 && (
+-        <div style={{
+-          position: 'absolute',
+-          top: '40%',
+-          left: '50%',
+-          transform: 'translate(-50%, -50%)',
+-          zIndex: 2500,
+-          textAlign: 'center',
+-          width: '90%',
+-          pointerEvents: 'none'
+-        }}>
+-          <div style={{
+-            fontSize: '0.9rem',
+-            fontWeight: 'bold',
+-            color: '#ef4444',
+-            textShadow: '0 0 10px rgba(239, 68, 68, 0.8)',
+-            marginBottom: '14px',
+-            backgroundColor: 'rgba(0, 0, 0, 0.82)',
+-            padding: '10px 18px',
+-            borderRadius: '8px',
+-            display: 'inline-block',
+-            border: '1px solid rgba(239, 68, 68, 0.3)',
+-            boxShadow: '0 0 15px rgba(239, 68, 68, 0.2)'
+-          }}>
+-            ?좑툘 醫鍮꾧? 異쒕컻?좎뿉 ?덉뒿?덈떎! 3珥???異쒕컻?⑸땲??
+-          </div>
+-          <div style={{
+-            fontSize: '7.5rem',
+-            fontWeight: '900',
+-            color: '#ef4444',
+-            textShadow: '0 0 30px rgba(239, 68, 68, 0.95)',
+-            fontFamily: 'var(--mono)'
+-          }}>
+-            {reviveCountdown}
+-          </div>
++        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
++          <button
++            onClick={() => {
++              setShowReconfirmPath(false);
++              if (pendingDest) startPathFinding(pendingDest);
++              setPendingDest(null);
++            }}
++            className="hud-reset-btn"
++            style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
++          >
++            YES
++          </button>
++          <button
++            onClick={() => {
++              setShowReconfirmPath(false);
++              setPendingDest(null);
++            }}
++            className="hud-reset-btn"
++            style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
++          >
++            NO
++          </button>
+         </div>
+-      )}
++      </div>
++    </div>
++  )
++}
+ 
+-      {/* 以묒븰 移댁슫?몃떎??*/}
+-      {countdown > 0 && (
+-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 20, fontSize: '120px', fontWeight: 'bold', color: 'rgba(255, 0, 0, 0.7)', pointerEvents: 'none' }}>
+-          {countdown}
++{/* 利먭꺼李얘린 媛쒕퀎 ??젣 ?뺤씤 ?덉씠??*/ }
++{
++  showDeleteConfirm && (
++    <div style={{
++      position: 'absolute',
++      top: 0,
++      left: 0,
++      width: '100vw',
++      height: '100dvh',
++      backgroundColor: 'rgba(0,0,0,0.6)',
++      zIndex: 2000,
++      display: 'flex',
++      alignItems: 'center',
++      justifyContent: 'center'
++    }}>
++      <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
++        <div className="hud-header">
++          <div className="hud-mode-tag">DELETE</div>
++          <div className="hud-status-dot" style={{ backgroundColor: '#ef4444' }}></div>
+         </div>
+-      )}
+-
+-      {/* ?렜 ?뚯뒪??紐⑤뱶 ?꾩슜 媛??諛⑺뼢 ?⑤뱶 (D-Pad) */}
+-      {isDebugMode && (
+-        <div style={{
+-          position: 'absolute',
+-          bottom: '120px',
+-          left: '50%',
+-          transform: 'translateX(-50%)',
+-          width: '130px',
+-          height: '130px',
+-          zIndex: 1010,
+-          display: 'grid',
+-          gridTemplateRows: 'repeat(3, 1fr)',
+-          gridTemplateColumns: 'repeat(3, 1fr)',
+-          background: 'rgba(15, 23, 42, 0.72)',
+-          backdropFilter: 'blur(6px)',
+-          border: '2px dashed #ef4444',
+-          borderRadius: '50%',
+-          boxShadow: '0 0 20px rgba(239, 68, 68, 0.45)',
+-          padding: '8px',
+-          boxSizing: 'border-box'
+-        }}>
+-          <div />
++        <div className="hud-main-display" style={{ padding: '10px 0' }}>
++          <div className="hud-distance-text" style={{ fontSize: '1rem', color: '#f1f5f9' }}>
++            ??寃쎈줈瑜?br />紐⑸줉?먯꽌 ??젣?섏떆寃좎뒿?덇퉴?
++          </div>
++        </div>
++        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+           <button
+-            onTouchStart={() => startMovingUser('up')}
+-            onTouchEnd={stopMovingUser}
+-            onMouseDown={() => startMovingUser('up')}
+-            onMouseUp={stopMovingUser}
+-            onMouseLeave={stopMovingUser}
+-            style={{
+-              background: 'rgba(239, 68, 68, 0.25)',
+-              border: '1.5px solid rgba(239, 68, 68, 0.5)',
+-              borderRadius: '8px',
+-              color: '#f87171',
+-              fontWeight: 'bold',
+-              display: 'flex',
+-              alignItems: 'center',
+-              justifyContent: 'center',
+-              cursor: 'pointer',
+-              fontSize: '14px',
+-              userSelect: 'none',
+-              touchAction: 'none'
++            onClick={() => {
++              setFavorites(prev => prev.filter(item => item.id !== pendingDeleteId));
++              setShowDeleteConfirm(false);
++              setPendingDeleteId(null);
+             }}
++            className="hud-reset-btn"
++            style={{ flex: 1, backgroundColor: '#ef4444', color: 'white', border: 'none' }}
+           >
+-            ??+            YES
+           </button>
+-          <div />
+-
+           <button
+-            onTouchStart={() => startMovingUser('left')}
+-            onTouchEnd={stopMovingUser}
+-            onMouseDown={() => startMovingUser('left')}
+-            onMouseUp={stopMovingUser}
+-            onMouseLeave={stopMovingUser}
+-            style={{
+-              background: 'rgba(239, 68, 68, 0.25)',
+-              border: '1.5px solid rgba(239, 68, 68, 0.5)',
+-              borderRadius: '8px',
+-              color: '#f87171',
+-              fontWeight: 'bold',
+-              display: 'flex',
+-              alignItems: 'center',
+-              justifyContent: 'center',
+-              cursor: 'pointer',
+-              fontSize: '14px',
+-              userSelect: 'none',
+-              touchAction: 'none'
++            onClick={() => {
++              setShowDeleteConfirm(false);
++              setPendingDeleteId(null);
+             }}
++            className="hud-reset-btn"
++            style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+           >
+-            ?
++            NO
+           </button>
+-          <div style={{
+-            display: 'flex',
+-            alignItems: 'center',
+-            justifyContent: 'center',
+-            fontSize: '10px',
+-            color: '#ef4444',
+-            fontWeight: 'bold',
+-            userSelect: 'none'
+-          }}>
+-            T-PAD
++        </div>
++      </div>
++    </div>
++  )
++}
++
++{/* ?룯 鍮꾩긽 援ш툒 ?곸옄 (遺???뺤씤) ?덉씠??*/ }
++{
++  showReviveConfirm && (
++    <div style={{
++      position: 'absolute',
++      top: 0,
++      left: 0,
++      width: '100vw',
++      height: '100dvh',
++      backgroundColor: 'rgba(0,0,0,0.8)',
++      backdropFilter: 'blur(5px)',
++      zIndex: 2000,
++      display: 'flex',
++      alignItems: 'center',
++      justifyContent: 'center'
++    }}>
++      <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '310px', padding: '16px' }}>
++        <div className="hud-header">
++          <div className="hud-mode-tag" style={{ color: '#10b981' }}>AD RECOVERY</div>
++          <div className="hud-status-dot" style={{ backgroundColor: '#10b981' }}></div>
++        </div>
++        <div className="hud-main-display" style={{ padding: '12px 0', border: 'none', background: 'none', boxShadow: 'none' }}>
++          <div style={{ fontSize: '1.2rem', color: '#10b981', fontWeight: 'bold', marginBottom: '8px', textAlign: 'center' }}>
++            ?슚 ?щ쭩 吏곸쟾 寃쎈낫!
+           </div>
++          <div className="hud-distance-text" style={{ fontSize: '0.85rem', color: '#cbd5e1', lineHeight: '1.4', textAlign: 'center' }}>
++            醫鍮꾩뿉寃??꾩쟾???ъ쐞?뱁뻽?듬땲??<br />
++            <strong>鍮꾩긽 援ш툒 ?곸옄(遺?쒓텒)</strong>瑜??ъ슜?섏뿬<br />
++            ???꾩튂?먯꽌 怨꾩냽 ?앹〈?섏떆寃좎뒿?덇퉴?<br />
++            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>(30珥??숈쁺??愿묎퀬 ?쒖껌 ?꾨즺 ??吏湲?</span>
++          </div>
++        </div>
++        <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+           <button
+-            onTouchStart={() => startMovingUser('right')}
+-            onTouchEnd={stopMovingUser}
+-            onMouseDown={() => startMovingUser('right')}
+-            onMouseUp={stopMovingUser}
+-            onMouseLeave={stopMovingUser}
+-            style={{
+-              background: 'rgba(239, 68, 68, 0.25)',
+-              border: '1.5px solid rgba(239, 68, 68, 0.5)',
+-              borderRadius: '8px',
+-              color: '#f87171',
+-              fontWeight: 'bold',
+-              display: 'flex',
+-              alignItems: 'center',
+-              justifyContent: 'center',
+-              cursor: 'pointer',
+-              fontSize: '14px',
+-              userSelect: 'none',
+-              touchAction: 'none'
++            onClick={() => {
++              setShowReviveConfirm(false);
++              setShowAdPlayer(true);
++              setAdCountdown(30);
+             }}
++            className="hud-reset-btn"
++            style={{ flex: 1.2, backgroundColor: '#10b981', color: 'white', border: 'none', fontWeight: 'bold' }}
+           >
+-            ??+            愿묎퀬 蹂닿퀬 遺???뭻
+           </button>
+-
+-          <div />
+           <button
+-            onTouchStart={() => startMovingUser('down')}
+-            onTouchEnd={stopMovingUser}
+-            onMouseDown={() => startMovingUser('down')}
+-            onMouseUp={stopMovingUser}
+-            onMouseLeave={stopMovingUser}
+-            style={{
+-              background: 'rgba(239, 68, 68, 0.25)',
+-              border: '1.5px solid rgba(239, 68, 68, 0.5)',
+-              borderRadius: '8px',
+-              color: '#f87171',
+-              fontWeight: 'bold',
+-              display: 'flex',
+-              alignItems: 'center',
+-              justifyContent: 'center',
+-              cursor: 'pointer',
+-              fontSize: '14px',
+-              userSelect: 'none',
+-              touchAction: 'none'
++            onClick={() => {
++              setShowReviveConfirm(false);
++              setIsGamePaused(false);
++              isGamePausedRef.current = false;
++              setTimeout(() => {
++                setIsGameOver(true);
++                setGameResult('lose');
++                if (audioCtxRef.current) {
++                  gainNodeRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
++                  ambientGainRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
++                }
++              }, 100);
+             }}
++            className="hud-reset-btn"
++            style={{ flex: 0.8, backgroundColor: '#ef4444', border: 'none' }}
+           >
+-            ??+            ?ш린?섍린 (?щ쭩)
+           </button>
+-          <div />
+         </div>
+-      )}
+-
+-      {/* ?꾪뿕 寃쎄퀬 鍮④컙 ?붾㈃ 踰덉찉???④낵 (25m ?대궡) */}
+-      {!isGameOver && dangerLevel > 0 && (
+-        <div className={dangerLevel >= 2 ? 'danger-flash-critical' : 'danger-flash-warning'} />
+-      )}
+-
+-      {/* ?≫삍???????④낵 / ?덉텧 ?깃났 ???뚮? ?붾㈃ ?④낵 */}
+-      {isGameOver && (
+-        <div className={gameResult === 'win' ? 'escape-screen' : 'blood-screen'} />
+-      )}
++      </div>
++    </div>
++  )
++}
+ 
+-      {/* 寃쎈줈 ????뺤씤 紐⑤떖 */}
+-      {showSaveModal && (
++{/* ?벟 紐⑥“ 愿묎퀬 ?ъ깮湲??덉씠??*/ }
++{
++  showAdPlayer && (
++    <div style={{
++      position: 'absolute',
++      top: 0,
++      left: 0,
++      width: '100vw',
++      height: '100dvh',
++      backgroundColor: '#090d16',
++      zIndex: 3000,
++      display: 'flex',
++      flexDirection: 'column',
++      alignItems: 'center',
++      justifyContent: 'center',
++      color: 'white',
++      padding: '20px',
++      boxSizing: 'border-box'
++    }}>
++      <div style={{
++        width: '100%',
++        maxWidth: '360px',
++        flex: 1,
++        display: 'flex',
++        flexDirection: 'column',
++        justifyContent: 'center',
++        alignItems: 'center',
++        border: '2px solid #38bdf8',
++        borderRadius: '16px',
++        padding: '24px',
++        background: 'radial-gradient(circle, #1e293b 0%, #0f172a 100%)',
++        boxShadow: '0 0 30px rgba(56, 189, 248, 0.25)',
++        position: 'relative',
++        boxSizing: 'border-box'
++      }}>
+         <div style={{
+           position: 'absolute',
+-          top: 0,
+-          left: 0,
+-          width: '100vw',
+-          height: '100dvh',
+-          backgroundColor: 'rgba(0,0,0,0.6)',
+-          zIndex: 200,
+-          display: 'flex',
+-          alignItems: 'center',
+-          justifyContent: 'center'
++          top: '16px',
++          right: '16px',
++          backgroundColor: 'rgba(0, 0, 0, 0.7)',
++          border: '1px solid #38bdf8',
++          borderRadius: '20px',
++          padding: '4px 12px',
++          fontSize: '12px',
++          fontWeight: 'bold',
++          color: '#38bdf8',
++          fontFamily: 'var(--mono)'
+         }}>
+-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
+-            <div className="hud-header">
+-              <div className="hud-mode-tag">SAVE ROUTE</div>
+-              <div className="hud-status-dot"></div>
+-            </div>
+-            <div className="hud-main-display" style={{ textAlign: 'left', padding: '10px 0' }}>
+-              <label style={{ fontSize: '13px', color: '#cbd5e1', display: 'block', marginBottom: '8px' }}>??ν븷 寃쎈줈 ?대쫫</label>
+-              <input
+-                type="text"
+-                value={customRouteTitle}
+-                onChange={(e) => setCustomRouteTitle(e.target.value)}
+-                placeholder="寃쎈줈 ?대쫫???낅젰?섏꽭??
+-                style={{
+-                  width: '100%',
+-                  backgroundColor: '#1e293b',
+-                  border: '1px solid #475569',
+-                  color: 'white',
+-                  borderRadius: '6px',
+-                  padding: '8px 12px',
+-                  fontSize: '14px',
+-                  outline: 'none',
+-                  boxSizing: 'border-box'
+-                }}
+-              />
+-            </div>
+-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+-              <button
+-                onClick={() => {
+-                  const finalTitle = customRouteTitle.trim() || `湲곕줉 寃쎈줈 (${new Date().toLocaleDateString()})`;
+-                  const newFav = {
+-                    id: Date.now(),
+-                    title: finalTitle,
+-                    routePath: recordedPath,
+-                    isCustom: true // 吏곸젒 ?쒖옉 寃쎈줈 ?뚮옒洹??ㅼ젙
+-                  };
+-
+-                  // 鍮꾨룞湲??곹깭 ?낅뜲?댄듃 吏??諛??몃쭏?댄듃濡??명븳 ?좎떎 諛⑹?瑜??꾪빐 濡쒖뺄 ?ㅽ넗由ъ? 利됱떆 ?숆린 ?곌린 吏꾪뻾
+-                  const saved = localStorage.getItem('zombie_route_favorites');
+-                  const currentFavs = saved ? JSON.parse(saved) : [];
+-                  const updatedFavs = [newFav, ...currentFavs];
+-                  localStorage.setItem('zombie_route_favorites', JSON.stringify(updatedFavs));
+-
+-                  setFavorites(updatedFavs);
+-
+-                  // 寃뚯엫 湲곕줉(History)?먮룄 ????곕룞
+-                  if (onSaveRecord) {
+-                    let totalDistance = 0;
+-                    for (let i = 0; i < recordedPath.length - 1; i++) {
+-                      totalDistance += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i + 1].lat, recordedPath[i + 1].lng);
+-                    }
+-                    const formattedDistance = (totalDistance / 1000).toFixed(2) + 'km';
+-
+-                    onSaveRecord({
+-                      date: new Date().toISOString(),
+-                      mode: 'record',
+-                      distance: formattedDistance,
+-                      zombieSpeed: selectedZombieSpeed,
+-                      result: '?앹꽦',
+-                      routePath: recordedPath
+-                    });
+-                  }
++          ??愿묎퀬 蹂댁긽 ?湲? {adCountdown}珥?+        </div>
+ 
+-                  setShowSaveModal(false);
++        <div style={{ fontSize: '3.5rem', marginBottom: '15px' }}>?렜</div>
++        <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#38bdf8', marginBottom: '8px', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
++          Zombie Apocalypse
++        </h3>
++        <p style={{ fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center', margin: '0 0 20px 0', lineHeight: '1.4' }}>
++          醫鍮??ы깭 諛쒕컻! ?섎쭔??湲곗?瑜?援ъ텞?섍퀬 ?앹〈???숇즺?ㅼ쓣 紐⑥븘 醫낅쭚 ?멸퀎?먯꽌 ?앷퉴吏 ?댁븘?⑥쑝?몄슂!
++        </p>
+ 
+-                  // [?섏젙] ?쒖뒪???쇰읉 ????깃났 紐⑤떖 ?꾩슦湲?-                  setShowSaveSuccess(true);
+-                }}
+-                className="hud-reset-btn"
+-                style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
+-              >
+-                ???-              </button>
+-              <button
+-                onClick={() => setShowSaveModal(false)}
+-                className="hud-reset-btn"
+-                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+-              >
+-                痍⑥냼
+-              </button>
+-            </div>
+-          </div>
++        <div style={{ width: '100%', height: '8px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden', marginBottom: '16px' }}>
++          <div style={{
++            height: '100%',
++            backgroundColor: '#38bdf8',
++            boxShadow: '0 0 10px #38bdf8',
++            width: `${((30 - adCountdown) / 30) * 100}%`,
++            transition: 'width 1s linear'
++          }} />
+         </div>
+-      )}
+ 
+-      {/* 寃쎈줈 湲곕줉 痍⑥냼 ?뺤씤 紐⑤떖 */}
+-      {showCancelConfirm && (
+-        <div style={{
+-          position: 'absolute',
+-          top: 0,
+-          left: 0,
+-          width: '100vw',
+-          height: '100dvh',
+-          backgroundColor: 'rgba(0,0,0,0.6)',
+-          zIndex: 250,
++        <button
++          disabled
++          style={{
++            backgroundColor: '#334155',
++            color: '#64748b',
++            border: 'none',
++            borderRadius: '8px',
++            padding: '10px 24px',
++            fontSize: '13px',
++            fontWeight: 'bold',
++            cursor: 'not-allowed'
++          }}
++        >
++          ?쒖껌???꾨즺?섎㈃ ?먮룞?쇰줈 遺?쒗빀?덈떎
++        </button>
++      </div>
++
++      <div style={{ fontSize: '11px', color: '#475569', marginTop: '12px' }}>
++        ?????붾㈃? 援ш툒?곸옄 由ъ썙??吏湲됱쓣 ?꾪븳 ?쒕??덉씠?섏슜 愿묎퀬 ?쒖껌湲곗엯?덈떎.
++      </div>
++    </div>
++  )
++}
++
++{/* 遺???湲?移댁슫?몃떎???뚮┝ */ }
++{
++  reviveCountdown > 0 && (
++    <div style={{
++      position: 'absolute',
++      top: '40%',
++      left: '50%',
++      transform: 'translate(-50%, -50%)',
++      zIndex: 2500,
++      textAlign: 'center',
++      width: '90%',
++      pointerEvents: 'none'
++    }}>
++      <div style={{
++        fontSize: '0.9rem',
++        fontWeight: 'bold',
++        color: '#ef4444',
++        textShadow: '0 0 10px rgba(239, 68, 68, 0.8)',
++        marginBottom: '14px',
++        backgroundColor: 'rgba(0, 0, 0, 0.82)',
++        padding: '10px 18px',
++        borderRadius: '8px',
++        display: 'inline-block',
++        border: '1px solid rgba(239, 68, 68, 0.3)',
++        boxShadow: '0 0 15px rgba(239, 68, 68, 0.2)'
++      }}>
++        ?좑툘 醫鍮꾧? 異쒕컻?좎뿉 ?덉뒿?덈떎! 3珥???異쒕컻?⑸땲??
++      </div>
++      <div style={{
++        fontSize: '7.5rem',
++        fontWeight: '900',
++        color: '#ef4444',
++        textShadow: '0 0 30px rgba(239, 68, 68, 0.95)',
++        fontFamily: 'var(--mono)'
++      }}>
++        {reviveCountdown}
++      </div>
++    </div>
++  )
++}
++
++{/* 以묒븰 移댁슫?몃떎??*/ }
++{
++  countdown > 0 && (
++    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 20, fontSize: '120px', fontWeight: 'bold', color: 'rgba(255, 0, 0, 0.7)', pointerEvents: 'none' }}>
++      {countdown}
++    </div>
++  )
++}
++
++{/* ?렜 ?뚯뒪??紐⑤뱶 ?꾩슜 媛??諛⑺뼢 ?⑤뱶 (D-Pad) */ }
++{
++  isDebugMode && (
++    <div style={{
++      position: 'absolute',
++      bottom: '120px',
++      left: '50%',
++      transform: 'translateX(-50%)',
++      width: '130px',
++      height: '130px',
++      zIndex: 1010,
++      display: 'grid',
++      gridTemplateRows: 'repeat(3, 1fr)',
++      gridTemplateColumns: 'repeat(3, 1fr)',
++      background: 'rgba(15, 23, 42, 0.72)',
++      backdropFilter: 'blur(6px)',
++      border: '2px dashed #ef4444',
++      borderRadius: '50%',
++      boxShadow: '0 0 20px rgba(239, 68, 68, 0.45)',
++      padding: '8px',
++      boxSizing: 'border-box'
++    }}>
++      <div />
++      <button
++        onTouchStart={() => startMovingUser('up')}
++        onTouchEnd={stopMovingUser}
++        onMouseDown={() => startMovingUser('up')}
++        onMouseUp={stopMovingUser}
++        onMouseLeave={stopMovingUser}
++        style={{
++          background: 'rgba(239, 68, 68, 0.25)',
++          border: '1.5px solid rgba(239, 68, 68, 0.5)',
++          borderRadius: '8px',
++          color: '#f87171',
++          fontWeight: 'bold',
+           display: 'flex',
+           alignItems: 'center',
+-          justifyContent: 'center'
+-        }}>
+-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
+-            <div className="hud-header">
+-              <div className="hud-mode-tag">CANCEL RECORD</div>
+-              <div className="hud-status-dot" style={{ backgroundColor: '#f43f5e' }}></div>
+-            </div>
+-            <div className="hud-main-display" style={{ padding: '10px 0' }}>
+-              <div className="hud-distance-text" style={{ fontSize: '1rem', lineHeight: '1.5' }}>
+-                寃쎈줈 湲곕줉??痍⑥냼?섍퀬<br />硫붿씤 ?붾㈃?쇰줈 ?섍컝源뚯슂?
+-              </div>
+-            </div>
+-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+-              <button
+-                onClick={() => {
+-                  setShowCancelConfirm(false);
+-                  onExit();
+-                }}
+-                className="hud-reset-btn"
+-                style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
+-              >
+-                YES
+-              </button>
+-              <button
+-                onClick={() => setShowCancelConfirm(false)}
+-                className="hud-reset-btn"
+-                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+-              >
+-                NO
+-              </button>
+-            </div>
+-          </div>
+-        </div>
+-      )}
++          justifyContent: 'center',
++          cursor: 'pointer',
++          fontSize: '14px',
++          userSelect: 'none',
++          touchAction: 'none'
++        }}
++      >
++        ??+      </button>
++      <div />
+ 
+-      {/* 寃쎈줈 ????깃났 紐⑤떖 */}
+-      {showSaveSuccess && (
+-        <div style={{
+-          position: 'absolute',
+-          top: 0,
+-          left: 0,
+-          width: '100vw',
+-          height: '100dvh',
+-          backgroundColor: 'rgba(0,0,0,0.6)',
+-          zIndex: 250,
++      <button
++        onTouchStart={() => startMovingUser('left')}
++        onTouchEnd={stopMovingUser}
++        onMouseDown={() => startMovingUser('left')}
++        onMouseUp={stopMovingUser}
++        onMouseLeave={stopMovingUser}
++        style={{
++          background: 'rgba(239, 68, 68, 0.25)',
++          border: '1.5px solid rgba(239, 68, 68, 0.5)',
++          borderRadius: '8px',
++          color: '#f87171',
++          fontWeight: 'bold',
+           display: 'flex',
+           alignItems: 'center',
+-          justifyContent: 'center'
+-        }}>
+-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
+-            <div className="hud-header">
+-              <div className="hud-mode-tag">SUCCESS</div>
+-              <div className="hud-status-dot" style={{ backgroundColor: '#4ade80' }}></div>
+-            </div>
+-            <div className="hud-main-display" style={{ padding: '10px 0' }}>
+-              <div className="hud-distance-text" style={{ fontSize: '1rem', color: '#4ade80', lineHeight: '1.5' }}>
+-                寃쎈줈媛 ?깃났?곸쑝濡?br />??λ릺?덉뒿?덈떎!
+-                <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginTop: '6px', fontWeight: 'normal' }}>
+-                  利먭꺼李얘린 紐⑸줉?먯꽌 ?뺤씤?섏떎 ???덉뒿?덈떎.
+-                </span>
+-              </div>
+-            </div>
+-            <div style={{ marginTop: '10px' }}>
+-              <button
+-                onClick={() => {
+-                  setShowSaveSuccess(false);
+-                  onExit();
+-                }}
+-                className="hud-reset-btn"
+-                style={{ width: '100%', backgroundColor: '#4ade80', color: '#0f172a', border: 'none', fontWeight: 'bold' }}
+-              >
+-                ?뺤씤
+-              </button>
+-            </div>
++          justifyContent: 'center',
++          cursor: 'pointer',
++          fontSize: '14px',
++          userSelect: 'none',
++          touchAction: 'none'
++        }}
++      >
++        ?
++      </button>
++      <div style={{
++        display: 'flex',
++        alignItems: 'center',
++        justifyContent: 'center',
++        fontSize: '10px',
++        color: '#ef4444',
++        fontWeight: 'bold',
++        userSelect: 'none'
++      }}>
++        T-PAD
++      </div>
++      <button
++        onTouchStart={() => startMovingUser('right')}
++        onTouchEnd={stopMovingUser}
++        onMouseDown={() => startMovingUser('right')}
++        onMouseUp={stopMovingUser}
++        onMouseLeave={stopMovingUser}
++        style={{
++          background: 'rgba(239, 68, 68, 0.25)',
++          border: '1.5px solid rgba(239, 68, 68, 0.5)',
++          borderRadius: '8px',
++          color: '#f87171',
++          fontWeight: 'bold',
++          display: 'flex',
++          alignItems: 'center',
++          justifyContent: 'center',
++          cursor: 'pointer',
++          fontSize: '14px',
++          userSelect: 'none',
++          touchAction: 'none'
++        }}
++      >
++        ??+      </button>
++
++      <div />
++      <button
++        onTouchStart={() => startMovingUser('down')}
++        onTouchEnd={stopMovingUser}
++        onMouseDown={() => startMovingUser('down')}
++        onMouseUp={stopMovingUser}
++        onMouseLeave={stopMovingUser}
++        style={{
++          background: 'rgba(239, 68, 68, 0.25)',
++          border: '1.5px solid rgba(239, 68, 68, 0.5)',
++          borderRadius: '8px',
++          color: '#f87171',
++          fontWeight: 'bold',
++          display: 'flex',
++          alignItems: 'center',
++          justifyContent: 'center',
++          cursor: 'pointer',
++          fontSize: '14px',
++          userSelect: 'none',
++          touchAction: 'none'
++        }}
++      >
++        ??+      </button>
++      <div />
++    </div>
++  )
++}
++
++{/* ?꾪뿕 寃쎄퀬 鍮④컙 ?붾㈃ 踰덉찉???④낵 (25m ?대궡) */ }
++{
++  !isGameOver && dangerLevel > 0 && (
++    <div className={dangerLevel >= 2 ? 'danger-flash-critical' : 'danger-flash-warning'} />
++  )
++}
++
++{/* ?≫삍???????④낵 / ?덉텧 ?깃났 ???뚮? ?붾㈃ ?④낵 */ }
++{
++  isGameOver && (
++    <div className={gameResult === 'win' ? 'escape-screen' : 'blood-screen'} />
++  )
++}
++
++{/* 寃쎈줈 ????뺤씤 紐⑤떖 */ }
++{
++  showSaveModal && (
++    <div style={{
++      position: 'absolute',
++      top: 0,
++      left: 0,
++      width: '100vw',
++      height: '100dvh',
++      backgroundColor: 'rgba(0,0,0,0.6)',
++      zIndex: 200,
++      display: 'flex',
++      alignItems: 'center',
++      justifyContent: 'center'
++    }}>
++      <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
++        <div className="hud-header">
++          <div className="hud-mode-tag">SAVE ROUTE</div>
++          <div className="hud-status-dot"></div>
++        </div>
++        <div className="hud-main-display" style={{ textAlign: 'left', padding: '10px 0' }}>
++          <label style={{ fontSize: '13px', color: '#cbd5e1', display: 'block', marginBottom: '8px' }}>??ν븷 寃쎈줈 ?대쫫</label>
++          <input
++            type="text"
++            value={customRouteTitle}
++            onChange={(e) => setCustomRouteTitle(e.target.value)}
++            placeholder="寃쎈줈 ?대쫫???낅젰?섏꽭??
++            style={{
++              width: '100%',
++              backgroundColor: '#1e293b',
++              border: '1px solid #475569',
++              color: 'white',
++              borderRadius: '6px',
++              padding: '8px 12px',
++              fontSize: '14px',
++              outline: 'none',
++              boxSizing: 'border-box'
++            }}
++          />
++        </div>
++        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
++          <button
++            onClick={() => {
++              const finalTitle = customRouteTitle.trim() || `湲곕줉 寃쎈줈 (${new Date().toLocaleDateString()})`;
++              const newFav = {
++                id: Date.now(),
++                title: finalTitle,
++                routePath: recordedPath,
++                isCustom: true // 吏곸젒 ?쒖옉 寃쎈줈 ?뚮옒洹??ㅼ젙
++              };
++
++              // 鍮꾨룞湲??곹깭 ?낅뜲?댄듃 吏??諛??몃쭏?댄듃濡??명븳 ?좎떎 諛⑹?瑜??꾪빐 濡쒖뺄 ?ㅽ넗由ъ? 利됱떆 ?숆린 ?곌린 吏꾪뻾
++              const saved = localStorage.getItem('zombie_route_favorites');
++              const currentFavs = saved ? JSON.parse(saved) : [];
++              const updatedFavs = [newFav, ...currentFavs];
++              localStorage.setItem('zombie_route_favorites', JSON.stringify(updatedFavs));
++
++              setFavorites(updatedFavs);
++
++              // 寃뚯엫 湲곕줉(History)?먮룄 ????곕룞
++              if (onSaveRecord) {
++                let totalDistance = 0;
++                for (let i = 0; i < recordedPath.length - 1; i++) {
++                  totalDistance += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i + 1].lat, recordedPath[i + 1].lng);
++                }
++                const formattedDistance = (totalDistance / 1000).toFixed(2) + 'km';
++
++                onSaveRecord({
++                  date: new Date().toISOString(),
++                  mode: 'record',
++                  distance: formattedDistance,
++                  zombieSpeed: selectedZombieSpeed,
++                  result: '?앹꽦',
++                  routePath: recordedPath
++                });
++              }
++
++              setShowSaveModal(false);
++
++              // [?섏젙] ?쒖뒪???쇰읉 ????깃났 紐⑤떖 ?꾩슦湲?+              setShowSaveSuccess(true);
++            }}
++            className="hud-reset-btn"
++            style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
++          >
++            ???+          </button>
++          <button
++            onClick={() => setShowSaveModal(false)}
++            className="hud-reset-btn"
++            style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
++          >
++            痍⑥냼
++          </button>
++        </div>
++      </div>
++    </div>
++  )
++}
++
++{/* 寃쎈줈 湲곕줉 痍⑥냼 ?뺤씤 紐⑤떖 */ }
++{
++  showCancelConfirm && (
++    <div style={{
++      position: 'absolute',
++      top: 0,
++      left: 0,
++      width: '100vw',
++      height: '100dvh',
++      backgroundColor: 'rgba(0,0,0,0.6)',
++      zIndex: 250,
++      display: 'flex',
++      alignItems: 'center',
++      justifyContent: 'center'
++    }}>
++      <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
++        <div className="hud-header">
++          <div className="hud-mode-tag">CANCEL RECORD</div>
++          <div className="hud-status-dot" style={{ backgroundColor: '#f43f5e' }}></div>
++        </div>
++        <div className="hud-main-display" style={{ padding: '10px 0' }}>
++          <div className="hud-distance-text" style={{ fontSize: '1rem', lineHeight: '1.5' }}>
++            寃쎈줈 湲곕줉??痍⑥냼?섍퀬<br />硫붿씤 ?붾㈃?쇰줈 ?섍컝源뚯슂?
+           </div>
+         </div>
+-      )}
++        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
++          <button
++            onClick={() => {
++              setShowCancelConfirm(false);
++              onExit();
++            }}
++            className="hud-reset-btn"
++            style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none' }}
++          >
++            YES
++          </button>
++          <button
++            onClick={() => setShowCancelConfirm(false)}
++            className="hud-reset-btn"
++            style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
++          >
++            NO
++          </button>
++        </div>
++      </div>
++    </div>
++  )
++}
++
++{/* 寃쎈줈 ????깃났 紐⑤떖 */ }
++{
++  showSaveSuccess && (
++    <div style={{
++      position: 'absolute',
++      top: 0,
++      left: 0,
++      width: '100vw',
++      height: '100dvh',
++      backgroundColor: 'rgba(0,0,0,0.6)',
++      zIndex: 250,
++      display: 'flex',
++      alignItems: 'center',
++      justifyContent: 'center'
++    }}>
++      <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
++        <div className="hud-header">
++          <div className="hud-mode-tag">SUCCESS</div>
++          <div className="hud-status-dot" style={{ backgroundColor: '#4ade80' }}></div>
++        </div>
++        <div className="hud-main-display" style={{ padding: '10px 0' }}>
++          <div className="hud-distance-text" style={{ fontSize: '1rem', color: '#4ade80', lineHeight: '1.5' }}>
++            寃쎈줈媛 ?깃났?곸쑝濡?br />??λ릺?덉뒿?덈떎!
++            <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginTop: '6px', fontWeight: 'normal' }}>
++              利먭꺼李얘린 紐⑸줉?먯꽌 ?뺤씤?섏떎 ???덉뒿?덈떎.
++            </span>
++          </div>
++        </div>
++        <div style={{ marginTop: '10px' }}>
++          <button
++            onClick={() => {
++              setShowSaveSuccess(false);
++              onExit();
++            }}
++            className="hud-reset-btn"
++            style={{ width: '100%', backgroundColor: '#4ade80', color: '#0f172a', border: 'none', fontWeight: 'bold' }}
++          >
++            ?뺤씤
++          </button>
++        </div>
++      </div>
+     </div>
++  )
++}
++    </div >
+   );
+ };
+ 

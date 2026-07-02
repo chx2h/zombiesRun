@@ -16,7 +16,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return Math.round(R * c);
 };
 
-const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
+const FavoritesPage = ({ onBackToIntro, onReplayRecord, setHandleHardwareBack }) => {
   const [favorites, setFavorites] = useState([]);
   const [history, setHistory] = useState([]);
   const [activeTab, setActiveTab] = useState('favorites'); // 'favorites' | 'history' | 'stats'
@@ -40,6 +40,29 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
     message: '',
     onConfirm: () => { }
   });
+
+  // 안드로이드 하드웨어 백 버튼 처리용 핸들러 위임 등록
+  useEffect(() => {
+    const handleHardwareBack = () => {
+      if (showConfirmModal) {
+        setShowConfirmModal(false);
+        return true;
+      }
+      if (showMapPreview) {
+        setShowMapPreview(false);
+        return true;
+      }
+      if (showDetailModal) {
+        setShowDetailModal(false);
+        return true;
+      }
+      return false;
+    };
+
+    if (setHandleHardwareBack) {
+      setHandleHardwareBack(handleHardwareBack);
+    }
+  }, [showConfirmModal, showMapPreview, showDetailModal, setHandleHardwareBack]);
 
   // 로컬 스토리지 데이터 로드
   const loadData = () => {
@@ -1069,21 +1092,28 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
 
       {/* --- 공용 커스텀 컨펌 모달 --- */}
       {showConfirmModal && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(5px)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 99999,
-          padding: '20px'
-        }}>
-          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}>
+        <div 
+          onClick={() => setShowConfirmModal(false)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 99999,
+            padding: '20px'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="hud-container" 
+            style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}
+          >
             <div className="hud-header">
               <div className="hud-mode-tag" style={{ color: '#ef4444' }}>{confirmConfig.title}</div>
               <div className="hud-status-dot" style={{ backgroundColor: '#ef4444' }}></div>
@@ -1095,6 +1125,13 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
               <button
+                onClick={() => setShowConfirmModal(false)}
+                className="hud-reset-btn"
+                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+              >
+                NO
+              </button>
+              <button
                 onClick={() => {
                   confirmConfig.onConfirm();
                   setShowConfirmModal(false);
@@ -1103,13 +1140,6 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord }) => {
                 style={{ flex: 1, backgroundColor: '#ef4444', color: 'white', border: 'none' }}
               >
                 YES
-              </button>
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="hud-reset-btn"
-                style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
-              >
-                NO
               </button>
             </div>
           </div>
