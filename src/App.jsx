@@ -4,6 +4,7 @@ import mainImg from './assets/main.jpg'; // 배경 이미지 임포트
 import ManualPage from './ManualPage'; // ManualPage 컴포넌트 임포트
 import FavoritesPage from './FavoritesPage'; // FavoritesPage 컴포넌트 임포트
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { App as CapApp } from '@capacitor/app';
 
 // 다이얼 돌릴 때 미세 햅틱 피드백 제공 함수
 const triggerTickVibration = async () => {
@@ -259,6 +260,11 @@ function App() {
   // --- 목표 거리 & 다이얼 셋업 상태 ---
   const [targetDistance, setTargetDistance] = useState(0.0); // 목표 달리기 거리 (km)
   const [showSurvivalSetup, setShowSurvivalSetup] = useState(false); // 서바이벌 셋업 레이어 유무
+  const [showAppExitConfirm, setShowAppExitConfirm] = useState(false); // 앱 종료 확인 팝업 유무
+  const showAppExitConfirmRef = useRef(false);
+  useEffect(() => {
+    showAppExitConfirmRef.current = showAppExitConfirm;
+  }, [showAppExitConfirm]);
 
   // 화면 전환 및 브라우저 히스토리 관리
   const navigate = (newView) => {
@@ -297,7 +303,36 @@ function App() {
     viewRef.current = initialView;
     window.history.replaceState({ view: initialView }, '', `#${initialView}`);
 
-    return () => window.removeEventListener('popstate', handlePopState);
+    // 안드로이드 하드웨어 뒤로가기 버튼 리스너 연동
+    const backButtonListener = CapApp.addListener('backButton', () => {
+      const currentView = viewRef.current;
+      console.log("안드로이드 하드웨어 뒤로가기 감지. 현재 뷰:", currentView);
+
+      if (currentView === 'intro') {
+        if (showAppExitConfirmRef.current) {
+          setShowAppExitConfirm(false);
+        } else {
+          setShowAppExitConfirm(true);
+        }
+      } else if (currentView === 'playing') {
+        // 게임 중(playing)일 때는 맵 내부 종료 컨펌 팝업 트리거
+        if (isGameActiveRef.current && triggerExitConfirmRef.current) {
+          triggerExitConfirmRef.current();
+        } else {
+          setReusedRoutePath(null);
+          setIsReplay(false);
+          navigate('intro');
+        }
+      } else if (currentView === 'manual' || currentView === 'favorites') {
+        // 서브 페이지(생존 매뉴얼, 기록 보관소)에서는 메인 인트로 화면으로 원복
+        navigate('intro');
+      }
+    });
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      backButtonListener.then((listener) => listener.remove());
+    };
   }, []);
 
   // Wake Lock 요청 함수
@@ -477,6 +512,58 @@ function App() {
                       style={{ flex: 0.8, backgroundColor: '#334155', border: 'none' }}
                     >
                       취소
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 🎛️ 앱 종료 확인 팝업 모달 */}
+            {showAppExitConfirm && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.82)',
+                backdropFilter: 'blur(6px)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 2000,
+                padding: '20px'
+              }}>
+                <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '100%', maxWidth: '300px', padding: '16px' }}>
+                  <div className="hud-header">
+                    <div className="hud-mode-tag" style={{ color: '#ef4444' }}>EXIT APP</div>
+                    <div className="hud-status-dot" style={{ backgroundColor: '#ef4444' }}></div>
+                  </div>
+
+                  <div className="hud-main-display" style={{ padding: '12px 0', border: 'none', background: 'none', boxShadow: 'none' }}>
+                    <div className="hud-distance-text" style={{ fontSize: '0.95rem', color: '#f1f5f9', lineHeight: '1.4' }}>
+                      생존을 잠시 중단하고<br />구역을 완전히 이탈하시겠습니까?
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                    <button
+                      onClick={() => {
+                        CapApp.exitApp();
+                      }}
+                      className="hud-reset-btn"
+                      style={{ flex: 1, backgroundColor: '#ef4444', color: 'white', border: 'none', fontWeight: 'bold' }}
+                    >
+                      종료 (YES)
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAppExitConfirm(false);
+                      }}
+                      className="hud-reset-btn"
+                      style={{ flex: 1, backgroundColor: '#334155', border: 'none' }}
+                    >
+                      취소 (NO)
                     </button>
                   </div>
                 </div>

@@ -53,6 +53,15 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const [isFollowingZombie, setIsFollowingZombie] = useState(false); // 좀비 추적 모드 상태
   const isFollowingZombieRef = useRef(false);
 
+  // --- 리워드형 부활(비상 구급 상자) 시스템 관련 상태 ---
+  const [isGamePaused, setIsGamePaused] = useState(false);
+  const isGamePausedRef = useRef(false);
+  const [showReviveConfirm, setShowReviveConfirm] = useState(false); 
+  const [showAdPlayer, setShowAdPlayer] = useState(false); 
+  const [adCountdown, setAdCountdown] = useState(30); 
+  const [reviveUsed, setReviveUsed] = useState(false); 
+  const reviveUsedRef = useRef(false);
+
   const targetDistanceRef = useRef(targetDistance || 0);
   useEffect(() => {
     targetDistanceRef.current = targetDistance || 0;
@@ -433,6 +442,51 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     }, 180); // 180ms 주기로 이모지 프레임 교환
     return () => clearInterval(timer);
   }, [isUserMoving, isGameOver]);
+
+  // --- 리워드형 부활 성공 핸들러 ---
+  const handleReviveSuccess = () => {
+    setReviveUsed(true);
+    reviveUsedRef.current = true;
+    
+    // 좀비의 위치를 유저 좌표로부터 약 80미터 이상 안전거리로 후방 재배치
+    const userPos = userPosRef.current;
+    if (userPos) {
+      const offsetLat = (Math.random() > 0.5 ? 1 : -1) * 0.00075;
+      const offsetLng = (Math.random() > 0.5 ? 1 : -1) * 0.00075;
+      const safeZombiePos = { lat: userPos.lat + offsetLat, lng: userPos.lng + offsetLng };
+      setZombiePosition(safeZombiePos);
+      zombiePosRef.current = safeZombiePos;
+      distanceRef.current = 80;
+      console.log("부활 성공! 좀비 차원 이동:", safeZombiePos);
+    }
+    
+    setIsGamePaused(false);
+    isGamePausedRef.current = false;
+
+    try {
+      Haptics.impact({ style: ImpactStyle.Light });
+      setTimeout(() => Haptics.impact({ style: ImpactStyle.Light }), 100);
+      setTimeout(() => Haptics.impact({ style: ImpactStyle.Light }), 200);
+    } catch (e) {
+      if (navigator.vibrate) {
+        navigator.vibrate([30, 50, 30, 50, 30]);
+      }
+    }
+  };
+
+  // 모조 동영상 광고 타이머 이펙트
+  useEffect(() => {
+    let adInterval;
+    if (showAdPlayer && adCountdown > 0) {
+      adInterval = setInterval(() => {
+        setAdCountdown(prev => prev - 1);
+      }, 1000);
+    } else if (showAdPlayer && adCountdown === 0) {
+      setShowAdPlayer(false);
+      handleReviveSuccess();
+    }
+    return () => clearInterval(adInterval);
+  }, [showAdPlayer, adCountdown]);
 
   // 카운트다운 타이머
   useEffect(() => {
@@ -870,7 +924,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     if (gameMode === 'survival') {
       // 서바이벌 모드 전용 속도 밸런싱
       // 달리기 시작 시 거리가 너무 벌어지지 않도록 Lv.1 시작 속도를 시속 8.3km/h 수준(초속 약 2.3m)으로 상향
-      const baseSurvivalSpeed = 0.00000035; 
+      const baseSurvivalSpeed = 0.00000035;
       // 기존 최고속도가 30레벨 속도 수준이 되도록 레벨당 증가폭을 1.38%로 설정 (만렙인 100레벨에서는 무척 빠르게 추격)
       return baseSurvivalSpeed * (1 + (zombieProgress.level - 1) * 0.0138);
     }
@@ -898,6 +952,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   });
 
   const animate = useCallback(() => {
+    if (isGamePausedRef.current) {
+      requestRef.current = requestAnimationFrame(() => animateRef.current && animateRef.current());
+      return;
+    }
     const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPathRef.current : routePathRef.current;
     if (isGameOver || activePath.length === 0) return;
 
@@ -1069,16 +1127,23 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         }
       }
 
-      // 잡힘 판정 (Survival 모드일 때만 5m 이내 종료)
+      // 잡힘 판정 (Survival 모드일 때만 5m 이내 종료 또는 부활권 확인)
       if (d <= 5 && gameMode === 'survival') {
-        if ("vibrate" in navigator) navigator.vibrate([1000, 500, 1000]);
-        setIsGameOver(true);
-        setGameResult('lose');
-        if (audioCtxRef.current) {
-          gainNodeRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
-          ambientGainRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+        if (!reviveUsedRef.current) {
+          setIsGamePaused(true);
+          isGamePausedRef.current = true;
+          setShowReviveConfirm(true);
+          return;
+        } else {
+          if ("vibrate" in navigator) navigator.vibrate([1000, 500, 1000]);
+          setIsGameOver(true);
+          setGameResult('lose');
+          if (audioCtxRef.current) {
+            gainNodeRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+            ambientGainRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+          }
+          return;
         }
-        return;
       }
 
       // 서바이벌 모드 목표 거리 달성 확인 (성공 승리 조건)
@@ -1152,9 +1217,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
   // 중간 종료 시 기록 저장
   const handleExitAndSave = () => {
-    if (onSaveRecord && !hasSavedRef.current) {
+    // gameMode가 'record'(경로 만들기) 일 때만 중간 종료 시 저장 허용
+    if (gameMode === 'record' && onSaveRecord && !hasSavedRef.current) {
       hasSavedRef.current = true; // 중복 저장 차단 락 활성화
-      const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
+      const activePath = recordedPath;
       let totalDistanceStr = '-';
       if (activePath.length > 0) {
         let dist = 0;
@@ -1168,14 +1234,17 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         date: new Date().toISOString(),
         mode: gameMode,
         distance: totalDistanceStr,
-        zombieSpeed: gameMode === 'survival' ? zombieProgress.level : selectedZombieSpeed,
-        result: '-', // 중간 종료는 '-'로 표시
+        zombieSpeed: selectedZombieSpeed,
+        result: '생성',
         routePath: activePath,
         duration: gameStartTimeRef.current ? Math.round((Date.now() - gameStartTimeRef.current) / 1000) : 0,
-        escapeCount: escapeCount
+        escapeCount: 0
       });
+    } else {
+      // 서바이벌/런 모드는 이탈 시 기록 저장 차단
+      hasSavedRef.current = true;
     }
-    // 기록 저장 후 인트로 화면으로 이동
+    // 인트로 화면으로 이동
     onExit();
   };
 
@@ -1324,8 +1393,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       >
         {userPosition && (
           <CustomOverlayMap position={userPosition} zIndex={1}>
-            <div 
-              className={isUserMoving ? 'runner-active-dash' : ''} 
+            <div
+              className={isUserMoving ? 'runner-active-dash' : ''}
               style={{ fontSize: '32px', userSelect: 'none' }}
             >
               {isUserMoving ? (runnerFrame === 0 ? "🏃" : "🏃‍♀️") : "🏃"}
@@ -1335,8 +1404,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         {zombiePosition && (
           <CustomOverlayMap position={zombiePosition}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div 
-                className={!isGameOver ? 'zombie-active-chase' : ''} 
+              <div
+                className={!isGameOver ? 'zombie-active-chase' : ''}
                 style={{ fontSize: '32px', userSelect: 'none' }}
               >
                 {getZombieEmoji(zombieProgress.level)}
@@ -2206,6 +2275,164 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                 NO
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🏥 비상 구급 상자 (부활 확인) 레이어 */}
+      {showReviveConfirm && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100dvh',
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          backdropFilter: 'blur(5px)',
+          zIndex: 2000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div className="hud-container" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '310px', padding: '16px' }}>
+            <div className="hud-header">
+              <div className="hud-mode-tag" style={{ color: '#10b981' }}>AD RECOVERY</div>
+              <div className="hud-status-dot" style={{ backgroundColor: '#10b981' }}></div>
+            </div>
+            <div className="hud-main-display" style={{ padding: '12px 0', border: 'none', background: 'none', boxShadow: 'none' }}>
+              <div style={{ fontSize: '1.2rem', color: '#10b981', fontWeight: 'bold', marginBottom: '8px', textAlign: 'center' }}>
+                🚨 사망 직전 경보!
+              </div>
+              <div className="hud-distance-text" style={{ fontSize: '0.85rem', color: '#cbd5e1', lineHeight: '1.4', textAlign: 'center' }}>
+                좀비에게 완전히 포위당했습니다.<br />
+                <strong>비상 구급 상자(부활권)</strong>를 사용하여<br />
+                현 위치에서 계속 생존하시겠습니까?<br />
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>(30초 동영상 광고 시청 완료 시 지급)</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+              <button
+                onClick={() => {
+                  setShowReviveConfirm(false);
+                  setShowAdPlayer(true);
+                  setAdCountdown(30);
+                }}
+                className="hud-reset-btn"
+                style={{ flex: 1.2, backgroundColor: '#10b981', color: 'white', border: 'none', fontWeight: 'bold' }}
+              >
+                광고 보고 부활 💊
+              </button>
+              <button
+                onClick={() => {
+                  setShowReviveConfirm(false);
+                  setIsGamePaused(false);
+                  isGamePausedRef.current = false;
+                  setTimeout(() => {
+                    setIsGameOver(true);
+                    setGameResult('lose');
+                    if (audioCtxRef.current) {
+                      gainNodeRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+                      ambientGainRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+                    }
+                  }, 100);
+                }}
+                className="hud-reset-btn"
+                style={{ flex: 0.8, backgroundColor: '#ef4444', border: 'none' }}
+              >
+                포기하기 (사망)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📺 모조 광고 재생기 레이어 */}
+      {showAdPlayer && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100dvh',
+          backgroundColor: '#090d16',
+          zIndex: 3000,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          padding: '20px',
+          boxSizing: 'border-box'
+        }}>
+          <div style={{
+            width: '100%',
+            maxWidth: '360px',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            border: '2px solid #38bdf8',
+            borderRadius: '16px',
+            padding: '24px',
+            background: 'radial-gradient(circle, #1e293b 0%, #0f172a 100%)',
+            boxShadow: '0 0 30px rgba(56, 189, 248, 0.25)',
+            position: 'relative',
+            boxSizing: 'border-box'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '16px',
+              right: '16px',
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              border: '1px solid #38bdf8',
+              borderRadius: '20px',
+              padding: '4px 12px',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              color: '#38bdf8',
+              fontFamily: 'var(--mono)'
+            }}>
+              ⏳ 광고 보상 대기: {adCountdown}초
+            </div>
+
+            <div style={{ fontSize: '3.5rem', marginBottom: '15px' }}>🎮</div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#38bdf8', marginBottom: '8px', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Zombie Apocalypse
+            </h3>
+            <p style={{ fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center', margin: '0 0 20px 0', lineHeight: '1.4' }}>
+              좀비 사태 발발! 나만의 기지를 구축하고 생존자 동료들을 모아 종말 세계에서 끝까지 살아남으세요!
+            </p>
+
+            <div style={{ width: '100%', height: '8px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden', marginBottom: '16px' }}>
+              <div style={{
+                height: '100%',
+                backgroundColor: '#38bdf8',
+                boxShadow: '0 0 10px #38bdf8',
+                width: `${((30 - adCountdown) / 30) * 100}%`,
+                transition: 'width 1s linear'
+              }} />
+            </div>
+
+            <button 
+              disabled 
+              style={{
+                backgroundColor: '#334155',
+                color: '#64748b',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 24px',
+                fontSize: '13px',
+                fontWeight: 'bold',
+                cursor: 'not-allowed'
+              }}
+            >
+              시청을 완료하면 자동으로 부활합니다
+            </button>
+          </div>
+
+          <div style={{ fontSize: '11px', color: '#475569', marginTop: '12px' }}>
+            ※ 이 화면은 구급상자 리워드 지급을 위한 시뮬레이션용 광고 시청기입니다.
           </div>
         </div>
       )}

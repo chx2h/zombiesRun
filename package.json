@@ -12,6 +12,7 @@
     "cap:open": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.0",
     "@capacitor/core": "^8.4.1",
     "@capacitor/haptics": "^8.0.2",
     "react": "^19.2.6",
