@@ -276,12 +276,12 @@ export default function ManualPage({ onBackToIntro }) {
                   <h4 style={{ color: '#ef4444' }}>⚡ 좀비 경험치 및 실시간 레벨업</h4>
                   <p>좀비는 버틴 시간 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>3초당 1 XP</span> 및 유저 이동 거리 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>5m당 1 XP</span>를 누적합산해 성장합니다. 사용자와 거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>30m 이상 벌어지면</span> 실시간 가속 경험치가 누적되며, 30m 이내로 거리를 좁히면 해당 레벨의 누적 경험치가 0으로 초기화됩니다.</p>
                 </div>
-                <div className="info-card" style={{ borderColor: '#10b981' }}>
-                  <h4 style={{ color: '#10b981' }}>🏥 비상 구급 상자 (리워드형 부활)</h4>
-                  <p>좀비에게 5m 이내로 잡혀 사망하기 직전, 단 한 번의 생존 보급 기회가 주어집니다. <span style={{ color: '#10b981', fontWeight: 'bold' }}>30초 동영상 광고 시청</span>을 완료하면 해당 레벨과 위치에서 좀비를 안전거리 바깥으로 퇴거시킨 후 즉시 부활하여 질주를 이어갈 수 있습니다.</p>
-                </div>
-              </div>
 
+              </div>
+              <div className="advice-box" style={{ borderColor: '#ef4444' }}>
+                <h4 style={{ color: '#ef4444' }}>🏥 비상 구급 상자 (리워드형 부활)</h4>
+                <p>좀비에게 5m 이내로 잡혀 사망하기 직전, 단 한 번의 생존 보급 기회가 주어집니다. <span style={{ color: '#ef4444', fontWeight: 'bold' }}>30초 동영상 광고 시청</span>을 완료하면 해당 레벨과 위치에서 좀비를 안전거리 바깥으로 퇴거시킨 후 즉시 부활하여 질주를 이어갈 수 있습니다.</p>
+              </div>
               <div className="advice-box" style={{ borderColor: '#ef4444', padding: '8px 12px' }}>
                 <p style={{ fontSize: '0.8rem', lineHeight: '1.4' }}><strong style={{ color: '#ef4444' }}>🚨 생존 수칙:</strong> 좀비가 5m 이내로 오면 사망합니다. 거리를 좁히면(30m 이내) 속도가 증가하지 않으니 골목길을 활용해 따돌리며 생존하세요.</p>
               </div>
