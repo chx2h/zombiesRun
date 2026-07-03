@@ -1,4 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import btnSurvivalBg from './assets/btn_survival_bg.png';
+import btnRunBg from './assets/btn_run_bg.png';
+import btnRecordBg from './assets/btn_record_bg.png';
+import btnManualBg from './assets/btn_manual_bg.png';
+
+const tabBackgrounds = {
+  survival: btnSurvivalBg,
+  run: btnRunBg,
+  record: btnRecordBg,
+  gear: btnManualBg
+};
 
 export default function ManualPage({ onBackToIntro }) {
   const [activeTab, setActiveTab] = useState('survival'); // 'survival' | 'run' | 'record' | 'gear'
@@ -254,8 +265,16 @@ export default function ManualPage({ onBackToIntro }) {
           </button>
         </div>
 
-        {/* 컨텐츠 박스 */}
-        <div className="manual-content-box">
+        <div 
+          className="manual-content-box"
+          style={{
+            backgroundImage: `linear-gradient(to bottom, rgba(9, 13, 24, 0.35), rgba(2, 6, 23, 0.62)), url(${tabBackgrounds[activeTab]})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            transition: 'background-image 0.4s ease'
+          }}
+        >
 
           {/* TAB 1: SURVIVAL MODE */}
           {activeTab === 'survival' && (

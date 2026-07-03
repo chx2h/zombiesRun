@@ -1700,12 +1700,17 @@ code {
   background-size: 100% 100% !important; /* 이미지의 전체 형상이 버튼 안에 다 들어오도록 설정 */
   background-position: center !important;
   background-repeat: no-repeat !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border: none !important; /* 클리핑 시 찌그러지는 일반 실선 테두리 제거 */
   position: relative;
   overflow: hidden;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95);
-  font-family: 'Outfit', 'Inter', sans-serif;
-  letter-spacing: 1.5px;
+  
+  /* 쇳조각 질감 위에서 글자 가독성을 100% 사수하기 위한 굵은 4방향 폰트 아웃라인 */
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 0px 2px 4px rgba(0,0,0,0.95);
+  font-family: 'Orbitron', 'Black Han Sans', 'Share Tech Mono', sans-serif !important;
+  letter-spacing: 2px !important;
+  font-weight: 900 !important;
+  font-size: 1.12rem !important;
+  color: #f8fafc !important;
   width: 170px; /* 이미지 가로비에 어울리도록 버튼 너비를 살짝 증가 */
   height: 52px;
   display: flex;
@@ -1713,6 +1718,27 @@ code {
   justify-content: center;
   box-sizing: border-box;
   padding: 0 !important; /* 내부 패딩 초기화하여 텍스트 정중앙 정렬 보장 */
+  transition: transform 0.2s, filter 0.2s, color 0.2s, text-shadow 0.2s;
+  
+  /* 기본 상태에서 깎여나간 틈에 입체감과 얇은 하이라이트 경계선 연출 */
+  filter: drop-shadow(0px 0px 1px rgba(255, 255, 255, 0.3)) drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+/* 개별 버튼의 유니크한 불규칙 다각형 절단 (쥐어뜯기거나 깎여나간 느낌) */
+.menu-btn-survival {
+  clip-path: polygon(1% 8%, 95% 0%, 100% 18%, 98% 83%, 92% 98%, 4% 94%, 0% 50%);
+}
+.menu-btn-run {
+  clip-path: polygon(3% 0%, 98% 5%, 95% 82%, 100% 93%, 91% 100%, 0% 89%, 2% 44%);
+}
+.menu-btn-record {
+  clip-path: polygon(0% 14%, 93% 5%, 99% 0%, 97% 86%, 95% 98%, 3% 88%, 1% 46%);
+}
+.menu-btn-manual {
+  clip-path: polygon(0% 0%, 96% 8%, 98% 46%, 100% 96%, 89% 90%, 4% 100%, 1% 46%);
+}
+.menu-btn-favorites {
+  clip-path: polygon(5% 4%, 100% 0%, 97% 81%, 93% 98%, 0% 93%, 2% 46%);
 }
 
 /* 어두운 가림막을 씌워 텍스트 가독성을 완전히 지키도록 구현 */
@@ -1732,7 +1758,6 @@ code {
   transition: opacity 0.2s ease;
   opacity: 1;
 }
-
 
 /* 기존 background-clip: text 효과 오버라이드 해제 */
 .menu-btn-survival.start-button,
@@ -1759,45 +1784,45 @@ code {
   opacity: 0 !important;
 }
 
-/* 개별 Hover 및 Active 연출 (네온 광운 및 밝기 부스트) */
+/* 개별 Hover 및 Active 연출 (실루엣 드롭섀도 광운, 글자 야광화, 밝기 부스트) */
 .menu-btn-survival:hover,
 .menu-btn-survival:active {
-  transform: scale(1.05);
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 22px rgba(239, 68, 68, 0.9);
-  filter: brightness(1.2);
+  transform: scale(1.04);
+  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.95)) drop-shadow(0 0 2px rgba(239, 68, 68, 0.5)) brightness(1.2) !important;
+  color: #ff8787 !important;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 0px 0px 8px rgba(239, 68, 68, 0.95) !important;
 }
 
 .menu-btn-run:hover,
 .menu-btn-run:active {
-  transform: scale(1.05);
-  border-color: #10b981 !important;
-  box-shadow: 0 0 22px rgba(16, 185, 129, 0.9);
-  filter: brightness(1.2);
+  transform: scale(1.04);
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.95)) drop-shadow(0 0 2px rgba(16, 185, 129, 0.5)) brightness(1.2) !important;
+  color: #69db7c !important;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 0px 0px 8px rgba(16, 185, 129, 0.95) !important;
 }
 
 .menu-btn-record:hover,
 .menu-btn-record:active {
-  transform: scale(1.05);
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 22px rgba(59, 130, 246, 0.9);
-  filter: brightness(1.2);
+  transform: scale(1.04);
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.95)) drop-shadow(0 0 2px rgba(59, 130, 246, 0.5)) brightness(1.2) !important;
+  color: #74c0fc !important;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 0px 0px 8px rgba(59, 130, 246, 0.95) !important;
 }
 
 .menu-btn-manual:hover,
 .menu-btn-manual:active {
-  transform: scale(1.05);
-  border-color: #f59e0b !important;
-  box-shadow: 0 0 22px rgba(245, 158, 11, 0.9);
-  filter: brightness(1.2);
+  transform: scale(1.04);
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.95)) drop-shadow(0 0 2px rgba(245, 158, 11, 0.5)) brightness(1.2) !important;
+  color: #ffd43b !important;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 0px 0px 8px rgba(245, 158, 11, 0.95) !important;
 }
 
 .menu-btn-favorites:hover,
 .menu-btn-favorites:active {
-  transform: scale(1.05);
-  border-color: #a855f7 !important;
-  box-shadow: 0 0 22px rgba(168, 85, 247, 0.9);
-  filter: brightness(1.2);
+  transform: scale(1.04);
+  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.95)) drop-shadow(0 0 2px rgba(168, 85, 247, 0.5)) brightness(1.2) !important;
+  color: #d0bfff !important;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 0px 0px 8px rgba(168, 85, 247, 0.95) !important;
 }
 
 /* 터치 지원 브라우저를 위해 hover가 자식을 가리지 않게 수정 */

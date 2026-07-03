@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Map, Polyline, Circle } from 'react-kakao-maps-sdk';
+import btnSurvivalBg from './assets/btn_survival_bg.png';
+import btnRecordBg from './assets/btn_record_bg.png';
+import btnFavoritesBg from './assets/btn_favorites_bg.png';
+
+const tabBackgrounds = {
+  favorites: btnFavoritesBg,
+  history: btnSurvivalBg,
+  stats: btnRecordBg
+};
 
 /**
  * 두 좌표 간 거리 계산 (하버사인 공식)
@@ -345,8 +354,18 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord, setHandleHardwareBack })
         </button>
       </div>
 
-      {/* 컨텐츠 컨테이너 */}
-      <div className="history-list-container history-content-animated" style={{ display: 'flex', flexDirection: 'column' }}>
+      <div 
+        className="history-list-container history-content-animated" 
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          backgroundImage: `linear-gradient(to bottom, rgba(9, 13, 24, 0.35), rgba(2, 6, 23, 0.62)), url(${tabBackgrounds[activeTab]})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          transition: 'background-image 0.4s ease'
+        }}
+      >
         {activeTab === 'favorites' && (
           /* 즐겨찾기 목록 */
           favorites.length === 0 ? (
