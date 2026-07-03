@@ -432,7 +432,7 @@ function App() {
       {showWebSplash && (
         <div className={`app-splash-screen ${splashFadeOut ? 'fade-out' : ''}`}>
           <div className="splash-logo-container">
-            <div className="splash-zombie-icon">🧟</div>
+            <div className="splash-zombie-icon">☣</div>
             <h1 className="splash-title">Zombies Run</h1>
             <p className="splash-subtitle">Survival Tracker</p>
           </div>
