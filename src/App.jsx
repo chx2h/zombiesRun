@@ -269,11 +269,11 @@ function App() {
   useEffect(() => {
     const fadeTimer = setTimeout(() => {
       setSplashFadeOut(true);
-    }, 1400);
+    }, 2800);
 
     const removeTimer = setTimeout(() => {
       setShowWebSplash(false);
-    }, 2200);
+    }, 3700);
 
     return () => {
       clearTimeout(fadeTimer);
