@@ -1509,3 +1509,302 @@ code {
     transform: scale(1);
   }
 }
+
+/* --- Web Splash Screen Animation --- */
+.app-splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  background: radial-gradient(circle at center, #2e0813 0%, #020617 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+  transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1), transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.8s;
+  opacity: 1;
+  visibility: visible;
+}
+
+.app-splash-screen.fade-out {
+  opacity: 0;
+  transform: scale(1.15);
+  visibility: hidden;
+}
+
+.splash-logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.splash-zombie-icon {
+  font-size: 5rem;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 0 25px rgba(239, 68, 68, 0.6));
+  animation: splashPulse 2s infinite ease-in-out;
+  user-select: none;
+}
+
+.splash-title {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 2.4rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #f1f5f9;
+  text-transform: uppercase;
+  margin: 0;
+  text-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+  animation: splashTextGlitch 3.5s infinite alternate;
+  user-select: none;
+}
+
+.splash-subtitle {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-top: 0.4rem;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.splash-loader-wrapper {
+  position: absolute;
+  bottom: 12%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.splash-loader-bar {
+  width: 160px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.splash-loader-fill {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, #ef4444, #f43f5e);
+  position: absolute;
+  left: -100%;
+  animation: splashLoad 1.2s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
+}
+
+.splash-status-text {
+  font-size: 0.65rem;
+  color: rgba(239, 68, 68, 0.8);
+  font-family: monospace;
+  letter-spacing: 1px;
+  animation: splashStatusBlink 1.2s infinite alternate;
+}
+
+/* Animations */
+@keyframes splashPulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.5));
+  }
+
+  50% {
+    transform: scale(1.12);
+    filter: drop-shadow(0 0 35px rgba(239, 68, 68, 0.85));
+  }
+}
+
+@keyframes splashLoad {
+  0% {
+    left: -100%;
+  }
+
+  60% {
+    left: -20%;
+  }
+
+  100% {
+    left: 0%;
+  }
+}
+
+@keyframes splashStatusBlink {
+  0% {
+    opacity: 0.4;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes splashTextGlitch {
+
+  0%,
+  100% {
+    text-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+  }
+
+  92% {
+    text-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+    transform: skew(0deg);
+  }
+
+  94% {
+    text-shadow: -3px 0 #ef4444, 3px 0 #3b82f6;
+    transform: skew(4deg);
+  }
+
+  96% {
+    text-shadow: 3px 0 #ef4444, -3px 0 #3b82f6;
+    transform: skew(-3deg);
+  }
+
+  98% {
+    text-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+    transform: skew(0deg);
+  }
+}
+
+/* Intro Background Transition */
+.App.intro-screen.zoom-in-effect {
+  animation: introBgEntrance 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes introBgEntrance {
+  from {
+    transform: scale(1.08);
+    filter: brightness(0.3) blur(6px);
+  }
+
+  to {
+    transform: scale(1);
+    filter: brightness(1) blur(0px);
+  }
+}
+
+/* --- Tactical Image Buttons --- */
+.menu-btn-survival,
+.menu-btn-run,
+.menu-btn-record,
+.menu-btn-manual,
+.menu-btn-favorites {
+  background-size: 100% 100% !important; /* 이미지의 전체 형상이 버튼 안에 다 들어오도록 설정 */
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95);
+  font-family: 'Outfit', 'Inter', sans-serif;
+  letter-spacing: 1.5px;
+  width: 170px; /* 이미지 가로비에 어울리도록 버튼 너비를 살짝 증가 */
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0 !important; /* 내부 패딩 초기화하여 텍스트 정중앙 정렬 보장 */
+}
+
+/* 어두운 가림막을 씌워 텍스트 가독성을 완전히 지키도록 구현 */
+.menu-btn-survival::before,
+.menu-btn-run::before,
+.menu-btn-record::before,
+.menu-btn-manual::before,
+.menu-btn-favorites::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(2, 6, 23, 0.15) 0%, rgba(2, 6, 23, 0.45) 100%);
+  z-index: 1;
+  transition: opacity 0.2s ease;
+  opacity: 1;
+}
+
+
+/* 기존 background-clip: text 효과 오버라이드 해제 */
+.menu-btn-survival.start-button,
+.menu-btn-run.start-button,
+.menu-btn-record.start-button,
+.menu-btn-manual.start-button {
+  background-clip: border-box !important;
+  -webkit-background-clip: border-box !important;
+  -webkit-text-fill-color: #ffffff !important;
+  animation: none !important;
+}
+
+/* 호버 및 클릭(active) 시 어두운 가림막 완전히 걷어내기 */
+.menu-btn-survival:hover::before,
+.menu-btn-survival:active::before,
+.menu-btn-run:hover::before,
+.menu-btn-run:active::before,
+.menu-btn-record:hover::before,
+.menu-btn-record:active::before,
+.menu-btn-manual:hover::before,
+.menu-btn-manual:active::before,
+.menu-btn-favorites:hover::before,
+.menu-btn-favorites:active::before {
+  opacity: 0 !important;
+}
+
+/* 개별 Hover 및 Active 연출 (네온 광운 및 밝기 부스트) */
+.menu-btn-survival:hover,
+.menu-btn-survival:active {
+  transform: scale(1.05);
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 22px rgba(239, 68, 68, 0.9);
+  filter: brightness(1.2);
+}
+
+.menu-btn-run:hover,
+.menu-btn-run:active {
+  transform: scale(1.05);
+  border-color: #10b981 !important;
+  box-shadow: 0 0 22px rgba(16, 185, 129, 0.9);
+  filter: brightness(1.2);
+}
+
+.menu-btn-record:hover,
+.menu-btn-record:active {
+  transform: scale(1.05);
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 22px rgba(59, 130, 246, 0.9);
+  filter: brightness(1.2);
+}
+
+.menu-btn-manual:hover,
+.menu-btn-manual:active {
+  transform: scale(1.05);
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 22px rgba(245, 158, 11, 0.9);
+  filter: brightness(1.2);
+}
+
+.menu-btn-favorites:hover,
+.menu-btn-favorites:active {
+  transform: scale(1.05);
+  border-color: #a855f7 !important;
+  box-shadow: 0 0 22px rgba(168, 85, 247, 0.9);
+  filter: brightness(1.2);
+}
+
+/* 터치 지원 브라우저를 위해 hover가 자식을 가리지 않게 수정 */
+.menu-btn-survival::after,
+.menu-btn-run::after,
+.menu-btn-record::after,
+.menu-btn-manual::after,
+.menu-btn-favorites::after {
+  z-index: 2;
+}

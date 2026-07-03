@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ZombieMapApp from './ZombieMapApp';
 import mainImg from './assets/main.jpg'; // 배경 이미지 임포트
+import btnSurvivalBg from './assets/btn_survival_bg.png';
+import btnRunBg from './assets/btn_run_bg.png';
+import btnRecordBg from './assets/btn_record_bg.png';
+import btnManualBg from './assets/btn_manual_bg.png';
+import btnFavoritesBg from './assets/btn_favorites_bg.png';
 import ManualPage from './ManualPage'; // ManualPage 컴포넌트 임포트
 import FavoritesPage from './FavoritesPage'; // FavoritesPage 컴포넌트 임포트
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -249,6 +254,8 @@ const SurvivalDialPicker = ({ value, onChange }) => {
 
 function App() {
   const [view, setView] = useState('intro');
+  const [showWebSplash, setShowWebSplash] = useState(true);
+  const [splashFadeOut, setSplashFadeOut] = useState(false);
   const [reusedRoutePath, setReusedRoutePath] = useState(null);
   const [gameMode, setGameMode] = useState('survival'); // 'survival' 또는 'run'
   const [isReplay, setIsReplay] = useState(false); // 재플레이 판 플래그
@@ -257,6 +264,22 @@ function App() {
   const isGameActiveRef = useRef(false);
   const triggerExitConfirmRef = useRef(null);
   const handleHardwareBackRef = useRef(null);
+
+  // --- 스플래시 타이머 셋업 ---
+  useEffect(() => {
+    const fadeTimer = setTimeout(() => {
+      setSplashFadeOut(true);
+    }, 1400);
+
+    const removeTimer = setTimeout(() => {
+      setShowWebSplash(false);
+    }, 2200);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, []);
 
   // --- 목표 거리 & 다이얼 셋업 상태 ---
   const [targetDistance, setTargetDistance] = useState(0.0); // 목표 달리기 거리 (km)
@@ -405,6 +428,23 @@ function App() {
 
   return (
     <div className="mobile-app-frame">
+      {/* 🎬 영화 같은 웹 인트로 스플래시 화면 */}
+      {showWebSplash && (
+        <div className={`app-splash-screen ${splashFadeOut ? 'fade-out' : ''}`}>
+          <div className="splash-logo-container">
+            <div className="splash-zombie-icon">🧟</div>
+            <h1 className="splash-title">Zombies Run</h1>
+            <p className="splash-subtitle">Survival Tracker</p>
+          </div>
+          <div className="splash-loader-wrapper">
+            <div className="splash-loader-bar">
+              <div className="splash-loader-fill"></div>
+            </div>
+            <span className="splash-status-text">SCANNING FOR INFECTIONS...</span>
+          </div>
+        </div>
+      )}
+
       {view === 'playing' && (
         <div className="App" style={{ width: '100%', height: '100%', position: 'relative' }}>
           <ZombieMapApp
@@ -451,33 +491,59 @@ function App() {
       )}
 
       {view === 'intro' && (
-        <div className="App intro-screen" style={{ backgroundImage: `url(${mainImg})`, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+        <div className="App intro-screen zoom-in-effect" style={{ backgroundImage: `url(${mainImg})`, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
           <h1 className="intro-main-title">Zombies Run</h1>
           <div className="intro-content">
             <div className="intro-menu">
-              <button className="menu-btn start-button" onClick={() => {
-                setReusedRoutePath(null);
-                setGameMode('survival');
-                setIsReplay(false);
-                setTargetDistance(0.0); // 초기화
-                setShowSurvivalSetup(true); // 다이얼 셋업 모달 켜기
-              }}>SURVIVAL</button>
-              <button className="menu-btn start-button" onClick={() => {
-                setReusedRoutePath(null);
-                setGameMode('run');
-                setIsReplay(false);
-                navigate('playing');
-              }}>RUN</button>
-              <button className="menu-btn start-button" onClick={() => {
-                setReusedRoutePath(null);
-                setGameMode('record');
-                setIsReplay(false);
-                navigate('playing');
-              }}>경로 만들기</button>
-              <button className="menu-btn start-button" onClick={() => navigate('manual')}>
+              <button 
+                className="menu-btn start-button menu-btn-survival" 
+                style={{ backgroundImage: `url(${btnSurvivalBg})` }}
+                onClick={() => {
+                  setReusedRoutePath(null);
+                  setGameMode('survival');
+                  setIsReplay(false);
+                  setTargetDistance(0.0); // 초기화
+                  setShowSurvivalSetup(true); // 다이얼 셋업 모달 켜기
+                }}
+              >
+                SURVIVAL
+              </button>
+              <button 
+                className="menu-btn start-button menu-btn-run" 
+                style={{ backgroundImage: `url(${btnRunBg})` }}
+                onClick={() => {
+                  setReusedRoutePath(null);
+                  setGameMode('run');
+                  setIsReplay(false);
+                  navigate('playing');
+                }}
+              >
+                RUN
+              </button>
+              <button 
+                className="menu-btn start-button menu-btn-record" 
+                style={{ backgroundImage: `url(${btnRecordBg})` }}
+                onClick={() => {
+                  setReusedRoutePath(null);
+                  setGameMode('record');
+                  setIsReplay(false);
+                  navigate('playing');
+                }}
+              >
+                경로 만들기
+              </button>
+              <button 
+                className="menu-btn start-button menu-btn-manual" 
+                style={{ backgroundImage: `url(${btnManualBg})` }}
+                onClick={() => navigate('manual')}
+              >
                 생존 매뉴얼
               </button>
-              <button className="menu-btn" onClick={() => navigate('favorites')}>
+              <button 
+                className="menu-btn menu-btn-favorites" 
+                style={{ backgroundImage: `url(${btnFavoritesBg})` }}
+                onClick={() => navigate('favorites')}
+              >
                 기록 보관소
               </button>
             </div>
