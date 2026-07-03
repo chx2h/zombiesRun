@@ -287,26 +287,49 @@ export default function ManualPage({ onBackToIntro }) {
               </div>
 
               <div className="simulator-section" style={{ borderTop: '1px solid rgba(239, 68, 68, 0.3)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
-                <h4 style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: '0.3rem', fontWeight: 'bold' }}>🧟 실시간 좀비 진화 단계 도감</h4>
+                <h4 style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: '0.4rem', fontWeight: 'bold' }}>🧟 실시간 좀비 감염 변이 도감</h4>
                 <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '0.4rem 0.6rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
                   fontSize: '0.75rem',
                   color: '#cbd5e1',
-                  background: 'rgba(2, 6, 23, 0.8)',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
-                  maxHeight: '90px',
-                  padding: '6px 10px',
-                  overflowY: 'auto'
+                  background: 'rgba(2, 6, 23, 0.9)',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  maxHeight: '140px',
+                  padding: '8px 12px',
+                  overflowY: 'auto',
+                  lineHeight: '1.4'
                 }}>
-                  <div><strong style={{ color: '#ef4444' }}>Lv.1~10:</strong> 🦠 약체</div>
-                  <div><strong style={{ color: '#ef4444' }}>Lv.11~20:</strong> 🐗 야수</div>
-                  <div><strong style={{ color: '#ef4444' }}>Lv.21~30:</strong> 🧟 변종</div>
-                  <div><strong style={{ color: '#ef4444' }}>Lv.31~40:</strong> 👹 괴수</div>
-                  <div><strong style={{ color: '#ef4444' }}>Lv.41~49:</strong> ⚡ 초월</div>
-                  <div><strong style={{ color: '#ef4444' }}>Lv.50:</strong> 👹👑 <strong>킹</strong></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '3px' }}>
+                    <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>Lv.1~5 정상 인간</span>
+                    <span>🧍 🧍‍♂️ 🏃 ➡️ 평범한 생존자 상태</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '3px' }}>
+                    <span style={{ color: '#fb923c', fontWeight: 'bold' }}>Lv.6~12 감염 초기</span>
+                    <span>🥵 🤒 🤢 ➡️ 이상 고열, 기침 및 오한</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '3px' }}>
+                    <span style={{ color: '#f87171', fontWeight: 'bold' }}>Lv.13~20 세포 괴사</span>
+                    <span>🤮 💀 ⚰️ ➡️ 신체 붕괴 및 가사(임사)</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '3px' }}>
+                    <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Lv.21~30 좀비 각성</span>
+                    <span>🧟 🧟‍♂️ 🧟‍♀️ ➡️ 본능적 인육 갈구, 추격 개시</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '3px' }}>
+                    <span style={{ color: '#c084fc', fontWeight: 'bold' }}>Lv.31~45 변종 괴수</span>
+                    <span>😈 👹 👺 ➡️ 신체 한계 해제, 흉포한 변이</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '3px' }}>
+                    <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>Lv.46~49 초월 군체</span>
+                    <span>⚡ ☢️ ☣️ ➡️ 전자기적 변이, 폭발적 가속</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#facc15', fontWeight: 'bold' }}>Lv.50 아포칼립스 킹</span>
+                    <span>👑 ➡️ 언데드를 조종하는 최종 숙주</span>
+                  </div>
                 </div>
               </div>
             </div>

@@ -332,9 +332,10 @@ code {
   /* animation: bloodDrip 1.5s ease-in forwards; */
   /* 위에서 아래로 내려오는 효과 대신 scale 애니메이션 적용 */
   /* animation: zoomInEffect 0.5s ease-out forwards; */
-  /* 0.4초 동안 격렬하게 흔들리며 정중앙(center)을 기준으로 커짐 */
+  /* 0.9초 동안 격렬하게 흔들리며 정중앙(center)을 기준으로 커짐 */
   transform-origin: center;
-  animation: bloodZoomAndShake 0.9s ease-out forwards;
+  /* animation: bloodZoomAndShake 0.9s ease-out forwards; */
+  animation: bloodZoomAndShake 0.7s cubic-bezier(0.11, 0.82, 0.36, 1) forwards;
 }
 
 /* 탈출 성공 시 파란 화면 효과 */
@@ -625,6 +626,7 @@ code {
   text-align: center;
   background: linear-gradient(to right, #dc2626, #f43f5e, #f59e0b);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0;
   padding-bottom: 6px;
