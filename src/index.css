@@ -1790,7 +1790,7 @@ code {
   clip-path: polygon(5% 4%, 100% 0%, 97% 81%, 93% 98%, 0% 93%, 2% 46%);
 }
 
-/* 어두운 가림막을 씌워 텍스트 가독성을 완전히 지키도록 구현 */
+/* 어두운 가림막의 투명도를 극적으로 낮춰 평상시에도 원본 이미지가 맑고 선명하게 보이도록 수정 */
 .menu-btn-survival::before,
 .menu-btn-run::before,
 .menu-btn-record::before,
@@ -1802,7 +1802,7 @@ code {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, rgba(2, 6, 23, 0.15) 0%, rgba(2, 6, 23, 0.45) 100%);
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.0) 0%, rgba(0, 0, 0, 0.15) 100%);
   z-index: 1;
   transition: opacity 0.2s ease;
   opacity: 1;
@@ -1833,44 +1833,44 @@ code {
   opacity: 0 !important;
 }
 
-/* 개별 Hover 및 Active 연출 (실루엣 드롭섀도 광운, 글자 야광화, 밝기 부스트) */
+/* 개별 Hover 및 Active 연출 (밝기 필터를 1.6배로 극대화하여 대낮처럼 밝고 화사하게 발광 연출) */
 .menu-btn-survival:hover,
 .menu-btn-survival:active {
   transform: scale(1.04);
-  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.95)) drop-shadow(0 0 2px rgba(239, 68, 68, 0.5)) brightness(1.2) !important;
-  color: #ff8787 !important;
+  filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.95)) drop-shadow(0 0 4px rgba(239, 68, 68, 0.5)) brightness(1.6) !important;
+  color: #ffffff !important;
   text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 0px 0px 8px rgba(239, 68, 68, 0.95) !important;
 }
 
 .menu-btn-run:hover,
 .menu-btn-run:active {
   transform: scale(1.04);
-  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.95)) drop-shadow(0 0 2px rgba(16, 185, 129, 0.5)) brightness(1.2) !important;
-  color: #69db7c !important;
+  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.95)) drop-shadow(0 0 4px rgba(16, 185, 129, 0.5)) brightness(1.6) !important;
+  color: #ffffff !important;
   text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 0px 0px 8px rgba(16, 185, 129, 0.95) !important;
 }
 
 .menu-btn-record:hover,
 .menu-btn-record:active {
   transform: scale(1.04);
-  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.95)) drop-shadow(0 0 2px rgba(59, 130, 246, 0.5)) brightness(1.2) !important;
-  color: #74c0fc !important;
+  filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.95)) drop-shadow(0 0 4px rgba(59, 130, 246, 0.5)) brightness(1.6) !important;
+  color: #ffffff !important;
   text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 0px 0px 8px rgba(59, 130, 246, 0.95) !important;
 }
 
 .menu-btn-manual:hover,
 .menu-btn-manual:active {
   transform: scale(1.04);
-  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.95)) drop-shadow(0 0 2px rgba(245, 158, 11, 0.5)) brightness(1.2) !important;
-  color: #ffd43b !important;
+  filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.95)) drop-shadow(0 0 4px rgba(245, 158, 11, 0.5)) brightness(1.6) !important;
+  color: #ffffff !important;
   text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 0px 0px 8px rgba(245, 158, 11, 0.95) !important;
 }
 
 .menu-btn-favorites:hover,
 .menu-btn-favorites:active {
   transform: scale(1.04);
-  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.95)) drop-shadow(0 0 2px rgba(168, 85, 247, 0.5)) brightness(1.2) !important;
-  color: #d0bfff !important;
+  filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.95)) drop-shadow(0 0 4px rgba(168, 85, 247, 0.5)) brightness(1.6) !important;
+  color: #ffffff !important;
   text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 0px 0px 8px rgba(168, 85, 247, 0.95) !important;
 }
 

@@ -446,7 +446,7 @@ function App() {
       )}
 
       {view === 'playing' && (
-        <div className="App" style={{ width: '100%', height: '100%', position: 'relative' }}>
+        <div className="App" style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}>
           <ZombieMapApp
             key={gameMode + (reusedRoutePath ? '-reused' : '') + (isReplay ? '-replay' : '')}
             gameMode={gameMode}

@@ -338,18 +338,33 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
   // 지도를 클릭했을 때 실행되는 함수
   const handleMapClick = (target, mouseEvent) => {
-    // 게임 오버 상태거나 이미 다른 연산 중일 때의 예외 처리가 있다면 유지
-    if (isGameOver) return;
+    console.log("handleMapClick 진입 완료!", { target, hasMouseEvent: !!mouseEvent });
+    if (isGameOver) {
+      console.log("handleMapClick 중단: 게임 오버 상태입니다.");
+      return;
+    }
+
+    if (!mouseEvent) {
+      console.error("handleMapClick 에러: mouseEvent가 존재하지 않습니다.");
+      return;
+    }
 
     const latLng = mouseEvent.latLng;
+    if (!latLng) {
+      console.error("handleMapClick 에러: latLng 좌표를 얻지 못했습니다.");
+      return;
+    }
+
     const coords = {
       lat: latLng.getLat(),
       lng: latLng.getLng()
     };
+    console.log("목적지 좌표 임시 예약 완료:", coords);
 
     // 즉시 길찾기를 하지 않고, 좌표를 예약한 뒤 팝업을 띄웁니다.
     setPendingCoords(coords);
     setShowRouteConfirm(true);
+    console.log("setShowRouteConfirm(true) 호출 완료, 팝업 출력 예정!");
   };
 
 
@@ -506,6 +521,37 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   // 피트니스 데이터 측정용 Refs
   const gameStartTimeRef = useRef(null);
   const wasInDangerRef = useRef(false);
+
+
+
+  // 모바일 터치 및 클릭 프록시 콜백 Ref 선언 및 매 렌더링 시점 최신 값 바인딩
+  const mapClickCallbackRef = useRef();
+  mapClickCallbackRef.current = (mouseEvent) => {
+    try {
+      console.log("지도 네이티브 click 이벤트 감지됨!");
+      if (isGameOver || gameMode === 'record' || gameMode === 'survival') {
+        console.log("클릭 차단됨 - 게임오버/기록/서바이벌 중임", { isGameOver, gameMode });
+        return;
+      }
+      const latLng = mouseEvent.latLng;
+      if (!latLng) {
+        console.error("클릭한 위치의 latLng 좌표를 가져오지 못했습니다.");
+        return;
+      }
+      console.log(`클릭 좌표 접수: Lat=${latLng.getLat().toFixed(6)}, Lng=${latLng.getLng().toFixed(6)}`);
+
+      if (routePath && routePath.length > 0) {
+        console.log("경로가 이미 선택되어 있어 경로 재설정 확인창을 띄웁니다.");
+        setPendingDest(latLng);
+        setShowReconfirmPath(true);
+      } else {
+        console.log("신규 경로 수립 함수(handleMapClick)를 호출합니다.");
+        handleMapClick(null, mouseEvent);
+      }
+    } catch (err) {
+      console.error("mapClickCallbackRef 예외 발생!!!", err.message, err.stack);
+    }
+  };
 
   // "따라가기" 모드일 때 사용자 위치를 지도 중심에 동기화
   useEffect(() => {
@@ -1493,7 +1539,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   return (
     <div style={{
       width: '100%',
-      height: '100dvh',
+      height: '100%',
       position: 'relative',
       boxShadow: isLevelUpFlashing ? 'inset 0 0 50px rgba(239, 68, 68, 0.95)' : 'none',
       transition: 'box-shadow 0.15s ease-in-out',
@@ -1572,34 +1618,35 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       <Map
         center={mapCenter}
         isPanto={true} // 중심좌표 변경 시 부드럽게 이동(PanTo)하도록 설정
-        style={{ width: "100%", height: "100%" }}
+        style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
         level={4} // 초기 줌 레벨을 4로 조정하여 좀 더 넓은 시야 제공
-        onCreate={(map) => (mapRef.current = map)}
+        onCreate={(map) => {
+          mapRef.current = map;
+          
+          // 모바일 뷰포트 크기 꼬임으로 인한 상하단 1/3 영역 클릭 씹힘 카카오맵 고유 캔버스 갱신 버그 해결
+          setTimeout(() => {
+            if (map) {
+              map.relayout();
+            }
+          }, 350);
+
+          if (window.kakao && window.kakao.maps) {
+            window.kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
+              if (mapClickCallbackRef.current) {
+                mapClickCallbackRef.current(mouseEvent);
+              }
+            });
+          }
+        }}
         onDragStart={() => {
           setIsFollowingUser(false);
           setIsFollowingZombie(false);
         }} // 드래그 시작 시 모든 추적 모드 해제
-        onCenterChanged={(map) => {
-          // 지도가 움직이면 현재 중심 좌표를 상태에 반영 (스냅백 방지)
+        onDragEnd={(map) => {
+          // 드래그가 완전히 멈췄을 때만 중심 좌표를 상태에 반영하여 렉 유발 및 터치 씹힘을 완전히 해소
           const center = map.getCenter();
           setMapCenter({ lat: center.getLat(), lng: center.getLng() });
         }}
-        onClick={(_t, mouseEvent) => {
-          if (isGameOver || gameMode === 'record' || gameMode === 'survival') return; // 게임 오버 상태이거나 경로 기록/서바이벌 모드일 때는 클릭 무시
-
-          // [조건 체크] 이미 선택된 경로(routePath)가 존재하는지 확인
-          if (routePath && routePath.length > 0) {
-            // [수정] 자바스크립트 객체로 변환하지 않고, 카카오 고유의 latLng 객체 원본을 그대로 전달합니다.
-            setPendingDest(mouseEvent.latLng);
-
-            setShowReconfirmPath(true); // 경로 재확인 레이어 팝업 켜기
-          } else {
-            // 2. 처음 경로를 탐색하는 상태라면 ➔ 팝업 없이 바로 경로 찾기 실행
-            // 기존에 쓰시던 함수명이 onMapClick 이라면 아래 그대로 두시면 되고,
-            // 별도로 handleMapClick 함수를 만드셨다면 handleMapClick(mouseEvent.latLng) 으로 바꿔주세요!
-            handleMapClick(_t, mouseEvent);
-          }
-        }} // 카카오맵의 latLng 객체를 직접 전달
       >
         {userPosition && (
           <CustomOverlayMap position={userPosition} zIndex={1}>
@@ -1709,7 +1756,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           left: '20px',
           zIndex: 99999,
           background: 'rgba(15, 23, 42, 0.85)',
-          backdropFilter: 'blur(10px)',
+          /* backdropFilter: 'blur(10px)', */
           border: '1px solid rgba(30, 41, 59, 0.8)',
           borderRadius: '50%',
           width: '60px',
@@ -1841,13 +1888,16 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
 
       {/* --- [수정] 하단 좌측 (뒤로가기 버튼 위) 경로 즐겨찾기 토글 버튼 --- */}
-      <div style={{ position: 'absolute', bottom: '95px', left: '20px', zIndex: 30 }}>
-        <button
-          onClick={() => setShowFavorites(!showFavorites)}
-          title={`경로 히스토리/즐겨찾기 목록 보기 (${favorites.length})`}
-          style={{
-            backgroundColor: showFavorites ? '#4ade80' : 'rgba(30, 41, 59, 0.9)',
-            color: showFavorites ? '#0f172a' : '#4ade80',
+      <button
+        onClick={() => setShowFavorites(!showFavorites)}
+        title={`경로 히스토리/즐겨찾기 목록 보기 (${favorites.length})`}
+        style={{
+          position: 'absolute',
+          bottom: '95px',
+          left: '20px',
+          zIndex: 30,
+          backgroundColor: showFavorites ? '#4ade80' : 'rgba(30, 41, 59, 0.9)',
+          color: showFavorites ? '#0f172a' : '#4ade80',
 
             // 즐겨찾기만의 정체성을 위해 테두리 색상은 연두색(#4ade80) 유지
             border: '2px solid #4ade80',
@@ -1883,7 +1933,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             <line x1="9" y1="14" x2="13" y2="14"></line>
           </svg>
         </button>
-      </div>
 
       {/* --- [수정] 화면 정중앙으로 이동된 즐겨찾기 레이어 팝업 (모달 스타일) --- */}
       {showFavorites && (
@@ -2051,114 +2100,99 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       {/* --- [추가] 경로 탐색 최종 확인 레이어 팝업 --- */}
       {showRouteConfirm && (
         <div
-          onClick={() => {
-            setShowRouteConfirm(false);
-            setPendingCoords(null);
-          }}
+          onClick={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.65)', // 뒷배경을 어둡게 가림
-            backdropFilter: 'blur(4px)',           // 지도 화면 살짝 블러 처리
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1010,                             // 모든 HUD 및 즐겨찾기보다 위에 위치
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '300px',
+            backgroundColor: 'rgba(15, 23, 42, 0.98)',
+            border: '3px solid #ef4444',          // 좀비 게임에 어울리는 경고 레드 테두리
+            borderRadius: '12px',
+            padding: '24px',
+            textAlign: 'center',
+            boxShadow: '0 0 35px rgba(239, 68, 68, 0.65), 0 10px 30px rgba(0,0,0,0.9)', // 강력한 네온 레드 글로우 효과
+            color: 'white',
+            zIndex: 99999999,                          // 지도 레이어보다 무조건 위에 얹음
           }}
         >
-          <div
-            onClick={(e) => e.stopPropagation()} // 내부 상자 클릭 시 닫힘 방지
-            style={{
-              backgroundColor: 'rgba(15, 23, 42, 0.98)',
-              border: '2px solid #ef4444',          // 좀비 게임에 어울리는 경고 레드 테두리
-              borderRadius: '12px',
-              padding: '24px',
-              width: '300px',
-              textAlign: 'center',
-              boxShadow: '0 0 25px rgba(239, 68, 68, 0.4)', // 네온 레드 글로우 효과
-              color: 'white',
-              animation: 'fadeIn 0.2s ease-out'
-            }}
-          >
-            {/* 팝업 헤더 */}
-            <h3 style={{
-              margin: '0 0 14px 0',
-              color: '#ff3366',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px'
-            }}>
-              🚨 작전 경로 탐색
-            </h3>
+          {/* 팝업 헤더 */}
+          <h3 style={{
+            margin: '0 0 14px 0',
+            color: '#ff3366',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px'
+          }}>
+            🚨 작전 경로 탐색
+          </h3>
 
-            {/* 팝업 본문 */}
-            <p style={{ fontSize: '14px', color: '#cbd5e1', margin: '0 0 24px 0', lineHeight: '1.6' }}>
-              선택하신 지점으로 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>도보 탈출 경로</span>를<br />
-              분석하시겠습니까?
-              <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
-                (확인 시 좀비 추격 시뮬레이션이 재시작됩니다)
-              </span>
-            </p>
+          {/* 팝업 본문 */}
+          <p style={{ fontSize: '14px', color: '#cbd5e1', margin: '0 0 24px 0', lineHeight: '1.6' }}>
+            선택하신 지점으로 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>도보 탈출 경로</span>를<br />
+            분석하시겠습니까?
+            <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+              (확인 시 좀비 추격 시뮬레이션이 재시작됩니다)
+            </span>
+          </p>
 
-            {/* 팝업 버튼 영역 */}
-            <div style={{ display: 'flex', gap: '12px' }}>
-              {/* 거절 버튼 */}
-              <button
-                onClick={() => {
-                  setShowRouteConfirm(false);
-                  setPendingCoords(null); // 예약된 좌표 취소
-                }}
-                style={{
-                  flex: 1,
-                  backgroundColor: '#334155',
-                  color: '#94a3b8',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
-              >
-                취소
-              </button>
+          {/* 팝업 버튼 영역 */}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            {/* 거절 버튼 */}
+            <button
+              onClick={() => {
+                setShowRouteConfirm(false);
+                setPendingCoords(null); // 예약된 좌표 취소
+              }}
+              style={{
+                flex: 1,
+                backgroundColor: '#334155',
+                color: '#94a3b8',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '12px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              취소
+            </button>
 
-              {/* 수락 버튼 */}
-              <button
-                onClick={() => {
-                  if (pendingCoords) {
-                    // 원래 구현되어 있던 Tmap 길찾기 핵심 함수를 호출합니다.
-                    // (만약 기존 함수명이 다르면 startPathFinding 대신 해당 함수명을 적어주세요)
-                    startPathFinding(pendingCoords);
-                  }
-                  setShowRouteConfirm(false);
-                  setPendingCoords(null);
-                }}
-                style={{
-                  flex: 1,
-                  backgroundColor: '#4ade80', // 안정적인 연두색 서바이벌 컬러
-                  color: '#0f172a',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(74, 222, 128, 0.2)',
-                  transition: 'transform 0.1s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-              >
-                확인 (RUN)
-              </button>
-            </div>
+            {/* 수락 버튼 */}
+            <button
+              onClick={() => {
+                if (pendingCoords) {
+                  startPathFinding(pendingCoords);
+                }
+                setShowRouteConfirm(false);
+                setPendingCoords(null);
+              }}
+              style={{
+                flex: 1,
+                backgroundColor: '#4ade80', // 안정적인 연두색 서바이벌 컬러
+                color: '#0f172a',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '12px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(74, 222, 128, 0.2)',
+                transition: 'transform 0.1s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              확인 (RUN)
+            </button>
           </div>
         </div>
       )}
@@ -2372,13 +2406,13 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         <div
           onClick={() => setShowExitConfirm(false)}
           style={{
-            position: 'absolute',
+            position: 'fixed',
             top: 0,
             left: 0,
-            width: '100vw',
-            height: '100dvh',
+            right: 0,
+            bottom: 0,
             backgroundColor: 'rgba(0,0,0,0.6)',
-            zIndex: 200,
+            zIndex: 9999999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -2425,14 +2459,17 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             setShowReconfirmPath(false);
             setPendingDest(null);
           }}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           style={{
-            position: 'absolute',
+            position: 'fixed',
             top: 0,
             left: 0,
-            width: '100vw',
-            height: '100dvh',
+            right: 0,
+            bottom: 0,
             backgroundColor: 'rgba(0,0,0,0.6)',
-            zIndex: 200,
+            zIndex: 9999999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -2557,14 +2594,14 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             }, 100);
           }}
           style={{
-            position: 'absolute',
+            position: 'fixed',
             top: 0,
             left: 0,
-            width: '100vw',
-            height: '100dvh',
+            right: 0,
+            bottom: 0,
             backgroundColor: 'rgba(0,0,0,0.8)',
-            backdropFilter: 'blur(5px)',
-            zIndex: 2000,
+            /* backdropFilter: 'blur(5px)', */
+            zIndex: 9999999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -2783,7 +2820,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           gridTemplateRows: 'repeat(3, 1fr)',
           gridTemplateColumns: 'repeat(3, 1fr)',
           background: 'rgba(15, 23, 42, 0.72)',
-          backdropFilter: 'blur(6px)',
+          /* backdropFilter: 'blur(6px)', */
           border: '2px dashed #ef4444',
           borderRadius: '50%',
           boxShadow: '0 0 20px rgba(239, 68, 68, 0.45)',
@@ -2917,13 +2954,13 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         <div
           onClick={() => setShowSaveModal(false)}
           style={{
-            position: 'absolute',
+            position: 'fixed',
             top: 0,
             left: 0,
-            width: '100vw',
-            height: '100dvh',
+            right: 0,
+            bottom: 0,
             backgroundColor: 'rgba(0,0,0,0.6)',
-            zIndex: 200,
+            zIndex: 9999999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -3022,13 +3059,13 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         <div
           onClick={() => setShowCancelConfirm(false)}
           style={{
-            position: 'absolute',
+            position: 'fixed',
             top: 0,
             left: 0,
-            width: '100vw',
-            height: '100dvh',
+            right: 0,
+            bottom: 0,
             backgroundColor: 'rgba(0,0,0,0.6)',
-            zIndex: 250,
+            zIndex: 9999999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -3079,13 +3116,13 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             onExit();
           }}
           style={{
-            position: 'absolute',
+            position: 'fixed',
             top: 0,
             left: 0,
-            width: '100vw',
-            height: '100dvh',
+            right: 0,
+            bottom: 0,
             backgroundColor: 'rgba(0,0,0,0.6)',
-            zIndex: 250,
+            zIndex: 9999999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.wear.widget.BoxInsetLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#020617"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        app:layout_boxedEdges="all">
+
+        <!-- Hazard Icon & Warning Level -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:id="@+id/watch_hazard_icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="☣"
+                android:textColor="#eab308"
+                android:textSize="28sp"
+                android:layout_marginEnd="6dp" />
+
+            <TextView
+                android:id="@+id/watch_status_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SCANNING..."
+                android:textColor="#94a3b8"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1" />
+        </LinearLayout>
+
+        <!-- Zombie Distance Alert Card -->
+        <LinearLayout
+            android:id="@+id/watch_zombie_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="#111827"
+            android:padding="6dp"
+            android:layout_marginBottom="6dp"
+            android:backgroundTint="#1f2937">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ZOMBIE DISTANCE"
+                android:textColor="#94a3b8"
+                android:textSize="9sp"
+                android:letterSpacing="0.05" />
+
+            <TextView
+                android:id="@+id/watch_zombie_dist_val"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="---"
+                android:textColor="#eab308"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Runner Stats (Distance & Speed) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="4dp">
+
+            <!-- Run Dist -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="RUN"
+                    android:textColor="#64748b"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:id="@+id/watch_run_dist_val"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0.00km"
+                    android:textColor="#ffffff"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Vertical Separator -->
+            <View
+                android:layout_width="1dp"
+                android:layout_height="18dp"
+                android:background="#334155" />
+
+            <!-- Speed -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SPEED"
+                    android:textColor="#64748b"
+                    android:textSize="8sp" />
+
+                <TextView
+                    android:id="@+id/watch_speed_val"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0.0 km/h"
+                    android:textColor="#34d399"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+    </LinearLayout>
+</androidx.wear.widget.BoxInsetLayout>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.zombiesrun.app">
+
+    <uses-feature android:name="android.hardware.type.watch" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Zombies Run Watch"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+        
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="false" /> <!-- 폰 컴패니언 연동 모드 -->
+
+        <activity
+            android:name=".WatchMainActivity"
+            android:exported="true"
+            android:label="Zombies Run">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 폰 메시지를 수신 대기할 백그라운드 리스너 서비스 -->
+        <service
+            android:name=".WatchMessageListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <!-- 폰에서 보낼 특정 데이터 경로 필터링 -->
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/zombies_data" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>
