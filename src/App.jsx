@@ -538,24 +538,21 @@ function App() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: '16px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
                 backgroundColor: 'rgba(239, 68, 68, 0.15)',
                 border: '1.5px solid #ef4444',
-                fontSize: '11px',
-                fontWeight: 'bold',
-                color: '#ef4444',
+                fontSize: '16px',
                 cursor: 'pointer',
                 boxShadow: '0 0 10px rgba(239, 68, 68, 0.45)',
                 animation: 'onboardingCompassBlink 2.5s infinite alternate',
                 userSelect: 'none',
                 pointerEvents: 'auto',
-                zIndex: 99999,
-                padding: '4px 10px',
-                height: 'auto',
-                width: 'auto'
+                zIndex: 99999
               }}
             >
-              가이드
+              🧭
             </span>
           </h1>
           <div className="intro-content">

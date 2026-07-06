@@ -1,4 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import btnSurvivalBg from './assets/btn_survival_bg.png';
+import btnRunBg from './assets/btn_run_bg.png';
+import btnRecordBg from './assets/btn_record_bg.png';
+import btnManualBg from './assets/btn_manual_bg.png';
+
+const tabBackgrounds = {
+  survival: btnSurvivalBg,
+  run: btnRunBg,
+  record: btnRecordBg,
+  gear: btnManualBg
+};
 
 export default function ManualPage({ onBackToIntro }) {
   const [activeTab, setActiveTab] = useState('survival'); // 'survival' | 'run' | 'record' | 'gear'
@@ -19,20 +30,23 @@ export default function ManualPage({ onBackToIntro }) {
   };
 
   const handleTouchEnd = (e) => {
-    if (e.target.closest('.simulator-section') || e.target.closest('input') || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+    // 모의 훈련 시뮬레이터 슬라이더 등의 터치는 스와이프 탭 이동에서 제외
+    if (e.target.closest('.simulator-section') || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
       return;
     }
 
     const deltaX = touchStartX.current - touchEndX.current;
-    const swipeThreshold = 60;
+    const swipeThreshold = 60; // 스와이프 감지를 위한 최소 임계값 (px)
 
     const tabs = ['survival', 'run', 'record', 'gear'];
     const currentIndex = tabs.indexOf(activeTab);
 
     if (deltaX > swipeThreshold) {
+      // 오른쪽에서 왼쪽으로 스와이프 -> 다음 탭으로
       const nextIndex = Math.min(tabs.length - 1, currentIndex + 1);
       setActiveTab(tabs[nextIndex]);
     } else if (deltaX < -swipeThreshold) {
+      // 왼쪽에서 오른쪽으로 스와이프 -> 이전 탭으로
       const prevIndex = Math.max(0, currentIndex - 1);
       setActiveTab(tabs[prevIndex]);
     }
@@ -51,13 +65,15 @@ export default function ManualPage({ onBackToIntro }) {
     if (isAudioRunning) {
       startSyntheticZombieSound();
     }
-  }, []);
+  }, []); // 빈 배열로 한 번만 실행
 
+  // 실시간 거리 값을 루프 내에서 참조하기 위한 Ref
   const demoDistanceRef = useRef(demoDistance);
   useEffect(() => {
     demoDistanceRef.current = demoDistance;
   }, [demoDistance]);
 
+  // 데모 사운드 켜기/끄기 토글
   const toggleAudioDemo = () => {
     if (!isAudioRunning) {
       startSyntheticZombieSound();
@@ -68,6 +84,7 @@ export default function ManualPage({ onBackToIntro }) {
     }
   };
 
+  // Web Audio API로 가상의 좀비 소리 및 심장박동 음향 합성 (외부 파일 없이 작동 가능)
   const startSyntheticZombieSound = () => {
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -76,11 +93,13 @@ export default function ManualPage({ onBackToIntro }) {
       const ctx = new AudioContext();
       audioCtxRef.current = ctx;
 
+      // 1. 음산한 분위기 저주파 배경 노이즈 생성
       const ambGain = ctx.createGain();
       const ambOsc = ctx.createOscillator();
       ambOsc.type = 'sawtooth';
-      ambOsc.frequency.setValueAtTime(45, ctx.currentTime);
+      ambOsc.frequency.setValueAtTime(45, ctx.currentTime); // 아주 낮은 저음좀비 신음 느낌
 
+      // 저주파 필터로 웅웅거리게 조절
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(120, ctx.currentTime);
@@ -93,6 +112,7 @@ export default function ManualPage({ onBackToIntro }) {
       ambientOscRef.current = ambOsc;
       ambientGainRef.current = ambGain;
 
+      // 2. 심장박동(쿵쾅) 효과를 주기 위한 반복 루프 설정
       const beatGain = ctx.createGain();
       beatGain.connect(ctx.destination);
       heartbeatGainRef.current = beatGain;
@@ -100,19 +120,44 @@ export default function ManualPage({ onBackToIntro }) {
       setIsVibrating(true);
 
       const triggerHeartbeat = () => {
+        const now = ctx.currentTime;
         const currentDist = demoDistanceRef.current;
+
+        // 심장 소리 합성 (비활성화)
+        /*
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(60, now);
+        osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+        const oscGain = ctx.createGain();
+        oscGain.gain.setValueAtTime(0, now);
+        // 거리가 가까울수록 심박 소리가 강해짐
+        const rawVol = currentDist >= 50 ? 0 : (50 - currentDist) / 50;
+        oscGain.gain.linearRampToValueAtTime(Math.min(1.2, Math.pow(rawVol, 2) * 1.5 * 0.8), now + 0.05); // 최대 1.2
+        oscGain.gain.linearRampToValueAtTime(0, now + 0.3);
+
+        osc.connect(oscGain);
+        oscGain.connect(beatGain);
+        osc.start();
+        osc.stop(now + 0.35);
+        */
+
+        // 안드로이드 기기이고 진동 패턴 조건일 때 진동 발생
         if (navigator.vibrate) {
           if (currentDist <= 10) {
-            navigator.vibrate([200, 100, 200]);
+            navigator.vibrate([200, 100, 200]); // 좀 더 강한 진동 패턴
           } else if (currentDist <= 25) {
-            navigator.vibrate(100);
+            navigator.vibrate(100); // 인지 가능한 수준의 진동
           }
         }
       };
 
+      // 거리 변동에 따른 펄스 템포 조절 루프 시작
       const runPulse = () => {
         triggerHeartbeat();
-        const baseInterval = 1200;
+        // 거리가 가까울수록 템포(속도)가 빨라짐
+        const baseInterval = 1200; // 50m 이상일 때 1.2초마다 뜀
         const factor = Math.max(0.1, demoDistanceRef.current / 50);
         const nextTime = baseInterval * factor;
 
@@ -140,15 +185,18 @@ export default function ManualPage({ onBackToIntro }) {
     setIsVibrating(false);
   };
 
+  // 슬라이더 거리가 변경될 때 오디오 게인(볼륨) 및 연출 실시간 동적 매핑
   useEffect(() => {
     if (isAudioRunning && ambientGainRef.current && audioCtxRef.current) {
       const now = audioCtxRef.current.currentTime;
+      // 거리가 가까워질수록 저음 노이즈 볼륨 커짐 (50m 기준, 제곱 비례)
       const rawVol = demoDistance >= 50 ? 0 : (50 - demoDistance) / 50;
       const targetVolume = Math.max(0, Math.min(0.5, Math.pow(rawVol, 2) * 1.5));
       ambientGainRef.current.gain.linearRampToValueAtTime(targetVolume, now + 0.1);
     }
   }, [demoDistance, isAudioRunning]);
 
+  // 컴포넌트 언마운트 시 사운드 해제
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearTimeout(intervalRef.current);
@@ -164,209 +212,251 @@ export default function ManualPage({ onBackToIntro }) {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      style={{ background: '#020617', color: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}
     >
-      <div className="grid-overlay" style={{ pointerEvents: 'none' }}></div>
+      {/* 백그라운드 연출 격자 필터 */}
+      <div className="grid-overlay"></div>
 
-      {/* 상단 시스템 헤더 */}
-      <div className="manual-header" style={{ padding: '16px 20px', borderBottom: '1px solid rgba(239, 68, 68, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div className="status-indicator" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="dot-ping" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444' }}></span>
-          <p className="system-tag" style={{ margin: 0, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: '#ef4444', fontWeight: 'bold' }}>Tactical Guide</p>
+      {/* 상단 장식 헤더 */}
+      <div className="manual-header">
+        <div className="status-indicator">
+          <span className="dot-ping"></span>
+          <p className="system-tag">Apocalypse Survival Guide</p>
         </div>
-        <div className="version-tag" style={{ fontSize: '10px', color: '#64748b', fontFamily: 'Share Tech Mono' }}>SYS.VER 3.0</div>
+        <div className="version-tag">SYS.VER 2.5_KOR</div>
       </div>
 
-      {/* 메인 콘텐츠 바디 */}
-      <div className="manual-main-content" style={{ flex: 1, padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div>
-          <h1 className="manual-main-title" style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 6px 0', fontFamily: "'Black Han Sans', sans-serif", letterSpacing: '0.5px', color: '#ffffff' }}>
-            생존 지침서
+      {/* 중앙 메인 컨텐츠 영역 */}
+      <div className="manual-main-content">
+        {/* 타이틀 및 긴장감 유도 문구 */}
+        <div className="title-section">
+          <h1 className="manual-main-title">
+            ZOMBIES RUN : 생존 매뉴얼
           </h1>
-          <p className="manual-subtitle" style={{ margin: 0, fontSize: '13px', color: '#94a3b8', lineHeight: '1.4' }}>
-            좀비 아포칼립스 상황에서 실시간으로 대처하기 위한 핵심 전술 수칙입니다.
+          <p className="manual-subtitle">
+            스마트폰 너머로 숨죽여 덮쳐오는 생존의 현장을 지휘하세요.
           </p>
         </div>
 
-        {/* 심플 탭 네비게이션 */}
-        <div className="tab-nav" style={{ display: 'flex', gap: '4px', backgroundColor: 'rgba(0, 0, 0, 0.4)', padding: '4px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-          {[
-            { id: 'survival', label: '무한생존' },
-            { id: 'run', label: '지정탈출' },
-            { id: 'record', label: '경로개척' },
-            { id: 'gear', label: '감지센서' }
-          ].map((tab) => {
-            const isSelected = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  if (navigator.vibrate) navigator.vibrate(15);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '10px 0',
-                  borderRadius: '6px',
-                  backgroundColor: isSelected ? '#ef4444' : 'transparent',
-                  color: isSelected ? '#ffffff' : '#94a3b8',
-                  border: 'none',
-                  fontSize: '13px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  textAlign: 'center'
-                }}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
+        {/* 탭 네비게이션 */}
+        <div className="tab-nav">
+          <button
+            onClick={() => setActiveTab('survival')}
+            className={`tab-btn ${activeTab === 'survival' ? 'active-survival' : ''}`}
+          >
+            <span>🧟<br />SURVIVAL<br />모드</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('run')}
+            className={`tab-btn ${activeTab === 'run' ? 'active-run' : ''}`}
+          >
+            <span>🏃<br />RUN<br />모드</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('record')}
+            className={`tab-btn ${activeTab === 'record' ? 'active-record' : ''}`}
+          >
+            <span>🗺️<br />경로<br />만들기</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('gear')}
+            className={`tab-btn ${activeTab === 'gear' ? 'active-gear' : ''}`}
+          >
+            <span>📡<br />전술<br />피드백</span>
+          </button>
         </div>
 
-        {/* 탭 본문 내용 영역 (배경 이미지를 걷어내고 심플하고 세련된 다크 테마 적용) */}
         <div 
           className="manual-content-box"
           style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.65)',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
-            borderRadius: '12px',
-            padding: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.7)'
+            backgroundImage: `linear-gradient(to bottom, rgba(9, 13, 24, 0.35), rgba(2, 6, 23, 0.62)), url(${tabBackgrounds[activeTab]})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            transition: 'background-image 0.4s ease'
           }}
         >
-          {/* TAB 1: SURVIVAL */}
+
+          {/* TAB 1: SURVIVAL MODE */}
           {activeTab === 'survival' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.15)', paddingBottom: '10px' }}>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '17px', color: '#ef4444', fontFamily: "'Black Han Sans', sans-serif" }}>무한 생존 수칙</h3>
-                <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>목적지 없이 움직인 발자취를 추격해오는 좀비로부터 생존하십시오.</p>
+            <div className="tab-pane-content">
+              <div className="pane-header">
+                <div>
+                  <h3 style={{ color: '#ef4444' }}>SURVIVAL: 실시간 추격</h3>
+                  <p className="pane-desc">내 실제 발자취를 추격해오는 좀비로부터 무한히 생존하세요.</p>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px', lineHeight: '1.5', color: '#cbd5e1' }}>
-                <div style={{ paddingLeft: '12px', borderLeft: '2px solid #ef4444' }}>
-                  <strong style={{ color: '#ffffff', display: 'block', marginBottom: '2px' }}>발자국 추적 메커니즘</strong>
-                  사용자가 이동하며 남긴 고유의 궤적 라인을 좀비가 그대로 뒤쫓아옵니다.
+              <div className="info-grid">
+                <div className="info-card" style={{ borderColor: '#ef4444' }}>
+                  <h4 style={{ color: '#ef4444' }}>👣 이동 궤적 추적 (발자국 따라오기)</h4>
+                  <p>정해진 탈출구는 없습니다. 사용자가 실제 거리를 이동하며 남긴 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>붉은색 발자국 라인</span>을 따라 좀비가 소환되어 그대로 뒤따라옵니다.</p>
                 </div>
-                <div style={{ paddingLeft: '12px', borderLeft: '2px solid #ef4444' }}>
-                  <strong style={{ color: '#ffffff', display: 'block', marginBottom: '2px' }}>성장 및 가속 조건</strong>
-                  30m 이상 좀비를 따돌릴 경우 좀비가 성장하며 추격 속도가 점진적으로 가속됩니다. 30m 이내로 들어와야 가속도가 초기화됩니다.
+                <div className="info-card" style={{ borderColor: '#ef4444' }}>
+                  <h4 style={{ color: '#ef4444' }}>⚡ 좀비 경험치 및 실시간 레벨업</h4>
+                  <p>좀비는 버틴 시간 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>3초당 1 XP</span> 및 유저 이동 거리 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>5m당 1 XP</span>를 누적합산해 성장합니다. 사용자와 거리가 <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>30m 이상 벌어지면</span> 실시간 가속 경험치가 누적되며, 30m 이내로 거리를 좁히면 해당 레벨의 누적 경험치가 0으로 초기화됩니다.</p>
                 </div>
-                <div style={{ paddingLeft: '12px', borderLeft: '2px solid #ef4444' }}>
-                  <strong style={{ color: '#ffffff', display: 'block', marginBottom: '2px' }}>비상 구급 상자</strong>
-                  사망 시 30초의 광고 시청을 완료하면 안전거리 밖으로 좀비를 철수시키고 즉시 1회 부활합니다.
+
+              </div>
+              <div className="advice-box" style={{ borderColor: '#ef4444' }}>
+                <p style={{ fontSize: '0.8rem', lineHeight: '1.4' }}><strong style={{ color: '#ef4444' }}>🏥 비상 구급 상자 (리워드형 부활)</strong><br /> 좀비에게 5m 이내로 잡혀 사망하기 직전, 단 한 번의 생존 보급 기회가 주어집니다. <span style={{ color: '#ef4444', fontWeight: 'bold' }}>30초 동영상 광고 시청</span>을 완료하면 해당 레벨과 위치에서 좀비를 안전거리 바깥으로 퇴거시킨 후 즉시 부활하여 질주를 이어갈 수 있습니다.</p>
+              </div>
+              <div className="advice-box" style={{ borderColor: '#ef4444', padding: '8px 12px' }}>
+                <p style={{ fontSize: '0.8rem', lineHeight: '1.4' }}><strong style={{ color: '#ef4444' }}>🚨 생존 수칙:</strong> 좀비가 5m 이내로 오면 사망합니다. 거리를 좁히면(30m 이내) 속도가 증가하지 않으니 골목길을 활용해 따돌리며 생존하세요.</p>
+              </div>
+
+              <div className="simulator-section" style={{ borderTop: '1px solid rgba(239, 68, 68, 0.3)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
+                <h4 style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: '0.4rem', fontWeight: 'bold' }}>🧟 실시간 좀비 감염 변이 도감</h4>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                  fontSize: '0.75rem',
+                  color: '#cbd5e1',
+                  background: 'rgba(2, 6, 23, 0.9)',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  padding: '8px 12px',
+                  lineHeight: '1.4'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '3px' }}>
+                    <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>Lv.1~5 정상 인간</span>
+                    <span>🧍 🧍‍♂️ 🏃 ➡️ 평범한 생존자 상태</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '3px' }}>
+                    <span style={{ color: '#fb923c', fontWeight: 'bold' }}>Lv.6~12 감염 초기</span>
+                    <span>🥵 🤒 🤢 ➡️ 이상 고열, 기침 및 오한</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '3px' }}>
+                    <span style={{ color: '#f87171', fontWeight: 'bold' }}>Lv.13~20 세포 괴사</span>
+                    <span>🤮 💀 ⚰️ ➡️ 신체 붕괴 및 가사(임사)</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '3px' }}>
+                    <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Lv.21~30 좀비 각성</span>
+                    <span>🧟 🧟‍♂️ 🧟‍♀️ ➡️ 본능적 인육 갈구, 추격 개시</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '3px' }}>
+                    <span style={{ color: '#c084fc', fontWeight: 'bold' }}>Lv.31~45 변종 괴수</span>
+                    <span>😈 👹 👺 ➡️ 신체 한계 해제, 흉포한 변이</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '3px' }}>
+                    <span style={{ color: '#f43f5e', fontWeight: 'bold' }}>Lv.46~49 초월 군체</span>
+                    <span>⚡ ☢️ ☣️ ➡️ 전자기적 변이, 폭발적 가속</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#facc15', fontWeight: 'bold' }}>Lv.50 아포칼립스 킹</span>
+                    <span>👑 ➡️ 언데드를 조종하는 최종 숙주</span>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 2: RUN */}
+          {/* TAB 2: RUN MODE */}
           {activeTab === 'run' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.15)', paddingBottom: '10px' }}>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '17px', color: '#ef4444', fontFamily: "'Black Han Sans', sans-serif" }}>지정 탈출 수칙</h3>
-                <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>설정한 목적지에 좀비보다 먼저 도달하여 탈출구로 진입하십시오.</p>
+            <div className="tab-pane-content">
+              <div className="pane-header">
+                <div>
+                  <h3 style={{ color: '#4ade80' }}>RUN: 코스 도보 탈출</h3>
+                  <p className="pane-desc">미리 설정한 탈출로를 따라 좀비보다 먼저 골인 지점에 도달하세요.</p>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px', lineHeight: '1.5', color: '#cbd5e1' }}>
-                <div style={{ paddingLeft: '12px', borderLeft: '2px solid #ef4444' }}>
-                  <strong style={{ color: '#ffffff', display: 'block', marginBottom: '2px' }}>목적지 지정</strong>
-                  지도 화면을 터치하여 도착 지점을 설정하면 해당 거점까지의 경로가 실시간 활성화됩니다.
+              <div className="info-grid">
+                <div className="info-card" style={{ borderColor: '#4ade80' }}>
+                  <h4 style={{ color: '#4ade80' }}>📍 작전 경로 개척 (목적지 설정)</h4>
+                  <p>지도를 클릭하여 탈출 목적지(<span style={{ color: '#f43f5e', fontWeight: 'bold' }}>붉은색 플래그 🚩</span>)를 지정하면, 목적지까지의 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>최적의 도보 경로(초록색선)</span>가 지도에 자동으로 생성됩니다.</p>
                 </div>
-                <div style={{ paddingLeft: '12px', borderLeft: '2px solid #ef4444' }}>
-                  <strong style={{ color: '#ffffff', display: 'block', marginBottom: '2px' }}>동시 출발 승부</strong>
-                  좀비는 경로의 시작점에서 스폰되어 목표 지점으로 동일하게 이동합니다. 좀비보다 먼저 15m 지점 안쪽으로 통과해야 승리합니다.
+                <div className="info-card" style={{ borderColor: '#4ade80' }}>
+                  <h4 style={{ color: '#4ade80' }}>🏁 선착순 골인 승부</h4>
+                  <p>좀비가 경로의 시작점(Start)에서 생성되어 가이드 경로를 타고 추적을 시작합니다. 좀비보다 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>먼저 목적지 15m 이내에 골인</span>하면 승리, 가로막히거나 좀비가 먼저 골인하면 패배합니다.</p>
                 </div>
-                <div style={{ paddingLeft: '12px', borderLeft: '2px solid #ef4444' }}>
-                  <strong style={{ color: '#ffffff', display: 'block', marginBottom: '2px' }}>조정 가능한 난이도</strong>
-                  시작 전 좀비의 기동 속도를 1부터 50레벨 범위 내에서 자유롭게 조정하여 훈련 강도를 세팅할 수 있습니다.
-                </div>
+              </div>
+
+              <div className="advice-box" style={{ borderColor: '#4ade80' }}>
+                <p><strong style={{ color: '#4ade80' }}>🏃 훈련 조언:</strong> 시작 전 HUD 슬라이더를 통해 좀비의 추격 속도(1~50)를 임의로 조절할 수 있습니다. 자신의 런닝 속도에 맞는 적절한 속도로 난이도를 맞추어 탈출 작전을 승리로 이끄세요.</p>
               </div>
             </div>
           )}
 
-          {/* TAB 3: RECORD */}
+          {/* TAB 3: RECORD MODE */}
           {activeTab === 'record' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.15)', paddingBottom: '10px' }}>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '17px', color: '#ef4444', fontFamily: "'Black Han Sans', sans-serif" }}>경로 개척 수칙</h3>
-                <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>도심 속 자주 달리는 본인의 기동 코스를 기록해 탈출로로 활용하십시오.</p>
+            <div className="tab-pane-content">
+              <div className="pane-header">
+                <div>
+                  <h3 style={{ color: '#c084fc' }}>RECORD: 경로 개척</h3>
+                  <p className="pane-desc">직접 안전 코스를 도보로 이동하며 나만의 시그니처 대피로를 개척합니다.</p>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px', lineHeight: '1.5', color: '#cbd5e1' }}>
-                <div style={{ paddingLeft: '12px', borderLeft: '2px solid #ef4444' }}>
-                  <strong style={{ color: '#ffffff', display: 'block', marginBottom: '2px' }}>GPS 경로 매핑</strong>
-                  기록을 활성화한 채로 이동하면, 3m 단위로 좌표가 축적되어 독창적인 작전 경로로 기록됩니다.
+              <div className="info-grid">
+                <div className="info-card" style={{ borderColor: '#c084fc' }}>
+                  <h4 style={{ color: '#c084fc' }}>📡 실시간 GPS 경로 매핑</h4>
+                  <p>작전 지역을 실제로 직접 걸어 다니며 <span style={{ color: '#c084fc', fontWeight: 'bold' }}>실시간 GPS 경로</span>를 지도 위에 그립니다. 최소 3미터 이상 걷거나 달릴 때마다 경로 포인트가 정확히 누적 기록됩니다.</p>
                 </div>
-                <div style={{ paddingLeft: '12px', borderLeft: '2px solid #ef4444' }}>
-                  <strong style={{ color: '#ffffff', display: 'block', marginBottom: '2px' }}>작전 경로 보관소 저장</strong>
-                  완성된 경로는 고유 네이밍을 지정해 즐겨찾기에 등록할 수 있으며, 차후 탈출 훈련 모드에서 즉시 활성화할 수 있습니다.
+                <div className="info-card" style={{ borderColor: '#c084fc' }}>
+                  <h4 style={{ color: '#c084fc' }}>⭐ 기록 보관소 유기적 연동</h4>
+                  <p>기록이 끝난 경로는 맞춤 이름을 지정하여 즐겨찾기로 저장합니다. 이 저장된 경로는 <span style={{ fontWeight: 'bold', color: '#f1f5f9' }}>기록 보관소</span>에서 탭 한 번으로 <span className="highlight-green">즉시 런 모드로 플레이</span>하거나, <span className="highlight-red">서바이벌 모드</span>의 길잡이 가이드선으로 불러올 수 있습니다.</p>
                 </div>
+              </div>
+
+              <div className="advice-box" style={{ borderColor: '#c084fc' }}>
+                <p><strong style={{ color: '#c084fc' }}>💡 생존 응용팁:</strong> 대낮이나 안전한 이동 시간에 거주지 근처 공원, 자주 다니는 조깅 코스, 소방 대피로 등을 미리 기록하여 즐겨찾기에 보관해두면 다양한 생존 가상 훈련을 완성할 수 있습니다.</p>
               </div>
             </div>
           )}
 
-          {/* TAB 4: GEAR */}
+          {/* TAB 4: GEAR GUIDE */}
           {activeTab === 'gear' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.15)', paddingBottom: '10px' }}>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '17px', color: '#ef4444', fontFamily: "'Black Han Sans', sans-serif" }}>감지 센서 피드백</h3>
-                <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>청각과 촉각 피드백을 통해 보이지 않는 좀비의 근접을 기민하게 파악하십시오.</p>
+            <div className="tab-pane-content">
+              <div className="pane-header">
+                <div>
+                  <h3 className="text-cyan">SENSOR: 다차원 피드백</h3>
+                  <p className="pane-desc">청각, 촉각, 시각 정보를 이용해 좀비의 근접을 본능적으로 감지합니다.</p>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px', lineHeight: '1.5', color: '#cbd5e1' }}>
-                <div style={{ paddingLeft: '12px', borderLeft: '2px solid #ef4444' }}>
-                  <strong style={{ color: '#ffffff', display: 'block', marginBottom: '2px' }}>소음 경보 시스템</strong>
-                  좀비가 50m 반경 내로 접근하면 고유의 괴성 사운드가 커지기 시작합니다.
+              <div className="info-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <div className="info-card" style={{ borderColor: '#22d3ee' }}>
+                  <h4 style={{ color: '#22d3ee' }}>📢 포효 사운드 & 비주얼 경고</h4>
+                  <p>50m 이내로 들어오면 소리가 증폭되며, <strong>25m 이내 근접 시 화면 테두리가 붉은색으로 번쩍</strong>이며 경고합니다.</p>
                 </div>
-                <div style={{ paddingLeft: '12px', borderLeft: '2px solid #ef4444' }}>
-                  <strong style={{ color: '#ffffff', display: 'block', marginBottom: '2px' }}>위험 감지 햅틱</strong>
-                  좀비가 25m 이내로 진입 시 약한 햅틱 진동이, 10m 이내 극도로 근접했을 때는 더블 임팩트 진동이 울립니다. (안드로이드 전용)
+                <div className="info-card" style={{ borderColor: '#22d3ee' }}>
+                  <h4 style={{ color: '#22d3ee' }}>📳 햅틱 감지 & 뷰 컨트롤</h4>
+                  <p><strong>25m 이내 약한 진동, 10m 이내 강렬한 더블 진동</strong>이 발생합니다. 우측 하단의 🏃, 🧟, 🚩 버튼으로 손쉽게 시점을 고정할 수 있습니다.</p>
                 </div>
-                <div style={{ paddingLeft: '12px', borderLeft: '2px solid #ef4444' }}>
-                  <strong style={{ color: '#ffffff', display: 'block', marginBottom: '2px' }}>화면 테두리 섬광</strong>
-                  25m 위험 구역에 진입하면 디스플레이 전면 가장자리에 붉은색 경고 섬광 효과가 작동해 즉각적인 인지를 돕습니다.
-                </div>
+              </div>
+
+              <div className="compatibility-footer">
+                <p>
+                  <span>✓ Audio: 전체 기기 지원</span><br />
+                  <span>✓ Vibration: 안드로이드 OS 전용</span>
+                </p>
               </div>
             </div>
           )}
 
-          {/* 모의 훈련 패널 (이모지 및 조잡한 보더 칼라 정리, 시크한 테마 적용) */}
-          <div className="simulator-section" style={{ borderTop: '1px solid rgba(239, 68, 68, 0.25)', marginTop: '8px', paddingTop: '16px' }}>
-            <div className="simulator-panel" style={{ backgroundColor: 'rgba(0,0,0,0.4)', padding: '14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div className="simulator-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+          {/* 하단 시뮬레이터 */}
+          <div className="simulator-section">
+            <div className="simulator-panel">
+              <div className="simulator-header">
                 <div className="simulator-info">
-                  <span className="sim-badge" style={{ display: 'inline-block', fontSize: '9px', textTransform: 'uppercase', color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', marginBottom: '3px' }}>Simulator</span>
-                  <h4 style={{ margin: 0, fontSize: '13px', color: '#ffffff', fontWeight: 'bold' }}>피드백 모의 훈련</h4>
+                  <span className="sim-badge">Tactical Simulator</span>
+                  <h4>피드백 모의 훈련</h4>
                 </div>
                 <button
                   onClick={toggleAudioDemo}
                   className={`sim-toggle-btn ${isAudioRunning ? 'running' : ''}`}
-                  style={{
-                    backgroundColor: isAudioRunning ? '#ef4444' : 'rgba(255,255,255,0.05)',
-                    color: isAudioRunning ? '#ffffff' : '#94a3b8',
-                    border: isAudioRunning ? 'none' : '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: '6px',
-                    padding: '6px 12px',
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
                 >
-                  {isAudioRunning ? '센서 비활성화' : '좀비 탐지 센서 작동'}
+                  {isAudioRunning ? '🔈 센서 비활성화' : '🔊 좀비 탐지 센서 작동'}
                 </button>
               </div>
 
-              <div className="sim-controls" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className="sim-controls">
                 <div className="sim-slider-wrapper">
-                  <div className="slider-labels" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginBottom: '6px', fontFamily: 'Share Tech Mono' }}>
+                  <div className="slider-labels">
                     <span>패닉 (0m)</span>
-                    <span className="current-dist" style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '13px' }}>{demoDistance}m</span>
-                    <span>안전 구역 (60m)</span>
+                    <span className="current-dist">{demoDistance}m</span>
+                    <span>안전</span>
                   </div>
                   <input
                     type="range"
@@ -374,64 +464,44 @@ export default function ManualPage({ onBackToIntro }) {
                     max="60"
                     value={demoDistance}
                     onChange={(e) => setDemoDistance(Number(e.target.value))}
-                    style={{
-                      width: '100%',
-                      background: 'linear-gradient(to right, #ea580c, #ef4444)',
-                      height: '6px',
-                      borderRadius: '3px',
-                      outline: 'none',
-                      WebkitAppearance: 'none',
-                      cursor: 'pointer'
-                    }}
+                    className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500"
                   />
                 </div>
 
-                <div className="sim-display" style={{ backgroundColor: 'rgba(0,0,0,0.5)', padding: '10px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
-                  <div className="display-inner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span className="display-label" style={{ fontSize: '11px', color: '#64748b' }}>피드백 시그널</span>
-                    <div className="display-value" style={{ fontFamily: 'Share Tech Mono', fontWeight: 'bold', fontSize: '13px' }}>
+                <div className="sim-display">
+                  <div className="display-inner">
+                    <span className="display-label">Sensory Feedback</span>
+                    <div className="display-value">
                       {demoDistance <= 5 ? (
-                        <span style={{ color: '#ef4444' }}>위험: 추격 사망</span>
+                        <span className="val-critical">🧟 GAME OVER</span>
                       ) : demoDistance <= 15 ? (
-                        <span style={{ color: '#f97316' }}>위험: 경보 수준 최고</span>
+                        <span className="val-danger">☠️ 극강 경고</span>
                       ) : demoDistance <= 35 ? (
-                        <span style={{ color: '#facc15' }}>주의: 개체 감지됨</span>
+                        <span className="val-warning">⚠ 감지됨</span>
                       ) : (
-                        <span style={{ color: '#10b981' }}>정상: 탐지 영역 밖</span>
+                        <span className="val-safe">✓ 안전</span>
                       )}
                     </div>
                   </div>
                 </div>
+
               </div>
             </div>
           </div>
+
         </div>
       </div>
 
       {/* 하단 시작하기 전용 메인 액션 버튼 */}
-      <div className="manual-footer" style={{ padding: '20px', borderTop: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+      <div className="manual-footer">
         <button
           onClick={() => {
             stopSyntheticZombieSound();
             onBackToIntro();
           }}
           className="back-btn-main"
-          style={{
-            width: '100%',
-            backgroundColor: '#ef4444',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '14px',
-            fontSize: '15px',
-            fontFamily: "'Black Han Sans', sans-serif",
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(239, 68, 68, 0.35)',
-            letterSpacing: '0.5px',
-            textAlign: 'center'
-          }}
         >
-          훈련 종료, 메인으로 이동
+          훈련 종료, 전장 진입 ➔
         </button>
       </div>
     </div>
