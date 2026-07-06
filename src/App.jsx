@@ -291,12 +291,21 @@ function App() {
     };
   }, []);
 
+  // --- 최초 접속 시 온보딩 노출 여부 판단 ---
+  useEffect(() => {
+    const hasSeen = localStorage.getItem('hasSeenOnboarding');
+    if (!hasSeen) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
   // --- 목표 거리 & 다이얼 셋업 상태 ---
   const [targetDistance, setTargetDistance] = useState(0.0); // 목표 달리기 거리 (km)
   const [showSurvivalSetup, setShowSurvivalSetup] = useState(false); // 서바이벌 셋업 레이어 유무
   const [showAppExitConfirm, setShowAppExitConfirm] = useState(false); // 앱 종료 확인 팝업 유무
   const showAppExitConfirmRef = useRef(false);
   const showSurvivalSetupRef = useRef(false);
+  const showOnboardingRef = useRef(false);
 
   useEffect(() => {
     showAppExitConfirmRef.current = showAppExitConfirm;
@@ -305,6 +314,10 @@ function App() {
   useEffect(() => {
     showSurvivalSetupRef.current = showSurvivalSetup;
   }, [showSurvivalSetup]);
+
+  useEffect(() => {
+    showOnboardingRef.current = showOnboarding;
+  }, [showOnboarding]);
 
   // 화면 전환 및 브라우저 히스토리 관리
   const navigate = (newView) => {
@@ -352,6 +365,12 @@ function App() {
     const backButtonListener = CapApp.addListener('backButton', () => {
       const currentView = viewRef.current;
       console.log("안드로이드 하드웨어 뒤로가기 감지. 현재 뷰:", currentView);
+
+      // 온보딩이 켜져 있을 때는 localStorage 저장 안 하고 온보딩창만 닫음
+      if (showOnboardingRef.current) {
+        setShowOnboarding(false);
+        return;
+      }
 
       // 하위 컴포넌트(ZombieMapApp, FavoritesPage)에서 뒤로가기 이벤트를 소비했을 때 우선 리턴
       if (handleHardwareBackRef.current) {
@@ -519,21 +538,24 @@ function App() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
+                borderRadius: '16px',
                 backgroundColor: 'rgba(239, 68, 68, 0.15)',
                 border: '1.5px solid #ef4444',
-                fontSize: '16px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                color: '#ef4444',
                 cursor: 'pointer',
                 boxShadow: '0 0 10px rgba(239, 68, 68, 0.45)',
                 animation: 'onboardingCompassBlink 2.5s infinite alternate',
                 userSelect: 'none',
                 pointerEvents: 'auto',
-                zIndex: 99999
+                zIndex: 99999,
+                padding: '4px 10px',
+                height: 'auto',
+                width: 'auto'
               }}
             >
-              🧭
+              가이드
             </span>
           </h1>
           <div className="intro-content">
@@ -631,7 +653,7 @@ function App() {
                       className="hud-reset-btn"
                       style={{ flex: 1, backgroundColor: '#f43f5e', color: 'white', border: 'none', fontWeight: 'bold' }}
                     >
-                      질주 시작 🏃‍♂️
+                      질주 시작
                     </button>
                   </div>
                 </div>
@@ -702,8 +724,7 @@ function App() {
               <div className="onboarding-sub-title">ZOMBIES, RUN</div>
               <h2 className="onboarding-main-title">달리지 않으면<br />죽는다</h2>
               <p className="onboarding-desc-text">
-                <strong style={{ color: '#ffffff' }}>3미터 이동 후 바로 출발.</strong><br />
-                좀비는 당신의 실제 발자국을 따라옵니다.
+                <strong style={{ color: '#ffffff' }}>좀비는 당신의 실제 발자국을 따라옵니다.</strong><br />
               </p>
             </div>
 

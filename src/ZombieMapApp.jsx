@@ -1556,11 +1556,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             right: '12px',
             zIndex: 1010,
             backgroundColor: '#ef4444',
-            border: '1.5px solid rgba(255,255,255,0.2)',
-            borderRadius: '8px',
+            border: '1px solid #ef4444',
+            borderRadius: '20px',
             color: '#fff',
-            padding: '6px 10px',
-            fontSize: '0.75rem',
+            padding: '6px 14px',
+            fontSize: '0.8rem',
             fontWeight: 'bold',
             cursor: 'pointer',
             display: 'flex',
@@ -1570,7 +1570,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             transition: 'all 0.2s'
           }}
         >
-          🛠️ 테스트 모드 OFF
+          테스트 종료
         </button>
       )}
 
@@ -1766,13 +1766,14 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '32px',
+          fontSize: '15px',
+          fontWeight: 'bold',
           cursor: 'pointer',
           color: '#ef4444',
           boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)'
         }}
       >
-        🔙
+        이전
       </button>
 
       {/* 현재 위치로 이동 버튼 (화면 좌측 가운데 정렬) */}
@@ -1804,7 +1805,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '32px',
+          fontSize: '15px',
+          fontWeight: 'bold',
           cursor: 'pointer',
           boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)',
           transition: 'all 0.2s',
@@ -1812,7 +1814,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         }}
         title="사용자 위치 추적"
       >
-        🏃
+        나
       </button>
 
       {/* 좀비 추적 ON/OFF 버튼 (화면 좌측 가운데 정렬) */}
@@ -1844,7 +1846,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '32px',
+          fontSize: '15px',
+          fontWeight: 'bold',
           cursor: 'pointer',
           boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)',
           transition: 'all 0.2s',
@@ -1852,7 +1855,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         }}
         title="좀비 위치 추적"
       >
-        {getZombieEmoji(selectedZombieSpeed)}
+        좀비
       </button>
 
       {/* 경로 시작점으로 이동 버튼 (화면 좌측 가운데 정렬) */}
@@ -1882,7 +1885,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '32px',
+          fontSize: '15px',
+          fontWeight: 'bold',
           cursor: 'pointer',
           boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)',
           transition: 'all 0.2s',
@@ -1890,7 +1894,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         }}
         title="경로 시작점으로 이동"
       >
-        🚩
+        경로
       </button>
 
 
@@ -1915,7 +1919,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '28px',
+          fontSize: '15px',
+          fontWeight: 'bold',
           cursor: 'pointer',
           boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)',
           transition: 'all 0.2s',
@@ -1923,7 +1928,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           outline: 'none'
         }}
       >
-        💾
+        기록
       </button>
 
       {/* --- [수정] 화면 정중앙으로 이동된 즐겨찾기 레이어 팝업 (모달 스타일) --- */}
@@ -2085,14 +2090,15 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                         style={{
                           backgroundColor: 'transparent',
                           border: 'none',
-                          color: '#64748b',
+                          color: '#f43f5e',
                           cursor: 'pointer',
-                          fontSize: '15px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
                           padding: '4px',
                         }}
                         title="삭제"
                       >
-                        &times;
+                        삭제
                       </button>
                     </div>
                   </li>
@@ -2311,7 +2317,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             {isMapDragging ? (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
                 <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#ef4444', fontFamily: "'Black Han Sans', sans-serif", letterSpacing: '0.5px' }}>
-                  🧭 지도를 탐색하고 있습니다...
+                  지도를 탐색하고 있습니다...
                 </span>
               </div>
             ) : (
@@ -2338,7 +2344,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                       gap: '4px'
                     }}
                   >
-                    💾 저장된 경로
+                    저장된 경로
                   </button>
                 </div>
 
@@ -2463,14 +2469,14 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                       const distUserToDest = userPosition ? calculateDistance(userPosition.lat, userPosition.lng, destination.lat, destination.lng) : '...';
                       const zPos = zombiePosition || routePath[0];
                       const distZombieToDest = calculateDistance(zPos.lat, zPos.lng, destination.lat, destination.lng);
-                      return `🏃 나: ${distUserToDest}m | 🧟 좀비: ${distZombieToDest}m`;
+                      return `나: ${distUserToDest}m | 좀비: ${distZombieToDest}m`;
                     })()
                   ) : (
                     "경로 설정 중..."
                   )
                 ) : (
                   recordedPath.length > 0 ? (
-                    `🧟 좀비와의 거리: ${distance !== null ? `${distance}m` : countdown} · Lv.${zombieProgress.level}`
+                    `좀비와의 거리: ${distance !== null ? `${distance}m` : countdown} · Lv.${zombieProgress.level}`
                   ) : (
                     "탈출구 탐색 중..."
                   )
@@ -2486,7 +2492,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                 <div className="hud-main-display" style={{ padding: '8px 0', border: 'none', background: 'none', boxShadow: 'none' }}>
                   {isGameOver ? (
                     <span style={{ color: gameResult === 'win' ? '#10b981' : '#ef4444', fontWeight: '900', fontSize: '1.1rem', fontFamily: "'Black Han Sans', sans-serif" }}>
-                      {gameResult === 'win' ? '탈출 성공! 🏃‍♂️' : (gameMode === 'run' ? '좀비가 먼저 도착함! 🧟' : '좀비에게 잡혔습니다! 💀')}
+                      {gameResult === 'win' ? '탈출 성공!' : (gameMode === 'run' ? '좀비가 먼저 도착함!' : '좀비에게 잡혔습니다!')}
                     </span>
                   ) : (
                     <div className="hud-distance-text" style={{ fontSize: '0.95rem', color: '#f1f5f9', fontWeight: 'bold' }}>
@@ -2554,7 +2560,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                 {gameMode === 'survival' ? (
                   <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px' }}>
                     <span className="hud-label" style={{ fontSize: '0.8rem', color: '#ef4444', fontWeight: 'bold' }}>
-                      🧟 좀비 레벨: <strong style={{ fontSize: '0.95rem', marginLeft: '4px' }}>Lv.{zombieProgress.level}</strong> (EXP: {zombieProgress.xp}/{getNextLevelXp(zombieProgress.level)})
+                      좀비 레벨: <strong style={{ fontSize: '0.95rem', marginLeft: '4px' }}>Lv.{zombieProgress.level}</strong> (EXP: {zombieProgress.xp}/{getNextLevelXp(zombieProgress.level)})
                       <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: '8px', fontWeight: 'normal' }}>
                         (최고: Lv.{maxZombieLevel})
                       </span>
@@ -2654,7 +2660,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                       letterSpacing: '0.5px'
                     }}
                   >
-                    🚨 재추격 시작 (RESTART)
+                    재추격 시작 (RESTART)
                   </button>
                 )}
               </>
