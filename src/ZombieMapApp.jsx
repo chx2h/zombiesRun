@@ -1952,34 +1952,32 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           }}
         >
           <div
-            onClick={(e) => e.stopPropagation()} // 내부 클릭 시 닫힘 방지
+            onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: 'rgba(15, 23, 42, 0.98)', // 중앙 팝업 집중도를 위해 살짝 더 어둡고 불투명하게 조정
-              border: '2px solid #334155',
+              backgroundColor: 'rgba(0, 0, 0, 0.98)',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
               borderRadius: '12px',
-              width: '320px', // 화면 중앙 레이아웃에 맞춰 가로폭을 살짝 늘림
+              width: '320px',
               maxHeight: '420px',
               overflowY: 'auto',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.7)',
-              padding: '16px',
+              boxShadow: '0 0 25px rgba(239, 68, 68, 0.45), 0 20px 40px rgba(0,0,0,0.95)',
+              padding: '20px',
               color: 'white'
             }}
           >
             <h4 style={{
-              margin: '0 0 12px 0',
-              borderBottom: '1px solid #334155',
-              paddingBottom: '8px',
-              fontSize: '15px',
-              color: '#cbd5e1',
+              margin: '0 0 16px 0',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+              paddingBottom: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              color: '#ffffff',
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'center',
+              fontFamily: "'Black Han Sans', sans-serif"
             }}>
-              <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span>📋 저장된 탐색 경로</span>
-                <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'normal' }}>이름 클릭 시 수정 가능</span>
-              </span>
-              {/* 팝업 닫기 버튼 추가 */}
+              <span>저장된 탐색 경로</span>
               <button
                 onClick={() => setShowFavorites(false)}
                 style={{
@@ -1987,13 +1985,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                   border: 'none',
                   color: '#94a3b8',
                   cursor: 'pointer',
-                  fontSize: '18px',
-                  padding: '4px',
+                  fontSize: '20px',
+                  padding: '2px',
                   lineHeight: '1'
                 }}
-                title="닫기"
               >
-                ✕
+                &times;
               </button>
             </h4>
 
@@ -2002,27 +1999,21 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                 아직 기록된 경로가 없습니다.<br />지도를 클릭하여 경로를 만들어보세요!
               </div>
             ) : (
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {/* 🔍 favorites 앞에 [...favorites].sort(...) 를 추가하여 ID(시간)가 큰 순서대로 정렬합니다. */}
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {[...favorites].sort((a, b) => b.id - a.id).map((fav) => (
                   <li
                     key={fav.id}
-                    onClick={() => loadFavoriteRoute(fav)}
                     style={{
-                      backgroundColor: 'rgba(30, 41, 59, 0.6)',
-                      border: '1px solid #475569',
-                      borderRadius: '6px',
-                      padding: '10px',
-                      cursor: 'pointer',
+                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      borderRadius: '8px',
+                      padding: '12px',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      transition: 'background-color 0.2s',
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(51, 65, 85, 0.8)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(30, 41, 59, 0.6)'}
                   >
-                    <div style={{ flex: 1, marginRight: '8px', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ flex: 1, marginRight: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {editingId === fav.id ? (
                         <input
                           type="text"
@@ -2034,61 +2025,84 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                             if (e.key === 'Escape') setEditingId(null);
                           }}
                           autoFocus
-                          onClick={(e) => e.stopPropagation()} // 인풋 클릭 시 경로 로드 방지
+                          onClick={(e) => e.stopPropagation()}
                           style={{
                             width: '100%',
                             backgroundColor: '#1e293b',
-                            border: '1px solid #4ade80',
+                            border: '1px solid #ef4444',
                             color: 'white',
                             borderRadius: '4px',
-                            padding: '2px 6px',
+                            padding: '4px 8px',
                             fontSize: '13px',
                             outline: 'none'
                           }}
                         />
                       ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                          <span
-                            onClick={(e) => startEditing(e, fav)}
-                            title="클릭하여 이름 수정"
-                            style={{
-                              fontSize: '13px',
-                              fontWeight: 'bold',
-                              color: '#f8fafc',
-                              borderBottom: '1px dashed #64748b',
-                              paddingBottom: '1px',
-                              alignSelf: 'flex-start'
-                            }}
-                          >
-                            {fav.title}
-                          </span>
-                          {fav.isCustom ? (
-                            <span style={{ fontSize: '9px', backgroundColor: '#2563eb', color: 'white', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>직접 기록</span>
-                          ) : (
-                            <span style={{ fontSize: '9px', backgroundColor: '#334155', color: '#94a3b8', padding: '1px 4px', borderRadius: '4px', fontWeight: 'normal', whiteSpace: 'nowrap' }}>조회 경로</span>
-                          )}
-                        </div>
+                        <span
+                          onClick={(e) => startEditing(e, fav)}
+                          title="탭하여 이름 수정"
+                          style={{
+                            fontSize: '14px',
+                            fontWeight: 'bold',
+                            color: '#ffffff',
+                            cursor: 'pointer',
+                            display: 'inline-block'
+                          }}
+                        >
+                          {fav.title}
+                        </span>
                       )}
-                      <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-                        📍 웨이포인트: {fav.routePath.length}개 포인트
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>
+                        {(() => {
+                          let total = 0;
+                          const path = fav.routePath || [];
+                          for (let i = 0; i < path.length - 1; i++) {
+                            total += calculateDistance(path[i].lat, path[i].lng, path[i + 1].lat, path[i + 1].lng);
+                          }
+                          return (total / 1000).toFixed(1);
+                        })()}km · {new Date(fav.id).toISOString().split('T')[0].replace(/-/g, '.')}
                       </span>
                     </div>
 
-                    {/* 삭제 버튼 */}
-                    <button
-                      onClick={(e) => deleteFavorite(e, fav.id)}
-                      style={{
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        color: '#ef4444',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        padding: '4px',
-                      }}
-                      title="삭제"
-                    >
-                      🗑️
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button
+                        onClick={() => {
+                          loadFavoriteRoute(fav);
+                          setShowFavorites(false);
+                          triggerTickVibration();
+                        }}
+                        style={{
+                          backgroundColor: 'transparent',
+                          border: '1px solid #ef4444',
+                          color: '#ef4444',
+                          padding: '6px 12px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        불러오기
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteFavorite(e, fav.id);
+                        }}
+                        style={{
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          color: '#64748b',
+                          cursor: 'pointer',
+                          fontSize: '15px',
+                          padding: '4px',
+                        }}
+                        title="삭제"
+                      >
+                        &times;
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -2287,118 +2301,312 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           </div>
         </div>
       ) : (
-        <div className="hud-container">
-          <div className="hud-header" onClick={handleDebugTap} style={{ cursor: 'pointer' }}>
-            <div className="hud-mode-tag">MODE: {gameMode.toUpperCase()}</div>
-            <div className="hud-status-dot"></div>
-          </div>
+        gameMode === 'run' && routePath.length === 0 ? (
+          <div className="hud-container" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* 타이틀 및 저장된 경로 버튼 행 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#ffffff', fontFamily: "'Black Han Sans', sans-serif" }}>경로를 지정하세요</span>
+              <button 
+                onClick={() => {
+                  setShowFavorites(true);
+                  triggerTickVibration();
+                }}
+                style={{
+                  backgroundColor: 'rgba(30, 41, 59, 0.4)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  color: '#e2e8f0',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                💾 저장된 경로
+              </button>
+            </div>
 
-          <div className="hud-main-display">
-            {isGameOver ? (
-              <span style={{ color: gameResult === 'win' ? '#44ff44' : '#ef4444', fontWeight: '900', fontSize: '1rem' }}>
-                {gameResult === 'win' ? '탈출 성공!' : (gameMode === 'run' ? '좀비가 먼저 도착함!' : '잡혔습니다!')}
-              </span>
-            ) : (
-              <div className="hud-distance-text">
-                {gameMode === 'run' ? ( // RUN 모드일 때
-                  routePath.length > 0 ? ( // 경로가 설정되었으면 목적지까지의 거리 표시
-                    (() => {
-                      const destination = routePath[routePath.length - 1];
-                      const distUserToDest = userPosition ? calculateDistance(userPosition.lat, userPosition.lng, destination.lat, destination.lng) : '...';
-                      const zPos = zombiePosition || routePath[0];
-                      const distZombieToDest = calculateDistance(zPos.lat, zPos.lng, destination.lat, destination.lng);
-                      return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <div>나의 목적지까지: {distUserToDest}m</div>
-                          <div>좀비의 목적지까지: {distZombieToDest}m</div>
-                        </div>
-                      );
-                    })()
-                  ) : ( // 경로가 설정되지 않았으면 안내 문구
-                    <span>경로를 지정하세요</span>
-                  )
-                ) : ( // SURVIVAL 모드일 때
-                  recordedPath.length > 0 ? ( // 경로가 설정되었으면 좀비와의 거리 표시
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
-                      <div>
-                        좀비와의 거리: {distance !== null ? `${distance}m` : countdown}
-                      </div>
-                      {targetDistance > 0 && (() => {
-                        let total = 0;
-                        for (let i = 0; i < recordedPath.length - 1; i++) {
-                          total += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i + 1].lat, recordedPath[i + 1].lng);
-                        }
-                        const runDistKm = total / 1000;
-                        const remainingDist = Math.max(0, targetDistance - runDistKm);
-                        const progressPercent = Math.min(100, (runDistKm / targetDistance) * 100);
-                        return (
-                          <>
-                            <div style={{ fontSize: '0.8rem', color: '#a1a1aa', marginTop: '2px' }}>
-                              목표: {targetDistance.toFixed(1)}km (누적: {runDistKm.toFixed(2)}km, 남음: {remainingDist.toFixed(2)}km)
-                            </div>
-                            <div className="hud-progress-bar-container">
-                              <div className="hud-progress-bar-fill" style={{ width: `${progressPercent}%` }} />
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  ) : (
-                    <span>탈출구 찾는 중...</span>
-                  )
-                )}
+            {/* 좀비 속도 조절 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', color: '#94a3b8' }}>좀비 속도</span>
+                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#ffffff', fontFamily: 'Share Tech Mono' }}>
+                  {selectedZombieSpeed}/50 · <strong style={{ color: selectedZombieSpeed <= 12 ? '#10b981' : selectedZombieSpeed <= 25 ? '#f59e0b' : selectedZombieSpeed <= 39 ? '#f97316' : '#ef4444' }}>
+                    {selectedZombieSpeed <= 12 ? '느긋' : selectedZombieSpeed <= 25 ? '보통' : selectedZombieSpeed <= 39 ? '빠름' : '광란'}
+                  </strong>
+                </span>
               </div>
-            )}
-          </div>
+              <div className="onboarding-slider-wrapper" style={{ margin: 0 }}>
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="50" 
+                  value={selectedZombieSpeed}
+                  onChange={(e) => {
+                    setSelectedZombieSpeed(Number(e.target.value));
+                    triggerTickVibration();
+                  }}
+                  className="onboarding-speed-slider"
+                  style={{
+                    width: '100%',
+                    background: 'linear-gradient(to right, #ea580c, #ef4444)',
+                    height: '6px',
+                    borderRadius: '3px',
+                    outline: 'none',
+                    WebkitAppearance: 'none'
+                  }}
+                />
+                <div className="onboarding-slider-captions" style={{ marginTop: '4px' }}>
+                  <span>1 느긋</span>
+                  <span>50 광란</span>
+                </div>
+              </div>
+            </div>
 
-          {gameMode === 'survival' ? (
-            <>
-              <div className="hud-control-row" style={{ justifyContent: 'center', padding: '4px 0' }}>
-                <span className="hud-label" style={{ fontSize: '0.8rem', color: '#ef4444' }}>
+            {/* 좀비 발생 시간 선택 가로 버튼 세트 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ fontSize: '13px', color: '#94a3b8' }}>좀비 발생 시간</span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {[
+                  { label: '즉시', value: 0 },
+                  { label: '10초', value: 10 },
+                  { label: '30초', value: 30 },
+                  { label: '60초', value: 60 }
+                ].map((item) => {
+                  const isSelected = selectedSpawnDelay === item.value;
+                  return (
+                    <button
+                      key={item.value}
+                      onClick={() => {
+                        setSelectedSpawnDelay(item.value);
+                        triggerTickVibration();
+                      }}
+                      style={{
+                        flex: 1,
+                        backgroundColor: isSelected ? '#ef4444' : 'rgba(30, 41, 59, 0.4)',
+                        color: '#ffffff',
+                        border: isSelected ? 'none' : '1px solid rgba(255, 255, 255, 0.15)',
+                        borderRadius: '8px',
+                        padding: '10px 0',
+                        fontSize: '13px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 하단 메인 작전 경로 탐색 가이드 버튼 */}
+            <button 
+              style={{
+                width: '100%',
+                backgroundColor: '#ef4444',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '14px',
+                fontSize: '15px',
+                fontFamily: "'Black Han Sans', sans-serif",
+                cursor: 'default',
+                boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)',
+                opacity: 0.9,
+                marginTop: '4px'
+              }}
+            >
+              작전 경로 탐색
+            </button>
+          </div>
+        ) : (
+          <div className="hud-container" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="hud-header" onClick={handleDebugTap} style={{ cursor: 'pointer', margin: 0, paddingBottom: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <div className="hud-mode-tag" style={{ color: '#ef4444', fontFamily: "'Black Han Sans', sans-serif" }}>MODE: {gameMode.toUpperCase()}</div>
+              <div className="hud-status-dot" style={{ backgroundColor: '#ef4444' }}></div>
+            </div>
+
+            <div className="hud-main-display" style={{ padding: '8px 0', border: 'none', background: 'none', boxShadow: 'none' }}>
+              {isGameOver ? (
+                <span style={{ color: gameResult === 'win' ? '#10b981' : '#ef4444', fontWeight: '900', fontSize: '1.1rem', fontFamily: "'Black Han Sans', sans-serif" }}>
+                  {gameResult === 'win' ? '탈출 성공! 🏃‍♂️' : (gameMode === 'run' ? '좀비가 먼저 도착함! 🧟' : '좀비에게 잡혔습니다! 💀')}
+                </span>
+              ) : (
+                <div className="hud-distance-text" style={{ fontSize: '0.95rem', color: '#f1f5f9', fontWeight: 'bold' }}>
+                  {gameMode === 'run' ? (
+                    routePath.length > 0 ? (
+                      (() => {
+                        const destination = routePath[routePath.length - 1];
+                        const distUserToDest = userPosition ? calculateDistance(userPosition.lat, userPosition.lng, destination.lat, destination.lng) : '...';
+                        const zPos = zombiePosition || routePath[0];
+                        const distZombieToDest = calculateDistance(zPos.lat, zPos.lng, destination.lat, destination.lng);
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>나의 남은 거리</span>
+                              <span style={{ color: '#ef4444', fontFamily: 'Share Tech Mono', fontSize: '1.05rem' }}>{distUserToDest}m</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: '0.85rem', fontWeight: 'normal' }}>
+                              <span>좀비의 남은 거리</span>
+                              <span style={{ fontFamily: 'Share Tech Mono' }}>{distZombieToDest}m</span>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <span>경로를 지정하세요</span>
+                    )
+                  ) : (
+                    recordedPath.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>좀비와의 거리</span>
+                          <span style={{ color: '#ef4444', fontSize: '1.2rem', fontFamily: 'Share Tech Mono', fontWeight: '900' }}>
+                            {distance !== null ? `${distance}m` : countdown}
+                          </span>
+                        </div>
+                        {targetDistance > 0 && (() => {
+                          let total = 0;
+                          for (let i = 0; i < recordedPath.length - 1; i++) {
+                            total += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i + 1].lat, recordedPath[i + 1].lng);
+                          }
+                          const runDistKm = total / 1000;
+                          const remainingDist = Math.max(0, targetDistance - runDistKm);
+                          const progressPercent = Math.min(100, (runDistKm / targetDistance) * 100);
+                          return (
+                            <>
+                              <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px', display: 'flex', justifyContent: 'space-between', fontWeight: 'normal' }}>
+                                <span>목표: {targetDistance.toFixed(1)}km</span>
+                                <span>누적: {runDistKm.toFixed(2)}km (남음: {remainingDist.toFixed(2)}km)</span>
+                              </div>
+                              <div className="hud-progress-bar-container" style={{ height: '6px', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '3px', overflow: 'hidden', marginTop: '4px' }}>
+                                <div className="hud-progress-bar-fill" style={{ width: `${progressPercent}%`, height: '100%', backgroundColor: '#ef4444', transition: 'width 0.3s ease' }} />
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <span>탈출구 찾는 중...</span>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+
+            {gameMode === 'survival' ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px' }}>
+                <span className="hud-label" style={{ fontSize: '0.8rem', color: '#ef4444', fontWeight: 'bold' }}>
                   🧟 좀비 레벨: <strong style={{ fontSize: '0.95rem', marginLeft: '4px' }}>Lv.{zombieProgress.level}</strong> (EXP: {zombieProgress.xp}/{getNextLevelXp(zombieProgress.level)})
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: '8px' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: '8px', fontWeight: 'normal' }}>
                     (최고: Lv.{maxZombieLevel})
                   </span>
                 </span>
               </div>
-              {/*
-                <span className="hud-label" style={{ fontSize: '0.8rem', color: '#ef4444' }}>
-                  🧟 좀비 레벨: <strong style={{ fontSize: '0.95rem', marginLeft: '4px' }}>Lv.{zombieLevel}</strong> (EXP: {zombieXp}/{getNextLevelXp(zombieLevel)})
-            </div>
-              */}
-            </>
-          ) : (
-            /* 다른 모드는 기존 슬라이더 유지 */
-            <div className="hud-control-row">
-              <label className="hud-label">좀비 속도 ({selectedZombieSpeed}/50)</label>
-              <input
-                type="range"
-                min="1"
-                max="50"
-                value={selectedZombieSpeed}
-                onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))}
-                style={{ flexGrow: 1, accentColor: '#f43f5e' }}
-              />
-            </div>
-          )}
+            ) : (
+              /* 좀비 속도 슬라이더 리뉴얼 */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '13px', color: '#94a3b8' }}>좀비 속도</span>
+                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#ffffff', fontFamily: 'Share Tech Mono' }}>
+                    {selectedZombieSpeed}/50 · <strong style={{ color: selectedZombieSpeed <= 12 ? '#10b981' : selectedZombieSpeed <= 25 ? '#f59e0b' : selectedZombieSpeed <= 39 ? '#f97316' : '#ef4444' }}>
+                      {selectedZombieSpeed <= 12 ? '느긋' : selectedZombieSpeed <= 25 ? '보통' : selectedZombieSpeed <= 39 ? '빠름' : '광란'}
+                    </strong>
+                  </span>
+                </div>
+                <div className="onboarding-slider-wrapper" style={{ margin: 0 }}>
+                  <input 
+                    type="range" 
+                    min="1" 
+                    max="50" 
+                    value={selectedZombieSpeed}
+                    onChange={(e) => {
+                      setSelectedZombieSpeed(Number(e.target.value));
+                      triggerTickVibration();
+                    }}
+                    className="onboarding-speed-slider"
+                    style={{
+                      width: '100%',
+                      background: 'linear-gradient(to right, #ea580c, #ef4444)',
+                      height: '6px',
+                      borderRadius: '3px',
+                      outline: 'none',
+                      WebkitAppearance: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
 
-          <div className="hud-control-row">
-            <label className="hud-label">좀비 발생 시간</label>
-            <select className="hud-select" value={selectedSpawnDelay} onChange={(e) => setSelectedSpawnDelay(Number(e.target.value))}>
-              <option value={0}>즉시</option>
-              <option value={10}>10초</option>
-              <option value={30}>30초</option>
-              <option value={60}>60초</option>
-            </select>
-          </div>
+            {/* 좀비 발생 시간 선택 버튼 세트 리뉴얼 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ fontSize: '13px', color: '#94a3b8' }}>좀비 발생 시간</span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {[
+                  { label: '즉시', value: 0 },
+                  { label: '10초', value: 10 },
+                  { label: '30초', value: 30 },
+                  { label: '60초', value: 60 }
+                ].map((item) => {
+                  const isSelected = selectedSpawnDelay === item.value;
+                  return (
+                    <button
+                      key={item.value}
+                      onClick={() => {
+                        setSelectedSpawnDelay(item.value);
+                        triggerTickVibration();
+                      }}
+                      style={{
+                        flex: 1,
+                        backgroundColor: isSelected ? '#ef4444' : 'rgba(30, 41, 59, 0.4)',
+                        color: '#ffffff',
+                        border: isSelected ? 'none' : '1px solid rgba(255, 255, 255, 0.15)',
+                        borderRadius: '6px',
+                        padding: '8px 0',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-          {//((gameMode === 'survival' && recordedPath.length > 0) || (gameMode !== 'survival' && routePath.length > 0)) && (
-            ((gameMode !== 'survival' && routePath.length > 0)) && (
-              <button onClick={handleResetZombie} className="hud-reset-btn">
-                RESTART PURSUIT
+            {((gameMode !== 'survival' && routePath.length > 0)) && (
+              <button 
+                onClick={() => {
+                  handleResetZombie();
+                  triggerTickVibration();
+                }} 
+                className="hud-reset-btn"
+                style={{
+                  margin: '4px 0 0 0',
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '12px',
+                  fontWeight: 'bold',
+                  fontSize: '13px',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
+                  cursor: 'pointer',
+                  letterSpacing: '0.5px'
+                }}
+              >
+                🚨 재추격 시작 (RESTART)
               </button>
             )}
-        </div>
+          </div>
+        )
       )}
 
       {/* 종료 확인 레이어 */}

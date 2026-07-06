@@ -253,6 +253,16 @@ const SurvivalDialPicker = ({ value, onChange }) => {
 };
 
 function App() {
+  // --- [신규 추가] 최초 접속 사용자 가이드 온보딩 상태 ---
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [selectedZombieSpeed, setSelectedZombieSpeed] = useState(14); // 기획안의 기본값인 14로 초기값 세팅
+
+  const closeOnboarding = () => {
+    localStorage.setItem('hasSeenOnboarding', 'true');
+    localStorage.setItem('survival_zombieSpeed', selectedZombieSpeed.toString());
+    localStorage.setItem('run_zombieSpeed', selectedZombieSpeed.toString());
+    setShowOnboarding(false);
+  };
   const [view, setView] = useState('intro');
   const [showWebSplash, setShowWebSplash] = useState(true);
   const [splashFadeOut, setSplashFadeOut] = useState(false);
@@ -492,11 +502,44 @@ function App() {
 
       {view === 'intro' && (
         <div className="App intro-screen zoom-in-effect" style={{ backgroundImage: `url(${mainImg})`, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
-          <h1 className="intro-main-title">Zombies Run</h1>
+          <h1 className="intro-main-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+            Zombies Run
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowOnboarding(true);
+                triggerTickVibration();
+              }}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                setShowOnboarding(true);
+                triggerTickVibration();
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                border: '1.5px solid #ef4444',
+                fontSize: '16px',
+                cursor: 'pointer',
+                boxShadow: '0 0 10px rgba(239, 68, 68, 0.45)',
+                animation: 'onboardingCompassBlink 2.5s infinite alternate',
+                userSelect: 'none',
+                pointerEvents: 'auto',
+                zIndex: 99999
+              }}
+            >
+              🧭
+            </span>
+          </h1>
           <div className="intro-content">
             <div className="intro-menu">
-              <button 
-                className="menu-btn start-button menu-btn-survival" 
+              <button
+                className="menu-btn start-button menu-btn-survival"
                 style={{ backgroundImage: `url(${btnSurvivalBg})` }}
                 onClick={() => {
                   setReusedRoutePath(null);
@@ -508,8 +551,8 @@ function App() {
               >
                 SURVIVAL
               </button>
-              <button 
-                className="menu-btn start-button menu-btn-run" 
+              <button
+                className="menu-btn start-button menu-btn-run"
                 style={{ backgroundImage: `url(${btnRunBg})` }}
                 onClick={() => {
                   setReusedRoutePath(null);
@@ -520,8 +563,8 @@ function App() {
               >
                 RUN
               </button>
-              <button 
-                className="menu-btn start-button menu-btn-record" 
+              <button
+                className="menu-btn start-button menu-btn-record"
                 style={{ backgroundImage: `url(${btnRecordBg})` }}
                 onClick={() => {
                   setReusedRoutePath(null);
@@ -532,15 +575,15 @@ function App() {
               >
                 경로 만들기
               </button>
-              <button 
-                className="menu-btn start-button menu-btn-manual" 
+              <button
+                className="menu-btn start-button menu-btn-manual"
                 style={{ backgroundImage: `url(${btnManualBg})` }}
                 onClick={() => navigate('manual')}
               >
                 생존 매뉴얼
               </button>
-              <button 
-                className="menu-btn menu-btn-favorites" 
+              <button
+                className="menu-btn menu-btn-favorites"
                 style={{ backgroundImage: `url(${btnFavoritesBg})` }}
                 onClick={() => navigate('favorites')}
               >
@@ -642,8 +685,147 @@ function App() {
           </div>
         </div>
       )}
+      {/* 🧭 최초 접속 사용자 가이드 온보딩 화면 */}
+      {showOnboarding && (
+        <div className="onboarding-overlay" onClick={closeOnboarding}>
+          <div className="onboarding-container" onClick={(e) => e.stopPropagation()}>
+            {/* 상단 헤더 */}
+            <div className="onboarding-header">
+              <span className="onboarding-guide-tag">● SURVIVAL GUIDE</span>
+              <button className="onboarding-skip-btn" onClick={closeOnboarding}>
+                건너뛰기 &times;
+              </button>
+            </div>
+
+            {/* 메인 카피 */}
+            <div className="onboarding-title-section">
+              <div className="onboarding-sub-title">ZOMBIES, RUN</div>
+              <h2 className="onboarding-main-title">달리지 않으면<br />죽는다</h2>
+              <p className="onboarding-desc-text">
+                <strong style={{ color: '#ffffff' }}>3미터 이동 후 바로 출발.</strong><br />
+                좀비는 당신의 실제 발자국을 따라옵니다.
+              </p>
+            </div>
+
+            {/* 01 - 핵심 규칙 */}
+            <div className="onboarding-section">
+              <div className="onboarding-sec-label">01 - 핵심 규칙</div>
+              <div className="onboarding-sec-content" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ flex: 1, paddingRight: '12px' }}>
+                  <h4 className="onboarding-sec-title">5m 안에 잡히면 <span className="text-highlight-red">사망</span></h4>
+                  <p className="onboarding-sec-desc">
+                    30m 밖으로 벌리면 좀비가 <strong style={{ color: '#ff4d4d' }}>레벨업</strong>합니다.<br />
+                    골목으로 꺾어 따돌리세요.
+                  </p>
+                </div>
+                {/* 우측 좀비 추격 미니 일러스트 SVG */}
+                <div className="onboarding-svg-wrapper">
+                  <svg width="85" height="70" viewBox="0 0 85 70" fill="none">
+                    <path d="M12,60 Q25,50 20,32 T60,28 T70,8" stroke="#ef4444" strokeWidth="2.5" strokeDasharray="5,4" strokeLinecap="round" />
+                    <circle cx="12" cy="60" r="5.5" fill="#ef4444" />
+                    <circle cx="17" cy="58" r="3.5" fill="#ef4444" opacity="0.7" />
+                    <circle cx="11" cy="53" r="3" fill="#ef4444" opacity="0.5" />
+                    <circle cx="70" cy="8" r="6" fill="#ffffff" />
+                    <circle cx="70" cy="8" r="10" stroke="#ffffff" strokeWidth="1" opacity="0.4" className="onboarding-pulse-ring" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* 02 - 게임 모드 */}
+            <div className="onboarding-section">
+              <div className="onboarding-sec-label">02 - 게임 모드</div>
+              <div className="onboarding-mode-list">
+                <div className="onboarding-mode-row">
+                  <div className="onboarding-mode-name">SURVIVAL</div>
+                  <div className="onboarding-mode-info">
+                    <h5 className="onboarding-mode-title">무한 추격 생존</h5>
+                    <p className="onboarding-mode-desc">내 발자취를 쫓는 좀비를 최대한 오래 따돌리기</p>
+                  </div>
+                </div>
+                <div className="onboarding-mode-row">
+                  <div className="onboarding-mode-name">RUN</div>
+                  <div className="onboarding-mode-info">
+                    <h5 className="onboarding-mode-title">목적지 레이스</h5>
+                    <p className="onboarding-mode-desc">지도에 목적지를 찍고 좀비보다 먼저 도착하면 승리</p>
+                  </div>
+                </div>
+                <div className="onboarding-mode-row">
+                  <div className="onboarding-mode-name">RECORD</div>
+                  <div className="onboarding-mode-info">
+                    <h5 className="onboarding-mode-title">나만의 탈출로</h5>
+                    <p className="onboarding-mode-desc">직접 걸어 코스를 저장하고 두 모드에 불러 쓰기</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 03 - 감각 경고 */}
+            <div className="onboarding-section">
+              <div className="onboarding-sec-label">03 - 감각 경고</div>
+              <div className="onboarding-alert-grid">
+                <div className="onboarding-alert-col">
+                  <div className="onboarding-alert-dist dist-orange">50m</div>
+                  <div className="onboarding-alert-text">포효 사운드</div>
+                </div>
+                <div className="onboarding-alert-col">
+                  <div className="onboarding-alert-dist dist-red">25m</div>
+                  <div className="onboarding-alert-text">화면 붉은 경고</div>
+                </div>
+                <div className="onboarding-alert-col">
+                  <div className="onboarding-alert-dist dist-critical">10m</div>
+                  <div className="onboarding-alert-text">강한 진동</div>
+                </div>
+              </div>
+            </div>
+
+            {/* 04 - 좀비 속도 조절 */}
+            <div className="onboarding-section">
+              <div className="onboarding-sec-label" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                <span>04 - 좀비 속도</span>
+                <span className="onboarding-speed-badge">
+                  {selectedZombieSpeed}/50 · <strong className="speed-text-highlight" style={{
+                    color: selectedZombieSpeed <= 12 ? '#10b981' : selectedZombieSpeed <= 25 ? '#f59e0b' : selectedZombieSpeed <= 39 ? '#f97316' : '#ef4444'
+                  }}>
+                    {getSpeedLabel(selectedZombieSpeed)}
+                  </strong>
+                </span>
+              </div>
+              <div className="onboarding-slider-wrapper">
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  value={selectedZombieSpeed}
+                  onChange={(e) => {
+                    setSelectedZombieSpeed(parseInt(e.target.value));
+                    triggerTickVibration();
+                  }}
+                  className="onboarding-speed-slider"
+                />
+                <div className="onboarding-slider-captions">
+                  <span>1 느긋</span>
+                  <span>50 광란</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 살아남기 시작 버튼 */}
+            <button className="onboarding-start-btn" onClick={closeOnboarding}>
+              살아남기 &nbsp;▶
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const getSpeedLabel = (speed) => {
+  if (speed <= 12) return '느긋';
+  if (speed <= 25) return '보통';
+  if (speed <= 39) return '빠름';
+  return '광란';
+};
 
 export default App;
