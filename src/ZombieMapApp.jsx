@@ -1740,7 +1740,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       </Map>
 
       {/* 홈 버튼 */}
-      {/* 뒤로가기 버튼 (하단 좌측으로 이동) */}
+      {/* 뒤로가기 버튼 (상단 좌측으로 이동) */}
       <button
         onClick={() => {
           const isActive = (gameMode === 'record' || gameMode === 'survival') ? recordedPath.length > 0 : routePath.length > 0;
@@ -1752,12 +1752,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         }}
         style={{
           position: 'absolute',
-          bottom: '20px',
+          top: '20px',
           left: '20px',
           zIndex: 99999,
-          background: 'rgba(15, 23, 42, 0.85)',
-          /* backdropFilter: 'blur(10px)', */
-          border: '1px solid rgba(30, 41, 59, 0.8)',
+          background: 'rgba(0, 0, 0, 0.95)',
+          border: '1px solid rgba(239, 68, 68, 0.35)',
           borderRadius: '50%',
           width: '60px',
           height: '60px',
@@ -1766,173 +1765,163 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           justifyContent: 'center',
           fontSize: '32px',
           cursor: 'pointer',
-          color: 'white',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.5)'
+          color: '#ef4444',
+          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)'
         }}
       >
         🔙
       </button>
 
-      {/* 현재 위치로 이동 버튼 */}
-      {userPosition && (
-        <button
-          onClick={() => {
-            const nextState = !isFollowingUser;
-            setIsFollowingUser(nextState);
-            if (nextState) {
-              setIsFollowingZombie(false); // 사용자 추적 시 좀비 추적은 해제
-              if (userPosition) {
-                animatePanTo(userPosition.lat, userPosition.lng);
-              }
-            }
-          }}
-          style={{
-            position: 'absolute',
-            bottom: '20px',
-            right: '20px', // 버튼 위치를 우측 하단으로 변경
-            zIndex: 10,
-            background: isFollowingUser ? '#f43f5e' : 'rgba(15, 23, 42, 0.85)',
-            color: 'white',
-            border: isFollowingUser ? '2px solid #f43f5e' : '1px solid rgba(30, 41, 59, 0.8)',
-            borderRadius: '50%',
-            width: '60px',
-            height: '60px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '32px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
-            transition: 'all 0.2s',
-            opacity: isFollowingUser ? 1 : 0.6
-          }}
-        >
-          🏃
-        </button>
-      )}
-
-      {/* 좀비 추적 ON/OFF 버튼 */}
-      {((gameMode === 'record' || gameMode === 'survival') ? recordedPath.length > 0 : routePath.length > 0) && !isGameOver && (
-        <button
-          onClick={() => {
-            const nextState = !isFollowingZombie;
-            setIsFollowingZombie(nextState);
-            if (nextState) {
-              setIsFollowingUser(false); // 좀비 추적 시 사용자 추적은 해제
-              if (zombiePosition) {
-                animatePanTo(zombiePosition.lat, zombiePosition.lng);
-              }
-            }
-          }}
-          style={{
-            position: 'absolute',
-            bottom: '95px', // 사용자 추적 버튼 위에 배치 (20px + 60px + 15px)
-            right: '20px',  // 우측으로 배치 변경
-            zIndex: 10,
-            background: isFollowingZombie ? '#f43f5e' : 'rgba(15, 23, 42, 0.85)',
-            color: 'white',
-            border: isFollowingZombie ? '2px solid #f43f5e' : '1px solid rgba(30, 41, 59, 0.8)',
-            borderRadius: '50%',
-            width: '60px',
-            height: '60px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '32px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
-            transition: 'all 0.2s',
-            opacity: isFollowingZombie ? 1 : 0.6
-          }}
-        >
-          {getZombieEmoji(selectedZombieSpeed)}
-        </button>
-      )}
-
-      {/* 경로 시작점으로 이동 버튼 */}
-      {((routePath && routePath.length > 0) || (recordedPath && recordedPath.length > 0)) && (
-        <button
-          onClick={() => {
-            const targetPath = routePath.length > 0 ? routePath : recordedPath;
-            if (targetPath && targetPath.length > 0) {
-              animatePanTo(targetPath[0].lat, targetPath[0].lng);
-              setIsFollowingUser(false);
-              setIsFollowingZombie(false);
-            }
-          }}
-          style={{
-            position: 'absolute',
-            bottom: '170px', // 좀비 추적 버튼 위에 배치 (95px + 60px + 15px)
-            right: '20px',
-            zIndex: 10,
-            background: 'rgba(15, 23, 42, 0.85)',
-            color: 'white',
-            border: '1px solid rgba(30, 41, 59, 0.8)',
-            borderRadius: '50%',
-            width: '60px',
-            height: '60px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '32px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
-            transition: 'all 0.2s',
-            opacity: 0.8
-          }}
-          title="경로 시작점으로 이동"
-        >
-          🚩
-        </button>
-      )}
-
-
-      {/* --- [수정] 하단 좌측 (뒤로가기 버튼 위) 경로 즐겨찾기 토글 버튼 --- */}
+      {/* 현재 위치로 이동 버튼 (화면 좌측 가운데 정렬) */}
       <button
-        onClick={() => setShowFavorites(!showFavorites)}
+        onClick={() => {
+          const nextState = !isFollowingUser;
+          setIsFollowingUser(nextState);
+          if (nextState) {
+            setIsFollowingZombie(false); // 사용자 추적 시 좀비 추적은 해제
+            if (userPosition) {
+              animatePanTo(userPosition.lat, userPosition.lng);
+            } else {
+              alert("사용자 위치 정보가 아직 없습니다. GPS 연결을 확인하세요.");
+            }
+          }
+        }}
+        style={{
+          position: 'absolute',
+          right: '20px',
+          top: 'calc(50% - 105px)',
+          transform: 'translateY(-50%)',
+          zIndex: 9999,
+          background: isFollowingUser ? '#ef4444' : 'rgba(0, 0, 0, 0.95)',
+          color: isFollowingUser ? 'white' : '#ef4444',
+          border: '1px solid rgba(239, 68, 68, 0.35)',
+          borderRadius: '50%',
+          width: '60px',
+          height: '60px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '32px',
+          cursor: 'pointer',
+          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)',
+          transition: 'all 0.2s',
+          opacity: isFollowingUser ? 1 : 0.8
+        }}
+        title="사용자 위치 추적"
+      >
+        🏃
+      </button>
+
+      {/* 좀비 추적 ON/OFF 버튼 (화면 좌측 가운데 정렬) */}
+      <button
+        onClick={() => {
+          const nextState = !isFollowingZombie;
+          setIsFollowingZombie(nextState);
+          if (nextState) {
+            setIsFollowingUser(false); // 좀비 추적 시 사용자 추적은 해제
+            if (zombiePosition) {
+              animatePanTo(zombiePosition.lat, zombiePosition.lng);
+            } else {
+              alert("좀비가 아직 스폰되지 않았습니다. 추적이 시작되면 다시 시도해 주세요.");
+            }
+          }
+        }}
+        style={{
+          position: 'absolute',
+          right: '20px',
+          top: 'calc(50% - 35px)',
+          transform: 'translateY(-50%)',
+          zIndex: 9999,
+          background: isFollowingZombie ? '#ef4444' : 'rgba(0, 0, 0, 0.95)',
+          color: isFollowingZombie ? 'white' : '#ef4444',
+          border: '1px solid rgba(239, 68, 68, 0.35)',
+          borderRadius: '50%',
+          width: '60px',
+          height: '60px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '32px',
+          cursor: 'pointer',
+          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)',
+          transition: 'all 0.2s',
+          opacity: isFollowingZombie ? 1 : 0.8
+        }}
+        title="좀비 위치 추적"
+      >
+        {getZombieEmoji(selectedZombieSpeed)}
+      </button>
+
+      {/* 경로 시작점으로 이동 버튼 (화면 좌측 가운데 정렬) */}
+      <button
+        onClick={() => {
+          const targetPath = routePath.length > 0 ? routePath : recordedPath;
+          if (targetPath && targetPath.length > 0) {
+            animatePanTo(targetPath[0].lat, targetPath[0].lng);
+            setIsFollowingUser(false);
+            setIsFollowingZombie(false);
+          } else {
+            alert("설정되거나 기록된 경로가 없습니다. 먼저 경로를 지정해 주세요.");
+          }
+        }}
+        style={{
+          position: 'absolute',
+          right: '20px',
+          top: 'calc(50% + 35px)',
+          transform: 'translateY(-50%)',
+          zIndex: 9999,
+          background: 'rgba(0, 0, 0, 0.95)',
+          color: '#ef4444',
+          border: '1px solid rgba(239, 68, 68, 0.35)',
+          borderRadius: '50%',
+          width: '60px',
+          height: '60px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '32px',
+          cursor: 'pointer',
+          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)',
+          transition: 'all 0.2s',
+          opacity: 0.8
+        }}
+        title="경로 시작점으로 이동"
+      >
+        🚩
+      </button>
+
+
+      {/* --- [수정] 상단 우측 경로 즐겨찾기 토글 버튼 (RED 테마 통일 및 위치 수정) --- */}
+      <button
+        onClick={() => {
+          setShowFavorites(!showFavorites);
+          triggerTickVibration();
+        }}
         title={`경로 히스토리/즐겨찾기 목록 보기 (${favorites.length})`}
         style={{
           position: 'absolute',
-          bottom: '95px',
-          left: '20px',
-          zIndex: 30,
-          backgroundColor: showFavorites ? '#4ade80' : 'rgba(30, 41, 59, 0.9)',
-          color: showFavorites ? '#0f172a' : '#4ade80',
-
-            // 즐겨찾기만의 정체성을 위해 테두리 색상은 연두색(#4ade80) 유지
-            border: '2px solid #4ade80',
-            borderRadius: '50%',
-
-            // 뒤로가기 버튼과 동일하게 외부 버튼 크기를 60px로 조정
-            width: '60px',
-            height: '60px',
-
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-            transition: 'all 0.2s',
-            padding: 0,
-            outline: 'none',
-          }}
-        >
-          {/* 북마크 리스트 SVG 아이콘 */}
-          <svg
-            width="30"
-            height="30"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
-            <line x1="9" y1="10" x2="15" y2="10"></line>
-            <line x1="9" y1="14" x2="13" y2="14"></line>
-          </svg>
-        </button>
+          top: '20px',
+          right: '20px',
+          zIndex: 99999,
+          backgroundColor: showFavorites ? '#ef4444' : 'rgba(0, 0, 0, 0.95)',
+          color: showFavorites ? '#ffffff' : '#ef4444',
+          border: '2px solid #ef4444',
+          borderRadius: '50%',
+          width: '60px',
+          height: '60px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '28px',
+          cursor: 'pointer',
+          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)',
+          transition: 'all 0.2s',
+          padding: 0,
+          outline: 'none'
+        }}
+      >
+        💾
+      </button>
 
       {/* --- [수정] 화면 정중앙으로 이동된 즐겨찾기 레이어 팝업 (모달 스타일) --- */}
       {showFavorites && (
@@ -1945,7 +1934,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             right: 0,
             bottom: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.5)', // 뒷배경 오버레이 추가
-            zIndex: 1000,
+            zIndex: 999999,
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center'
@@ -2302,7 +2291,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         </div>
       ) : (
         gameMode === 'run' && routePath.length === 0 ? (
-          <div className="hud-container" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="hud-container" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', top: 'auto', bottom: '20px' }}>
             {/* 타이틀 및 저장된 경로 버튼 행 */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#ffffff', fontFamily: "'Black Han Sans', sans-serif" }}>경로를 지정하세요</span>
