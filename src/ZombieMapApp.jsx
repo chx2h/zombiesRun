@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Map, Polyline, CustomOverlayMap, Circle } from 'react-kakao-maps-sdk';
 import zombieSfx from './assets/dragon-studio-female-zombie-screams-324744.mp3';
+import { registerPlugin } from '@capacitor/core';
+
+const WatchBridge = registerPlugin('WatchBridge');
 
 const getZombieEmoji = (level) => {
   const emojis = [
@@ -145,6 +148,86 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     }
   }, [isDebugMode]);
 
+  // --- 스마트워치(Wear OS) 동기화 송출 관련 정의 ---
+  const prevUserPosRef = useRef(null);
+  const prevUserPosTimeRef = useRef(0);
+
+  const sendTelemetryToWatch = (zombieDist, runDist, speed, status, vibrate) => {
+    try {
+      // 프로토콜 규격: "zombieDist,runDist,speed,status,vibrate"
+      const zDistStr = zombieDist !== null && zombieDist !== undefined ? Math.round(zombieDist).toString() : "-1";
+      const rDistStr = runDist !== null && runDist !== undefined ? runDist.toFixed(2) : "0.00";
+      const speedStr = speed !== null && speed !== undefined ? speed.toFixed(1) : "0.0";
+      const statusStr = status || "clear";
+      const vibStr = vibrate ? "1" : "0";
+
+      const payload = `${zDistStr},${rDistStr},${speedStr},${statusStr},${vibStr}`;
+      WatchBridge.sendWatchData({ data: payload })
+        .then(() => console.log("스마트워치 데이터 동기화 성공:", payload))
+        .catch((err) => console.warn("스마트워치 데이터 전송 실패:", err));
+    } catch (e) {
+      console.error("WatchBridge 호출 에러:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (!userPosition) return;
+
+    // 1. 좀비와의 거리 계산
+    let zombieDistVal = -1;
+    if (zombiePosition && !isGameOver) {
+      zombieDistVal = Math.round(calculateDistance(userPosition.lat, userPosition.lng, zombiePosition.lat, zombiePosition.lng));
+    }
+
+    // 2. 누적 이동 거리 계산 (recordedPath 기반)
+    let runDistVal = 0.00;
+    if (recordedPath && recordedPath.length > 1) {
+      let totalMeters = 0;
+      for (let i = 0; i < recordedPath.length - 1; i++) {
+        totalMeters += calculateDistance(recordedPath[i].lat, recordedPath[i].lng, recordedPath[i + 1].lat, recordedPath[i + 1].lng);
+      }
+      runDistVal = totalMeters / 1000;
+    }
+
+    // 3. 속도 계산
+    let speedVal = 0.0;
+    if (isDebugMode) {
+      if (isUserMoving || moveIntervalRef.current) {
+        speedVal = 12.5; // 가상 D-Pad 조작 속도
+      }
+    } else {
+      if (prevUserPosRef.current) {
+        const timeDiff = (Date.now() - prevUserPosTimeRef.current) / 1000;
+        if (timeDiff > 0.5) {
+          const distDiff = calculateDistance(prevUserPosRef.current.lat, prevUserPosRef.current.lng, userPosition.lat, userPosition.lng);
+          const computedSpeed = (distDiff / timeDiff) * 3.6;
+          speedVal = computedSpeed < 45 ? computedSpeed : 0.0;
+        }
+      }
+      prevUserPosRef.current = userPosition;
+      prevUserPosTimeRef.current = Date.now();
+    }
+
+    // 4. 게임 상태 문자열
+    let statusStr = "clear";
+    if (isGameOver) {
+      statusStr = gameResult === 'win' ? "clear" : "dead";
+    } else if (gameMode === 'survival') {
+      statusStr = "survival";
+    } else if (gameMode === 'run') {
+      statusStr = "run";
+    } else if (gameMode === 'record') {
+      statusStr = "record";
+    }
+
+    // 5. 햅틱 진동 여부
+    const isVibrateTrigger = (zombieDistVal > 0 && zombieDistVal <= 25);
+
+    // 시계 전송 호출
+    sendTelemetryToWatch(zombieDistVal, runDistVal, speedVal, statusStr, isVibrateTrigger);
+
+  }, [userPosition, zombiePosition, isGameOver, gameResult, gameMode, isUserMoving, isDebugMode, recordedPath]);
+
   // --- 테스트용 이스터에그 및 가상 D-Pad 이동 로직 ---
   const debugTapCountRef = useRef(0);
   const moveIntervalRef = useRef(null);
@@ -167,6 +250,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
   const startMovingUser = (direction) => {
     if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
+    setIsUserMoving(true);
 
     const moveStep = 0.00003;
     const moveStepLng = 0.000035;
@@ -213,6 +297,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   };
 
   const stopMovingUser = () => {
+    setIsUserMoving(false);
     if (moveIntervalRef.current) {
       clearInterval(moveIntervalRef.current);
       moveIntervalRef.current = null;
@@ -3078,7 +3163,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       {isDebugMode && (
         <div style={{
           position: 'absolute',
-          bottom: '120px',
+          bottom: '280px',
           left: '50%',
           transform: 'translateX(-50%)',
           width: '130px',
