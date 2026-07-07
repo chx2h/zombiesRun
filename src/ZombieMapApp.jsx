@@ -1637,6 +1637,34 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [routePath.length, isGameOver]); // 게임 진행 상태가 바뀔 때마다 리스너를 재평가
 
+
+  useEffect(() => {
+    const triggerWatchNotification = async () => {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 폰 내부의 Capacitor 네이티브 브릿지(WatchBridge)가 사용 가능한지 체크
+        if (window.Capacitor && window.Capacitor.isPluginAvailable('WatchBridge')) {
+
+          // 🚨 자바 코드에서 지정한 "/start_watch_app" 경로(Path)로 신호 발송!
+          await WatchBridge.sendWatchData({
+            path: '/start_watch_app',
+            data: 'LAUNCH' // 바이트 데이터로 변환되어 날아갈 더미 텍스트
+          });
+
+          console.log("⌚ 워치 앱 깨우기(알림) 신호 전송 완료!");
+        } else {
+          console.warn("워치 앱이 설치되지 않았거나 WatchBridge 플러그인이 로드되지 않았습니다.");
+        }
+      } catch (error) {
+        console.error("워치 신호 전송 실패:", error);
+      }
+    };
+
+    // 앱 구동 즉시 실행
+    triggerWatchNotification();
+  }, []);
+
   return (
     <div style={{
       width: '100%',

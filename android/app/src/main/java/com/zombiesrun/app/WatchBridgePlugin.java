@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 public class WatchBridgePlugin extends Plugin {
 
     private final ExecutorService watchExecutor = Executors.newSingleThreadExecutor();
+
     @PluginMethod
     public void sendWatchData(PluginCall call) {
         String data = call.getString("data");
@@ -26,15 +27,26 @@ public class WatchBridgePlugin extends Plugin {
             return;
         }
 
-        // 새 Thread() 대신 executor로 즉시 비동기 큐에 진입
+        String path = call.getString("path");
+        if (path == null) {
+            path = "/zombies_data";
+        }
+
+        // 비동기 실행을 위해 파이널 변수로 캡처링 준비
+        final String finalPath = path;
+
+        // executor로 비동기 큐에 진입
         watchExecutor.execute(() -> {
             try {
                 List<Node> nodes = Tasks.await(Wearable.getNodeClient(getContext()).getConnectedNodes());
+                //android.util.Log.d("WatchBridgeDebug", "폰이 보내는 주소: " + finalPath);
+
                 for (Node node : nodes) {
+                    // 🚨 핵심 수정: 고정된 "/zombies_data" 대신 동적 주소 finalPath 변수를 지정합니다!
                     Tasks.await(Wearable.getMessageClient(getContext()).sendMessage(
-                        node.getId(),
-                        "/zombies_data",
-                        data.getBytes()
+                            node.getId(),
+                            finalPath,
+                            data.getBytes()
                     ));
                 }
                 call.resolve();
@@ -56,7 +68,7 @@ public class WatchBridgePlugin extends Plugin {
             watchExecutor.shutdownNow();
             Thread.currentThread().interrupt();
         } finally {
-            super.handleOnDestroy();// 앱 종료 시 스레드 안전하게 해제
+            super.handleOnDestroy(); // 앱 종료 시 스레드 안전하게 해제
         }
     }
 }

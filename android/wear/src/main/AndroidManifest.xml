@@ -3,6 +3,8 @@
     package="com.zombiesrun.app">
 
     <uses-feature android:name="android.hardware.type.watch" />
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
@@ -34,7 +36,7 @@
             <intent-filter>
                 <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
                 <!-- 폰에서 보낼 특정 데이터 경로 필터링 -->
-                <data android:scheme="wear" android:host="*" android:pathPrefix="/zombies_data" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/" />
             </intent-filter>
         </service>
     </application>
