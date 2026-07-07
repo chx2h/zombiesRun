@@ -15,9 +15,8 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
         registerPlugin(WatchBridgePlugin.class);
-        checkLocationPermission();
+        super.onCreate(savedInstanceState);
     }
 
     private void checkLocationPermission() {

@@ -10,10 +10,14 @@ import com.google.android.gms.tasks.Tasks;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.Wearable;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @CapacitorPlugin(name = "WatchBridge")
 public class WatchBridgePlugin extends Plugin {
 
+    private final ExecutorService watchExecutor = Executors.newSingleThreadExecutor();
     @PluginMethod
     public void sendWatchData(PluginCall call) {
         String data = call.getString("data");
@@ -22,8 +26,8 @@ public class WatchBridgePlugin extends Plugin {
             return;
         }
 
-        // 백그라운드 스레드에서 Wear OS 기기들로 데이터 전송
-        new Thread(() -> {
+        // 새 Thread() 대신 executor로 즉시 비동기 큐에 진입
+        watchExecutor.execute(() -> {
             try {
                 List<Node> nodes = Tasks.await(Wearable.getNodeClient(getContext()).getConnectedNodes());
                 for (Node node : nodes) {
@@ -38,6 +42,21 @@ public class WatchBridgePlugin extends Plugin {
                 e.printStackTrace();
                 call.reject("Failed to send watch data: " + e.getMessage());
             }
-        }).start();
+        });
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        try {
+            watchExecutor.shutdown();
+            if (!watchExecutor.awaitTermination(1, TimeUnit.SECONDS)) {
+                watchExecutor.shutdownNow();
+            }
+        } catch (Exception e) {
+            watchExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        } finally {
+            super.handleOnDestroy();// 앱 종료 시 스레드 안전하게 해제
+        }
     }
 }

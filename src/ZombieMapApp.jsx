@@ -151,9 +151,17 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   // --- 스마트워치(Wear OS) 동기화 송출 관련 정의 ---
   const prevUserPosRef = useRef(null);
   const prevUserPosTimeRef = useRef(0);
+  const lastWatchSendTimeRef = useRef(0); // 💡 [추가] 마지막으로 시계에 보낸 시간을 기록할 Ref
 
-  const sendTelemetryToWatch = (zombieDist, runDist, speed, status, vibrate) => {
+  const sendTelemetryToWatch = (zombieDist, runDist, speed, status, vibrate, zombieLevel) => {
     try {
+      const now = Date.now();
+
+      if (status !== "dead" && status !== "clear" && (now - lastWatchSendTimeRef.current < 300)) {
+        return; // 1초가 지나지 않았다면 시계로 전송하지 않고 함수를 종료(스킵)합니다.
+      }
+      lastWatchSendTimeRef.current = now; // 보낸 시간 업데이트
+
       // 프로토콜 규격: "zombieDist,runDist,speed,status,vibrate"
       const zDistStr = zombieDist !== null && zombieDist !== undefined ? Math.round(zombieDist).toString() : "-1";
       const rDistStr = runDist !== null && runDist !== undefined ? runDist.toFixed(2) : "0.00";
@@ -161,7 +169,14 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       const statusStr = status || "clear";
       const vibStr = vibrate ? "1" : "0";
 
-      const payload = `${zDistStr},${rDistStr},${speedStr},${statusStr},${vibStr}`;
+      // 💡 좀비 레벨(zombieProgress) 처리: 현재 레벨과 경험치를 모두 시계로 전송
+      const currentZombieLevel = zombieProgress?.level ?? 1;
+      const currentZombieExp = zombieProgress?.xp ?? 0;
+      // 시계에서 레벨을 1자리 정수로 받도록 문자열로 변환
+      const zLevelStr = currentZombieLevel.toString();
+
+      // 프로토콜 규격: "zombieDist,runDist,speed,status,vibrate,zombieLevel,zombieExp"
+      const payload = `${zDistStr},${rDistStr},${speedStr},${statusStr},${vibStr},${zLevelStr},${currentZombieExp}`;
       WatchBridge.sendWatchData({ data: payload })
         .then(() => console.log("스마트워치 데이터 동기화 성공:", payload))
         .catch((err) => console.warn("스마트워치 데이터 전송 실패:", err));
@@ -209,7 +224,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     }
 
     // 4. 게임 상태 문자열
-    let statusStr = "clear";
+    let statusStr = "ready";
     if (isGameOver) {
       statusStr = gameResult === 'win' ? "clear" : "dead";
     } else if (gameMode === 'survival') {
@@ -224,9 +239,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     const isVibrateTrigger = (zombieDistVal > 0 && zombieDistVal <= 25);
 
     // 시계 전송 호출
-    sendTelemetryToWatch(zombieDistVal, runDistVal, speedVal, statusStr, isVibrateTrigger);
+    sendTelemetryToWatch(zombieDistVal, runDistVal, speedVal, statusStr, isVibrateTrigger, zombieProgress.level);
 
-  }, [userPosition, zombiePosition, isGameOver, gameResult, gameMode, isUserMoving, isDebugMode, recordedPath]);
+  }, [userPosition, zombiePosition, isGameOver, gameResult, gameMode, isUserMoving, isDebugMode, recordedPath, zombieProgress.level]);
 
   // --- 테스트용 이스터에그 및 가상 D-Pad 이동 로직 ---
   const debugTapCountRef = useRef(0);
@@ -1708,7 +1723,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         level={4} // 초기 줌 레벨을 4로 조정하여 좀 더 넓은 시야 제공
         onCreate={(map) => {
           mapRef.current = map;
-          
+
           // 모바일 뷰포트 크기 꼬임으로 인한 상하단 1/3 영역 클릭 씹힘 카카오맵 고유 캔버스 갱신 버그 해결
           setTimeout(() => {
             if (map) {
@@ -2385,14 +2400,14 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         </div>
       ) : (
         gameMode === 'run' && routePath.length === 0 ? (
-          <div 
-            className="hud-container" 
-            style={{ 
-              padding: isMapDragging ? '8px 16px' : '20px', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: isMapDragging ? '0px' : '16px', 
-              top: 'auto', 
+          <div
+            className="hud-container"
+            style={{
+              padding: isMapDragging ? '8px 16px' : '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: isMapDragging ? '0px' : '16px',
+              top: 'auto',
               bottom: '20px',
               opacity: isMapDragging ? 0.65 : 0.98,
               transition: 'all 0.25s ease-in-out',
@@ -2410,7 +2425,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                 {/* 타이틀 및 저장된 경로 버튼 행 */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#ffffff', fontFamily: "'Black Han Sans', sans-serif" }}>경로를 지정하세요</span>
-                  <button 
+                  <button
                     onClick={() => {
                       setShowFavorites(true);
                       triggerTickVibration();
@@ -2444,10 +2459,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                     </span>
                   </div>
                   <div className="onboarding-slider-wrapper" style={{ margin: 0 }}>
-                    <input 
-                      type="range" 
-                      min="1" 
-                      max="50" 
+                    <input
+                      type="range"
+                      min="1"
+                      max="50"
                       value={selectedZombieSpeed}
                       onChange={(e) => {
                         setSelectedZombieSpeed(Number(e.target.value));
@@ -2509,7 +2524,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                 </div>
 
                 {/* 하단 메인 작전 경로 탐색 가이드 버튼 */}
-                <button 
+                <button
                   style={{
                     width: '100%',
                     backgroundColor: '#ef4444',
@@ -2531,12 +2546,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             )}
           </div>
         ) : (
-          <div 
-            className="hud-container" 
-            style={{ 
-              padding: isMapDragging ? '8px 16px' : '20px', 
-              display: 'flex', 
-              flexDirection: 'column', 
+          <div
+            className="hud-container"
+            style={{
+              padding: isMapDragging ? '8px 16px' : '20px',
+              display: 'flex',
+              flexDirection: 'column',
               gap: isMapDragging ? '0px' : '14px',
               top: 'auto',
               bottom: '20px',
@@ -2632,7 +2647,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                                   </div>
                                 </>
                               );
-                        })()}
+                            })()}
                           </div>
                         ) : (
                           <span>탈출구 찾는 중...</span>
@@ -2663,10 +2678,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                       </span>
                     </div>
                     <div className="onboarding-slider-wrapper" style={{ margin: 0 }}>
-                      <input 
-                        type="range" 
-                        min="1" 
-                        max="50" 
+                      <input
+                        type="range"
+                        min="1"
+                        max="50"
                         value={selectedZombieSpeed}
                         onChange={(e) => {
                           setSelectedZombieSpeed(Number(e.target.value));
@@ -2725,11 +2740,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                 </div>
 
                 {((gameMode !== 'survival' && routePath.length > 0)) && (
-                  <button 
+                  <button
                     onClick={() => {
                       handleResetZombie();
                       triggerTickVibration();
-                    }} 
+                    }}
                     className="hud-reset-btn"
                     style={{
                       margin: '4px 0 0 0',
