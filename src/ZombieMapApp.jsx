@@ -4,6 +4,9 @@ import zombieSfx from './assets/dragon-studio-female-zombie-screams-324744.mp3';
 import { registerPlugin } from '@capacitor/core';
 
 const WatchBridge = registerPlugin('WatchBridge');
+const BackgroundGeolocation = registerPlugin('BackgroundGeolocation');
+import { App } from '@capacitor/app';
+
 
 const getZombieEmoji = (level) => {
   const emojis = [
@@ -75,6 +78,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const reviveUsedRef = useRef(false);
   const [reviveCountdown, setReviveCountdown] = useState(0);
   const reviveCountdownRef = useRef(0);
+
+
   useEffect(() => {
     reviveCountdownRef.current = reviveCountdown;
   }, [reviveCountdown]);
@@ -623,6 +628,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const gameStartTimeRef = useRef(null);
   const wasInDangerRef = useRef(false);
 
+  //const backgroundTimeRef = useRef(null);
 
 
   // 모바일 터치 및 클릭 프록시 콜백 Ref 선언 및 매 렌더링 시점 최신 값 바인딩
@@ -820,6 +826,57 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     return () => clearTimeout(timer);
   }, [reviveCountdown]);
 
+  // === 🛠️ [교체완료] 백그라운드 경로 및 인덱스 싱크 보정 루틴 ===
+  // useEffect(() => {
+  //   const handleAppStateChange = App.addListener('appStateChange', (state) => {
+  //     if (!state.isActive) {
+  //       // 1. 화면이 꺼진 시점 타임스탬프 기록
+  //       backgroundTimeRef.current = Date.now();
+  //     } else {
+  //       // 2. 다시 화면을 켠 시점 (Resume)
+  //       if (backgroundTimeRef.current && !isGameOver && routePath && routePath.length > 0) {
+  //         const currentTime = Date.now();
+  //         const elapsedSeconds = (currentTime - backgroundTimeRef.current) / 1000;
+
+  //         // 3. 꺼져있던 시간 동안 좀비가 이동했어야 할 보정 비율 연산
+  //         const movedRatio = Math.min((selectedZombieSpeed * 0.01 * elapsedSeconds), 0.85);
+
+  //         setZombiePosition(prev => {
+  //           if (!prev || !userPosition) return prev;
+
+  //           // 유저가 있는 방향 벡터로 겉보기 좌표 슬라이드 전진
+  //           const nextLat = prev.lat + (userPosition.lat - prev.lat) * movedRatio;
+  //           const nextLng = prev.lng + (userPosition.lng - prev.lng) * movedRatio;
+  //           const nextPos = { lat: nextLat, lng: nextLng };
+
+  //           // 🚨 중요: 메인 애니메이션 루프와 실시간 워프 좌표 동기화 (Ref 창고)
+  //           zombiePosRef.current = nextPos;
+
+  //           // 🚨 [빽도 방지 핵심 치트키] 경로 선(routePath)의 배열 인덱스도 경과시간만큼 강제 점프!
+  //           if (typeof setZombieRouteIndex === 'function') {
+  //             setZombieRouteIndex(prevIndex => {
+  //               // 초당 약 1~2개 인덱스 노드를 전진하도록 속도 비례 연산
+  //               const indexJump = Math.floor(elapsedSeconds * (selectedZombieSpeed * 0.5));
+  //               const nextIndex = prevIndex + (indexJump > 0 ? indexJump : 1);
+  //               return Math.min(nextIndex, routePath.length - 1);
+  //             });
+  //           }
+
+  //           return nextPos;
+  //         });
+
+  //         // 사용 완료 후 타임스탬프 초기화
+  //         backgroundTimeRef.current = null;
+  //         console.log(`[🚀좀비런 싱크 완료] ${elapsedSeconds.toFixed(1)}초 공백 매꾸기. 좀비 빽도 없이 정상 추격.`);
+  //       }
+  //     }
+  //   });
+
+  //   return () => {
+  //     handleAppStateChange.then(listener => listener.remove());
+  //   };
+  // }, [isGameOver, selectedZombieSpeed, routePath, userPosition]);
+
   // 모조 동영상 광고 타이머 이펙트
   useEffect(() => {
     let adInterval;
@@ -845,31 +902,81 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
   // 실시간 위치 추적
   useEffect(() => {
-    if (!navigator.geolocation) return;
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        if (isDebugModeRef.current) return;
-        const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserPosition(newPos);
-        userPosRef.current = newPos;
+    let backgroundWatcherId = null;
 
-        // 최초 1회 현재 위치를 찾았을 때 부드럽게 스와이프하며 이동
-        if (!isFirstPositionFoundRef.current) {
-          isFirstPositionFoundRef.current = true;
-          setTimeout(() => {
-            if (mapRef.current) {
-              animatePanTo(newPos.lat, newPos.lng);
-            } else {
-              setMapCenter(newPos);
-            }
-          }, 200);
-        }
+    const startNativeTracking = async () => {
+      try {
+        // Capacitor 네이티브 백그라운드 위치 서비스 시동
+        backgroundWatcherId = await BackgroundGeolocation.addWatcher({
+          backgroundTitle: "좀비 아포칼립스 실시간 동기화",
+          // backgroundMessage: "좀비가 뒤를 바짝 쫓고 있습니다! 주머니 속에서도 추격은 계속됩니다.",
+          requestPermissions: true,
+          stale: false,
+          distanceFilter: 4, // 🚨 4미터 이동할 때마다 무조건 GPS 좌표 강제 갱신 (일자 경로 해결)
+          // 🚨 [여기에 아래 네이티브 전용 차단 옵션들을 추가하세요]
+          // desiredAccuracy: BackgroundGeolocation.DESIRED_ACCURACY_HIGH,
+          // fastestInterval: 2000, // 가장 빠른 수신 주기 2초
+          // interval: 3000,        // 기본 수신 주기 3초
+          // activitiesInterval: 5000,
+          // stopOnTerminate: false, // 앱이 꺼져도 트래킹 유지
+          // startOnBoot: true,     // 폰 재부팅 시 자동 서비스 실행
+          // preventSuspend: true,  // 🔒 핵심: 화면이 꺼져도 웹뷰(자바스크립트)가 잠드는 것을 강력히 방지!
+          // heartBeatInterval: 5,  // 💓 5초마다 시스템에 심장박동을 보내 앱이 살아있음을 OS에 알림
+        }, (location, error) => {
+          if (error) {
+            console.error("네이티브 GPS 추적 에러:", error);
+            return;
+          }
+          if (isDebugModeRef.current) return;
 
-        console.log("현재 위치 수신:", newPos);
-      }, (err) => console.error("위치 추적 실패:", err),
-      { enableHighAccuracy: true }
-    );
-    return () => navigator.geolocation.clearWatch(watchId);
+          // 네이티브에서 올라온 최신 위경도 좌표 수집 및 상태 업데이트
+          const newPos = { lat: location.latitude, lng: location.longitude };
+          setUserPosition(newPos);
+          userPosRef.current = newPos;
+
+          // 최초 1회 지도 중심 포커싱 애니메이션
+          if (!isFirstPositionFoundRef.current) {
+            isFirstPositionFoundRef.current = true;
+            setTimeout(() => {
+              if (mapRef.current) {
+                animatePanTo(newPos.lat, newPos.lng);
+              } else {
+                setMapCenter(newPos);
+              }
+            }, 200);
+          }
+
+          // 🚨 [여기서부터 복사해서 추가!] 화면이 꺼져도 워치로 즉시 다이렉트 송신
+          // try {
+          //   WatchBridge.sendWatchData({
+          //     data: {
+          //       userPosition: newPos,
+          //       // ⚠️ 중요: 백그라운드에서는 zombiePosition 상태값도 잠들기 때문에, 
+          //       // 반드시 실시간으로 동기화되고 있는 zombiePosRef.current(Ref) 값을 읽어서 보내야 안전합니다!
+          //       zombiePosition: zombiePosRef.current,
+          //       isGameOver: isGameOver,
+          //       currentLevel: currentLevel // 워치 화면에 띄워줄 다른 데이터들도 패클에 포함
+          //     }
+          //   });
+          //   console.log("🎯 [백그라운드] 워치 직접 송신 성공:", newPos);
+          // } catch (watchErr) {
+          //   console.error("백그라운드 워치 송신 에러:", watchErr);
+          // }
+          console.log("백그라운드 무중단 GPS 수신:", newPos);
+        });
+      } catch (err) {
+        console.error("Background Geolocation 플러그인 초기화 실패:", err);
+      }
+    };
+
+    startNativeTracking();
+
+    // 컴포넌트 해제 시 백그라운드 GPS 서비스 안전하게 종료(배터리 보호)
+    return () => {
+      if (backgroundWatcherId) {
+        BackgroundGeolocation.removeWatcher({ id: backgroundWatcherId });
+      }
+    };
   }, []);
 
   // 개발 및 테스트용 키보드(방향키/WASD) 사용자 위치 제어 훅
