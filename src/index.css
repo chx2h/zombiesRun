@@ -2237,3 +2237,32 @@ code {
     background-color: rgba(239, 68, 68, 0.25);
   }
 }
+
+/* --- 포켓 잠금 모드 전용 CSS --- */
+.danger-blink-text {
+  animation: dangerBlinkRed 0.6s infinite alternate;
+}
+
+.lock-guide-text {
+  animation: lockGuideFade 1.5s infinite alternate;
+}
+
+@keyframes dangerBlinkRed {
+  0% {
+    color: #f8fafc;
+    text-shadow: none;
+  }
+  100% {
+    color: #ef4444;
+    text-shadow: 0 0 20px rgba(239, 68, 68, 0.8), 0 0 30px rgba(239, 68, 68, 0.5);
+  }
+}
+
+@keyframes lockGuideFade {
+  0% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0.9;
+  }
+}

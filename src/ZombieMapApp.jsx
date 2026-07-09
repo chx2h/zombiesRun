@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Map, Polyline, CustomOverlayMap, Circle } from 'react-kakao-maps-sdk';
 import zombieSfx from './assets/dragon-studio-female-zombie-screams-324744.mp3';
-import { registerPlugin } from '@capacitor/core';
+import { registerPlugin, Capacitor } from '@capacitor/core';
+import { AdMob, RewardAdPluginEvents } from '@capacitor-community/admob';
 
 const WatchBridge = registerPlugin('WatchBridge');
 const BackgroundGeolocation = registerPlugin('BackgroundGeolocation');
@@ -132,6 +133,47 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const [isUserMoving, setIsUserMoving] = useState(false);
   const [runnerFrame, setRunnerFrame] = useState(0);
   const userMoveTimerRef = useRef(null);
+
+  // --- 포켓 잠금 모드 및 WakeLock 관련 상태/Refs ---
+  const [isPocketMode, setIsPocketMode] = useState(false);
+  const isPocketModeRef = useRef(false);
+  const wakeLockRef = useRef(null);
+  const pocketModeTimerRef = useRef(null);
+  const lastTapTimeRef = useRef(0);
+  const tapCountRef = useRef(0);
+
+  useEffect(() => {
+    isPocketModeRef.current = isPocketMode;
+  }, [isPocketMode]);
+
+  // --- 좀비 코너링 관성 감속용 Refs ---
+  const zombieDecelFramesLeftRef = useRef(0); // 감속 지속 프레임 수
+  const zombieDecelMultiplierRef = useRef(1.0); // 현재 적용 중인 감속 비율
+
+  // 포켓 모드일 때 뒤로가기 방지용 핸들러 연동
+  useEffect(() => {
+    if (setHandleHardwareBack) {
+      setHandleHardwareBack(() => {
+        if (isPocketModeRef.current) {
+          console.log("포켓 모드 활성화 상태이므로 뒤로가기 버튼 이벤트를 무시합니다.");
+          return true; // true를 리턴하여 부모(App.jsx)의 뒤로가기 처리를 막습니다.
+        }
+        return false;
+      });
+    }
+    return () => {
+      if (setHandleHardwareBack) {
+        setHandleHardwareBack(null);
+      }
+    };
+  }, [setHandleHardwareBack]);
+
+  // --- OLED 번인 방지 및 절전 상태/Refs ---
+  const [isDimmed, setIsDimmed] = useState(false);
+  const [pixelOffset, setPixelOffset] = useState({ x: 0, y: 0 });
+  const dimTimerRef = useRef(null);
+  const shiftIntervalRef = useRef(null);
+  const [isMapVisible, setIsMapVisible] = useState(false);
 
   // --- 피트니스 실시간 통계 트래킹 상태 ---
   const [escapeCount, setEscapeCount] = useState(0);
@@ -877,6 +919,95 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   //   };
   // }, [isGameOver, selectedZombieSpeed, routePath, userPosition]);
 
+  // --- Google AdMob SDK 최초 초기화 및 광고 프리로드 ---
+  useEffect(() => {
+    const initAdMob = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await AdMob.initialize({
+            requestTrackingAuthorization: true,
+            initializeForTesting: true,
+          });
+          console.log("AdMob SDK 초기화 완료");
+          
+          // 💡 게임 시작 시 백그라운드에서 광고를 미리 로드해 둡니다 (프리로드)
+          await AdMob.prepareRewardVideoAd({
+            adId: 'ca-app-pub-3940256099942544/5224354917'
+          });
+          console.log("AdMob 리워드 광고 프리로드 완료");
+        } catch (e) {
+          console.error("AdMob SDK 초기화 및 프리로드 실패:", e);
+          alert("AdMob 초기화 실패: " + (e?.message || JSON.stringify(e)));
+        }
+      } else {
+        console.log("네이티브 플랫폼이 아니므로 AdMob 초기화를 건너뜁니다.");
+      }
+    };
+    initAdMob();
+  }, []);
+
+  // --- 실제 Google AdMob 리워드 광고 재생 또는 웹 모조 광고 재생 핸들러 ---
+  const handlePlayReviveAd = useCallback(async () => {
+    setShowReviveConfirm(false);
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        // 1. 광고 보상 획득 리스너 설정
+        const rewardListener = await AdMob.addListener(
+          RewardAdPluginEvents.Rewarded,
+          (reward) => {
+            console.log("AdMob 리워드 보상 획득 성공:", reward);
+            handleReviveSuccess();
+          }
+        );
+
+        // 2. 광고 닫힘 리스너 설정 (이벤트 해제 및 차기 광고 재배치)
+        const dismissListener = await AdMob.addListener(
+          RewardAdPluginEvents.Dismissed,
+          async () => {
+            console.log("AdMob 광고창 닫힘");
+            rewardListener.remove();
+            dismissListener.remove();
+
+            // 다음 부활을 대비해 백그라운드에서 다시 프리로드 수행
+            try {
+              await AdMob.prepareRewardVideoAd({
+                adId: 'ca-app-pub-3940256099942544/5224354917'
+              });
+              console.log("차기 리워드 광고 백그라운드 프리로드 완료");
+            } catch (e) {
+              console.warn("차기 리워드 광고 프리로드 실패:", e);
+            }
+          }
+        );
+
+        // 3. 광고 재생 시도 (프리로드된 광고가 있으면 즉시 재생됨)
+        try {
+          await AdMob.showRewardVideoAd();
+        } catch (showError) {
+          // 프리로드된 광고가 유실되었거나 로드가 늦었을 때 재시도 로드 후 재생
+          console.warn("프리로드된 광고 재생 실패. 재로드 시도:", showError);
+          alert("AdMob 프리로드 재생 실패, 재로드 시도합니다: " + (showError?.message || JSON.stringify(showError)));
+          await AdMob.prepareRewardVideoAd({
+            adId: 'ca-app-pub-3940256099942544/5224354917'
+          });
+          await AdMob.showRewardVideoAd();
+        }
+
+      } catch (error) {
+        console.error("AdMob 광고 최종 실행 실패, 모조 시뮬레이터로 대체 작동:", error);
+        alert("AdMob 최종 실패 (시뮬레이터 전환): " + (error?.message || JSON.stringify(error)));
+        setShowAdPlayer(true);
+        setAdCountdown(15); // 에러 폴백 시 원활한 테스트를 위해 대기 시간을 15초로 단축
+      }
+    } else {
+      // 웹 브라우저 환경에서는 모조 광고 시뮬레이터 기동
+      console.log("웹 환경이므로 모조 광고를 즉시 띄웁니다.");
+      setShowAdPlayer(true);
+      setAdCountdown(30);
+    }
+  }, []);
+
   // 모조 동영상 광고 타이머 이펙트
   useEffect(() => {
     let adInterval;
@@ -1068,11 +1199,215 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   }, [userPosition, gameMode, isGameOver, gainZombieXp]);
   */
 
+  // --- WakeLock 제어 Effect ---
+  useEffect(() => {
+    const releaseWakeLock = async () => {
+      if (wakeLockRef.current) {
+        try {
+          await wakeLockRef.current.release();
+          console.log("WakeLock 안전하게 해제됨");
+        } catch (e) {
+          console.error("WakeLock 해제 에러:", e);
+        }
+        wakeLockRef.current = null;
+      }
+    };
+
+    const requestWakeLock = async () => {
+      if ('wakeLock' in navigator && !wakeLockRef.current) {
+        try {
+          const lock = await navigator.wakeLock.request('screen');
+          wakeLockRef.current = lock;
+          console.log("WakeLock 획득 성공 (화면 켜짐 강제 유지)");
+
+          lock.addEventListener('release', () => {
+            console.log("WakeLock이 기기/시스템에 의해 해제되었습니다.");
+          });
+        } catch (err) {
+          console.warn("WakeLock 획득 실패 (지원하지 않거나 거부됨):", err);
+        }
+      }
+    };
+
+    if (isPocketMode && !isGameOver) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+
+    const handleVisibilityChange = async () => {
+      if (isPocketMode && !isGameOver && document.visibilityState === 'visible') {
+        await requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      releaseWakeLock();
+    };
+  }, [isPocketMode, isGameOver]);
+
+  // --- 게임 오버 시 포켓 모드 자동 해제 ---
+  useEffect(() => {
+    if (isGameOver) {
+      setIsPocketMode(false);
+      setIsMapVisible(false);
+      if (pocketModeTimerRef.current) {
+        clearTimeout(pocketModeTimerRef.current);
+        pocketModeTimerRef.current = null;
+      }
+      if (dimTimerRef.current) {
+        clearTimeout(dimTimerRef.current);
+        dimTimerRef.current = null;
+      }
+      if (shiftIntervalRef.current) {
+        clearInterval(shiftIntervalRef.current);
+        shiftIntervalRef.current = null;
+      }
+    }
+  }, [isGameOver]);
+
+  // --- 포켓 잠금 모드 트리플 탭 해제 로직 ---
+  const handleLockScreenTap = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTapTimeRef.current < 400) {
+      tapCountRef.current += 1;
+    } else {
+      tapCountRef.current = 1;
+    }
+    lastTapTimeRef.current = now;
+
+    console.log(`포켓 잠금 해제 터치 시도: ${tapCountRef.current}/3`);
+
+    if (tapCountRef.current >= 3) {
+      setIsPocketMode(false);
+      setIsMapVisible(false);
+      tapCountRef.current = 0;
+      try {
+        if (navigator.vibrate) {
+          navigator.vibrate(100);
+        }
+      } catch (e) { }
+      console.log("포켓 모드 잠금 해제 완료");
+    }
+  }, []);
+
+  // --- OLED 번인 방지 및 절전 타이머 제어 ---
+  const resetDimmingTimer = useCallback(() => {
+    if (dimTimerRef.current) clearTimeout(dimTimerRef.current);
+    if (shiftIntervalRef.current) clearInterval(shiftIntervalRef.current);
+
+    setIsDimmed(false);
+    setPixelOffset({ x: 0, y: 0 });
+
+    if (isPocketMode && !isGameOver) {
+      dimTimerRef.current = setTimeout(() => {
+        setIsDimmed(true);
+        console.log("포켓 모드 절전 모션 진입 (화면 어두워짐)");
+      }, 8000);
+
+      shiftIntervalRef.current = setInterval(() => {
+        const randomX = Math.floor(Math.random() * 21) - 10;
+        const randomY = Math.floor(Math.random() * 21) - 10;
+        setPixelOffset({ x: randomX, y: randomY });
+      }, 10000);
+    }
+  }, [isPocketMode, isGameOver]);
+
+  useEffect(() => {
+    if (isPocketMode) {
+      resetDimmingTimer();
+    } else {
+      if (dimTimerRef.current) clearTimeout(dimTimerRef.current);
+      if (shiftIntervalRef.current) clearInterval(shiftIntervalRef.current);
+      setIsDimmed(false);
+      setPixelOffset({ x: 0, y: 0 });
+      setIsMapVisible(false);
+    }
+    return () => {
+      if (dimTimerRef.current) clearTimeout(dimTimerRef.current);
+      if (shiftIntervalRef.current) clearInterval(shiftIntervalRef.current);
+    };
+  }, [isPocketMode, resetDimmingTimer]);
+
+  const handlePocketModeTouch = useCallback((e) => {
+    if (isMapVisible) {
+      setIsMapVisible(false);
+      resetDimmingTimer();
+      tapCountRef.current = 0;
+      return;
+    }
+    setIsDimmed(false);
+    setPixelOffset({ x: 0, y: 0 });
+    resetDimmingTimer();
+    handleLockScreenTap();
+  }, [isMapVisible, resetDimmingTimer, handleLockScreenTap]);
+
+  // --- 추격 시작 후 10초 뒤 자동 포켓 잠금 제어 ---
+  const resetPocketModeTimer = useCallback(() => {
+    if (pocketModeTimerRef.current) {
+      clearTimeout(pocketModeTimerRef.current);
+      pocketModeTimerRef.current = null;
+    }
+    const isTrackingActive = isFollowingUser || isFollowingZombie;
+    if (zombiePosRef.current && !isGameOver && !isPocketMode && !isTrackingActive) {
+      pocketModeTimerRef.current = setTimeout(() => {
+        setIsPocketMode(true);
+        console.log("10초간 무조작 감지 - 자동 포켓 모드 진입");
+      }, 10000);
+    }
+  }, [isGameOver, isPocketMode, isFollowingUser, isFollowingZombie]);
+
+  const isZombieSpawned = !!zombiePosition;
+  const isTrackingActive = isFollowingUser || isFollowingZombie;
+
+  useEffect(() => {
+    if (isZombieSpawned && !isGameOver && !isPocketMode && !isTrackingActive) {
+      resetPocketModeTimer();
+    } else {
+      if (pocketModeTimerRef.current) {
+        clearTimeout(pocketModeTimerRef.current);
+        pocketModeTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (pocketModeTimerRef.current) clearTimeout(pocketModeTimerRef.current);
+    };
+  }, [isZombieSpawned, isGameOver, isPocketMode, isTrackingActive, resetPocketModeTimer]);
+
+  // 사용자 화면 조작 감지 시 자동 잠금 타이머 리셋
+  useEffect(() => {
+    const handleUserActivity = () => {
+      resetPocketModeTimer();
+    };
+
+    if (isZombieSpawned && !isGameOver && !isPocketMode && !isTrackingActive) {
+      window.addEventListener('mousedown', handleUserActivity);
+      window.addEventListener('touchstart', handleUserActivity);
+      window.addEventListener('keydown', handleUserActivity);
+    }
+
+    return () => {
+      window.removeEventListener('mousedown', handleUserActivity);
+      window.removeEventListener('touchstart', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
+    };
+  }, [isZombieSpawned, isGameOver, isPocketMode, resetPocketModeTimer]);
+
   // 컴포넌트 언마운트 시 오디오 및 타이머 정리
   useEffect(() => {
     return () => {
       if (pulseIntervalRef.current) clearTimeout(pulseIntervalRef.current);
       if (audioCtxRef.current) audioCtxRef.current.close().catch(e => console.error("AudioContext close error:", e));
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(e => console.error("Unmount WakeLock release error:", e));
+        wakeLockRef.current = null;
+      }
+      if (pocketModeTimerRef.current) clearTimeout(pocketModeTimerRef.current);
+      if (dimTimerRef.current) clearTimeout(dimTimerRef.current);
+      if (shiftIntervalRef.current) clearInterval(shiftIntervalRef.current);
     };
   }, []);
 
@@ -1339,6 +1674,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
    * 좀비를 다시 처음 위치로 되돌리는 초기화 함수
    */
   const handleResetZombie = useCallback(() => {
+    setIsPocketMode(false);
+    setIsMapVisible(false);
     hasSavedRef.current = false; // 저장 상태 리셋
     setZombieProgress({ level: 1, xp: 0 }); // 레벨 및 경험치 초기화
     initAudio();
@@ -1377,9 +1714,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     if (gameMode === 'survival') {
       // 서바이벌 모드 전용 속도 밸런싱
       // 달리기 시작 시 거리가 너무 벌어지지 않도록 Lv.1 시작 속도를 시속 8.3km/h 수준(초속 약 2.3m)으로 상향
-      const baseSurvivalSpeed = 0.00000035;
+      // const baseSurvivalSpeed = 0.00000035; // (시속 약 8.3km/h)(페이스 약 6분 40초~7분 30초/km)
+      const baseSurvivalSpeed = 0.00000019; // (시속 약 4.5km/h) (페이스 약 12~15분/km)
+      // const levelRate = 0.0138; // 레벨당 증가폭
+      const levelRate = 0.025;
       // 기존 최고속도가 30레벨 속도 수준이 되도록 레벨당 증가폭을 1.38%로 설정 (만렙인 100레벨에서는 무척 빠르게 추격)
-      return baseSurvivalSpeed * (1 + (zombieProgress.level - 1) * 0.0138);
+      return baseSurvivalSpeed * (1 + (zombieProgress.level - 1) * levelRate);
     }
     return (speedLevel / 50) * ZOMBIE_SPEED_BASE;
   }, [selectedZombieSpeed, zombieProgress.level, gameMode]);
@@ -1477,7 +1817,15 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         rubberBandingMultiplier = 0.75;
       }
     }
-    const finalSpeed = currentZombieSpeed * rubberBandingMultiplier;
+
+    // 코너링 관성 감속 적용 (30도 임계값 기준)
+    let corneringMultiplier = 1.0;
+    if (zombieDecelFramesLeftRef.current > 0) {
+      corneringMultiplier = zombieDecelMultiplierRef.current;
+      zombieDecelFramesLeftRef.current -= 1;
+    }
+
+    const finalSpeed = currentZombieSpeed * rubberBandingMultiplier * corneringMultiplier;
 
     const dLat = target.lat - prevPos.lat;
     const dLng = target.lng - prevPos.lng;
@@ -1485,8 +1833,52 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
     let newPos;
     if (len < finalSpeed) {
+      const prevIdx = pathIndexRef.current;
       pathIndexRef.current += 1;
       newPos = target;
+
+      // 다음 경로 노드 통과 시 각도 꺾임 체크
+      const nextTarget = activePath[pathIndexRef.current + 1];
+      const currentPos = activePath[prevIdx];
+      const previousPos = prevIdx > 0 ? activePath[prevIdx - 1] : null;
+
+      if (previousPos && currentPos && nextTarget) {
+        // 벡터 1: 이전 지점 -> 현재 지점
+        const v1Lat = currentPos.lat - previousPos.lat;
+        const v1Lng = currentPos.lng - previousPos.lng;
+        const v1Len = Math.sqrt(v1Lat * v1Lat + v1Lng * v1Lng);
+
+        // 벡터 2: 현재 지점 -> 다음 목적지 지점
+        const v2Lat = nextTarget.lat - currentPos.lat;
+        const v2Lng = nextTarget.lng - currentPos.lng;
+        const v2Len = Math.sqrt(v2Lat * v2Lat + v2Lng * v2Lng);
+
+        if (v1Len > 0 && v2Len > 0) {
+          const dotProduct = (v1Lat * v2Lat) + (v1Lng * v2Lng);
+          const cosTheta = Math.max(-1, Math.min(1, dotProduct / (v1Len * v2Len)));
+          const angleRad = Math.acos(cosTheta);
+          const angleDeg = angleRad * (180 / Math.PI);
+
+          if (angleDeg >= 30) {
+            if (angleDeg >= 120) {
+              // 120도 이상: 유턴 또는 매우 급한 꺾임
+              zombieDecelMultiplierRef.current = 0.50; // 50% 감속
+              zombieDecelFramesLeftRef.current = 120; // 2초 유지
+              console.log(`[좀비 급감속] 각도: ${angleDeg.toFixed(1)}도, 50% 감속 발동 (2초)`);
+            } else if (angleDeg >= 75) {
+              // 75도 ~ 120도: 일반적인 직각 코너
+              zombieDecelMultiplierRef.current = 0.70; // 30% 감속
+              zombieDecelFramesLeftRef.current = 90; // 1.5초 유지
+              console.log(`[좀비 직각감속] 각도: ${angleDeg.toFixed(1)}도, 30% 감속 발동 (1.5초)`);
+            } else {
+              // 30도 ~ 75도: 완만한 골목길 꺾임
+              zombieDecelMultiplierRef.current = 0.85; // 15% 감속
+              zombieDecelFramesLeftRef.current = 60; // 1초 유지
+              console.log(`[좀비 완만감속] 각도: ${angleDeg.toFixed(1)}도, 15% 감속 발동 (1초)`);
+            }
+          }
+        }
+      }
     } else {
       newPos = {
         lat: prevPos.lat + (dLat / len) * finalSpeed,
@@ -1886,6 +2278,32 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           setIsMapDragging(false);
         }}
       >
+        {/* 좀비의 사망 판정 범위 (붉은색 5m 반경 원) */}
+        {zombiePosition && gameMode !== 'record' && (
+          <Circle
+            center={zombiePosition}
+            radius={5}
+            strokeWeight={1.5}
+            strokeColor={"#ef4444"}
+            strokeOpacity={0.8}
+            fillColor={"#ef4444"}
+            fillOpacity={0.12}
+          />
+        )}
+
+        {/* 사용자의 안전 범위 가이드라인 (녹색 5m 반경 원) */}
+        {userPosition && gameMode !== 'record' && (
+          <Circle
+            center={userPosition}
+            radius={5}
+            strokeWeight={1}
+            strokeColor={"#10b981"}
+            strokeOpacity={0.5}
+            fillColor={"#10b981"}
+            fillOpacity={0.06}
+          />
+        )}
+
         {userPosition && (
           <CustomOverlayMap position={userPosition} zIndex={1}>
             <div
@@ -1993,9 +2411,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           top: '20px',
           left: '20px',
           zIndex: 99999,
-          background: 'rgba(0, 0, 0, 0.95)',
-          border: '1px solid rgba(239, 68, 68, 0.35)',
-          borderRadius: '50%',
+          background: 'rgba(15, 23, 42, 0.9)',
+          border: '2px solid #ef4444',
+          borderRadius: '8px',
           width: '60px',
           height: '60px',
           display: 'flex',
@@ -2005,7 +2423,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           fontWeight: 'bold',
           cursor: 'pointer',
           color: '#ef4444',
-          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)'
+          boxShadow: '0 0 12px rgba(239, 68, 68, 0.3), 0 4px 15px rgba(0,0,0,0.6)',
+          transition: 'all 0.15s ease'
         }}
       >
         이전
@@ -2031,10 +2450,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           top: 'calc(50% - 105px)',
           transform: 'translateY(-50%)',
           zIndex: 9999,
-          background: isFollowingUser ? '#ef4444' : 'rgba(0, 0, 0, 0.95)',
+          background: isFollowingUser ? '#ef4444' : 'rgba(15, 23, 42, 0.9)',
           color: isFollowingUser ? 'white' : '#ef4444',
-          border: '1px solid rgba(239, 68, 68, 0.35)',
-          borderRadius: '50%',
+          border: '2px solid #ef4444',
+          borderRadius: '8px',
           width: '60px',
           height: '60px',
           display: 'flex',
@@ -2043,8 +2462,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           fontSize: '15px',
           fontWeight: 'bold',
           cursor: 'pointer',
-          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)',
-          transition: 'all 0.2s',
+          boxShadow: isFollowingUser
+            ? '0 0 15px rgba(239, 68, 68, 0.6), 0 4px 15px rgba(0,0,0,0.6)'
+            : '0 0 12px rgba(239, 68, 68, 0.3), 0 4px 15px rgba(0,0,0,0.6)',
+          transition: 'all 0.15s ease',
           opacity: isFollowingUser ? 1 : 0.8
         }}
         title="사용자 위치 추적"
@@ -2072,10 +2493,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           top: 'calc(50% - 35px)',
           transform: 'translateY(-50%)',
           zIndex: 9999,
-          background: isFollowingZombie ? '#ef4444' : 'rgba(0, 0, 0, 0.95)',
+          background: isFollowingZombie ? '#ef4444' : 'rgba(15, 23, 42, 0.9)',
           color: isFollowingZombie ? 'white' : '#ef4444',
-          border: '1px solid rgba(239, 68, 68, 0.35)',
-          borderRadius: '50%',
+          border: '2px solid #ef4444',
+          borderRadius: '8px',
           width: '60px',
           height: '60px',
           display: 'flex',
@@ -2084,8 +2505,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           fontSize: '15px',
           fontWeight: 'bold',
           cursor: 'pointer',
-          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)',
-          transition: 'all 0.2s',
+          boxShadow: isFollowingZombie
+            ? '0 0 15px rgba(239, 68, 68, 0.6), 0 4px 15px rgba(0,0,0,0.6)'
+            : '0 0 12px rgba(239, 68, 68, 0.3), 0 4px 15px rgba(0,0,0,0.6)',
+          transition: 'all 0.15s ease',
           opacity: isFollowingZombie ? 1 : 0.8
         }}
         title="좀비 위치 추적"
@@ -2102,7 +2525,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             setIsFollowingUser(false);
             setIsFollowingZombie(false);
           } else {
-            alert("설정되거나 기록된 경로가 없습니다. 먼저 경로를 지정해 주세요.");
+            alert("설정되거나 기록된 코스가 없습니다. 먼저 코스를 지정해 주세요.");
           }
         }}
         style={{
@@ -2111,10 +2534,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           top: 'calc(50% + 35px)',
           transform: 'translateY(-50%)',
           zIndex: 9999,
-          background: 'rgba(0, 0, 0, 0.95)',
+          background: 'rgba(15, 23, 42, 0.9)',
           color: '#ef4444',
-          border: '1px solid rgba(239, 68, 68, 0.35)',
-          borderRadius: '50%',
+          border: '2px solid #ef4444',
+          borderRadius: '8px',
           width: '60px',
           height: '60px',
           display: 'flex',
@@ -2123,14 +2546,53 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           fontSize: '15px',
           fontWeight: 'bold',
           cursor: 'pointer',
-          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)',
-          transition: 'all 0.2s',
+          boxShadow: '0 0 12px rgba(239, 68, 68, 0.3), 0 4px 15px rgba(0,0,0,0.6)',
+          transition: 'all 0.15s ease',
           opacity: 0.8
         }}
-        title="경로 시작점으로 이동"
+        title="코스 시작점으로 이동"
       >
-        경로
+        시작점
       </button>
+
+      {/* 주머니 모드(화면 잠금) 수동 활성화 버튼 */}
+      {zombiePosition && !isGameOver && (
+        <button
+          onClick={() => {
+            setIsPocketMode(true);
+            try {
+              if (navigator.vibrate) {
+                navigator.vibrate(80);
+              }
+            } catch (e) { }
+          }}
+          style={{
+            position: 'absolute',
+            right: '20px',
+            top: 'calc(50% + 105px)',
+            transform: 'translateY(-50%)',
+            zIndex: 9999,
+            background: 'rgba(15, 23, 42, 0.9)',
+            color: '#ef4444',
+            border: '2px solid #ef4444',
+            borderRadius: '8px',
+            width: '60px',
+            height: '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '15px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            boxShadow: '0 0 12px rgba(239, 68, 68, 0.3), 0 4px 15px rgba(0,0,0,0.6)',
+            transition: 'all 0.15s ease',
+            opacity: 0.8
+          }}
+          title="화면 오터치 잠금 (주머니 모드)"
+        >
+          잠금
+        </button>
+      )}
 
 
       {/* --- [수정] 상단 우측 경로 즐겨찾기 토글 버튼 (RED 테마 통일 및 위치 수정) --- */}
@@ -2145,10 +2607,10 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           top: '20px',
           right: '20px',
           zIndex: 99999,
-          backgroundColor: showFavorites ? '#ef4444' : 'rgba(0, 0, 0, 0.95)',
+          backgroundColor: showFavorites ? '#ef4444' : 'rgba(15, 23, 42, 0.9)',
           color: showFavorites ? '#ffffff' : '#ef4444',
           border: '2px solid #ef4444',
-          borderRadius: '50%',
+          borderRadius: '8px',
           width: '60px',
           height: '60px',
           display: 'flex',
@@ -2157,13 +2619,15 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           fontSize: '15px',
           fontWeight: 'bold',
           cursor: 'pointer',
-          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2), 0 4px 15px rgba(0,0,0,0.6)',
+          boxShadow: showFavorites
+            ? '0 0 15px rgba(239, 68, 68, 0.6), 0 4px 15px rgba(0,0,0,0.6)'
+            : '0 0 12px rgba(239, 68, 68, 0.3), 0 4px 15px rgba(0,0,0,0.6)',
           transition: 'all 0.2s',
           padding: 0,
           outline: 'none'
         }}
       >
-        기록
+        코스
       </button>
 
       {/* --- [수정] 화면 정중앙으로 이동된 즐겨찾기 레이어 팝업 (모달 스타일) --- */}
@@ -2209,7 +2673,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
               alignItems: 'center',
               fontFamily: "'Black Han Sans', sans-serif"
             }}>
-              <span>저장된 탐색 경로</span>
+              <span>저장된 코스 목록</span>
               <button
                 onClick={() => setShowFavorites(false)}
                 style={{
@@ -2228,7 +2692,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
 
             {favorites.length === 0 ? (
               <div style={{ color: '#64748b', fontSize: '13px', textAlign: 'center', padding: '30px 0', lineHeight: '1.5' }}>
-                아직 기록된 경로가 없습니다.<br />지도를 클릭하여 경로를 만들어보세요!
+                아직 저장된 코스가 없습니다.<br />지도를 클릭하여 코스를 만들어보세요!
               </div>
             ) : (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -2378,12 +2842,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             justifyContent: 'center',
             gap: '6px'
           }}>
-            🚨 작전 경로 탐색
+            🚨 작전 코스 설계
           </h3>
 
           {/* 팝업 본문 */}
           <p style={{ fontSize: '14px', color: '#cbd5e1', margin: '0 0 24px 0', lineHeight: '1.6' }}>
-            선택하신 지점으로 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>도보 탈출 경로</span>를<br />
+            선택하신 지점으로 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>도보 탈출 코스</span>를<br />
             분석하시겠습니까?
             <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
               (확인 시 좀비 추격 시뮬레이션이 재시작됩니다)
@@ -3151,11 +3615,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                 포기하기 (사망)
               </button>
               <button
-                onClick={() => {
-                  setShowReviveConfirm(false);
-                  setShowAdPlayer(true);
-                  setAdCountdown(30);
-                }}
+                onClick={handlePlayReviveAd}
                 className="hud-reset-btn"
                 style={{ flex: 1.2, backgroundColor: '#10b981', color: 'white', border: 'none', fontWeight: 'bold' }}
               >
@@ -3475,16 +3935,16 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}
           >
             <div className="hud-header">
-              <div className="hud-mode-tag">SAVE ROUTE</div>
+              <div className="hud-mode-tag">SAVE COURSE</div>
               <div className="hud-status-dot"></div>
             </div>
             <div className="hud-main-display" style={{ textAlign: 'left', padding: '10px 0' }}>
-              <label style={{ fontSize: '13px', color: '#cbd5e1', display: 'block', marginBottom: '8px' }}>저장할 경로 이름</label>
+              <label style={{ fontSize: '13px', color: '#cbd5e1', display: 'block', marginBottom: '8px' }}>저장할 코스 이름</label>
               <input
                 type="text"
                 value={customRouteTitle}
                 onChange={(e) => setCustomRouteTitle(e.target.value)}
-                placeholder="경로 이름을 입력하세요"
+                placeholder="코스 이름을 입력하세요"
                 style={{
                   width: '100%',
                   backgroundColor: '#1e293b',
@@ -3580,12 +4040,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}
           >
             <div className="hud-header">
-              <div className="hud-mode-tag">CANCEL RECORD</div>
+              <div className="hud-mode-tag">CANCEL COURSE</div>
               <div className="hud-status-dot" style={{ backgroundColor: '#f43f5e' }}></div>
             </div>
             <div className="hud-main-display" style={{ padding: '10px 0' }}>
               <div className="hud-distance-text" style={{ fontSize: '1rem', lineHeight: '1.5' }}>
-                경로 기록을 취소하고<br />메인 화면으로 나갈까요?
+                코스 설정을 취소하고<br />메인 화면으로 나갈까요?
               </div>
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
@@ -3642,9 +4102,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             </div>
             <div className="hud-main-display" style={{ padding: '10px 0' }}>
               <div className="hud-distance-text" style={{ fontSize: '1rem', color: '#4ade80', lineHeight: '1.5' }}>
-                경로가 성공적으로<br />저장되었습니다!
+                코스가 성공적으로<br />저장되었습니다!
                 <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginTop: '6px', fontWeight: 'normal' }}>
-                  즐겨찾기 목록에서 확인하실 수 있습니다.
+                  코스 보관함에서 확인하실 수 있습니다.
                 </span>
               </div>
             </div>
@@ -3661,6 +4121,263 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 포켓 잠금 모드 블랙 스크린 레이어 */}
+      {isPocketMode && !isGameOver && (
+        <div
+          onClick={handlePocketModeTouch}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: isMapVisible ? 'rgba(0, 0, 0, 0.05)' : '#000000',
+            zIndex: 999999999,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '40px 24px',
+            boxSizing: 'border-box',
+            color: '#ffffff',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            transition: 'background-color 0.4s ease-in-out'
+          }}
+        >
+          {/* 내부 텍스트 콘텐츠 전체를 감싸는 래퍼 (이 래퍼에만 어두워짐과 픽셀 시프트를 적용해 배경 틈 발생 방지) */}
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              opacity: isDimmed ? 0.25 : 1.0,
+              transform: `translate(${pixelOffset.x}px, ${pixelOffset.y}px)`,
+              transition: 'opacity 0.4s ease-in-out, transform 0.2s ease-in-out',
+              pointerEvents: isMapVisible ? 'none' : 'auto'
+            }}
+          >
+            {/* 상단 경고 가이드 */}
+            <div style={{ textAlign: 'center', width: '100%' }}>
+              <div
+                onClick={(e) => {
+                  e.stopPropagation(); // 최상위 터치의 트리플 탭 리셋 방지 및 맵 가시성만 변경
+                  setIsMapVisible(true);
+                }}
+                style={{
+                  display: 'inline-block',
+                  border: '2px solid #ef4444',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  boxShadow: '0 0 15px rgba(239, 68, 68, 0.2)',
+                  marginBottom: '16px'
+                }}>
+                <span style={{ color: '#f87171', fontWeight: 'bold', fontSize: '18px', display: 'block', marginBottom: '4px' }}>
+                  ⚠️ 주머니 모드 활성화됨
+                </span>
+                <span style={{ color: '#cbd5e1', fontSize: '12px', lineHeight: '1.5', display: 'block', marginBottom: '8px' }}>
+                  화면을 완전히 끄면 좀비 추격이 멈춥니다!<br />
+                  이 화면 상태 그대로 주머니에 넣고 뛰세요.
+                </span>
+                {!isMapVisible && (
+                  <div
+                    style={{
+                      display: 'inline-block',
+                      marginTop: '4px',
+                      color: '#38bdf8',
+                      textDecoration: 'underline',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      backgroundColor: 'rgba(56, 189, 248, 0.1)'
+                    }}
+                  >
+                    🗺️ 지도를 보려면 여기를 터치하세요
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 중앙 실시간 GPS 정보 */}
+            <div style={{ textAlign: 'center', margin: 'auto 0', width: '100%' }}>
+              <div style={{ marginBottom: '20px' }}>
+                <span style={{ fontSize: '14px', color: isMapVisible ? '#334155' : '#94a3b8', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 'bold' }}>
+                  ZOMBIE DISTANCE
+                </span>
+                <span className={distance !== null && distance <= 25 ? 'danger-blink-text' : ''} style={{
+                  fontSize: '64px',
+                  fontWeight: '900',
+                  color: distance !== null && distance <= 25 ? '#ef4444' : (isMapVisible ? '#090d16' : '#f8fafc'),
+                  fontFamily: 'monospace'
+                }}>
+                  {distance !== null ? `${Math.round(distance)}m` : '---'}
+                </span>
+              </div>
+
+              {/* 좀비 실시간 추격 페이스 */}
+              <div style={{ marginBottom: '32px' }}>
+                <span style={{ fontSize: '12px', color: isMapVisible ? '#334155' : '#94a3b8', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>
+                  ZOMBIE CHASE PACE
+                </span>
+                <span style={{
+                  fontSize: '24px',
+                  fontWeight: 'bold',
+                  color: '#ef4444',
+                  fontFamily: 'monospace',
+                  textShadow: isMapVisible ? 'none' : '0 0 10px rgba(239, 68, 68, 0.3)'
+                }}>
+                  {(() => {
+                    if (!zombiePosition || distance === null) return '---';
+
+                    // 러버밴딩 배율 계산 (animate와 동일)
+                    let rubberBandingMultiplier = 1.0;
+                    const d = distance;
+                    if (d >= 50) {
+                      rubberBandingMultiplier = 2.0;
+                    } else if (d >= 30) {
+                      rubberBandingMultiplier = 1.4;
+                    } else if (d >= 15) {
+                      rubberBandingMultiplier = 1.0;
+                    } else if (d >= 5) {
+                      rubberBandingMultiplier = 0.75 + ((d - 5) / 10) * 0.25;
+                    } else {
+                      rubberBandingMultiplier = 0.75;
+                    }
+
+                    const finalSpeedValue = currentZombieSpeed * rubberBandingMultiplier;
+                    
+                    // 속도 좌표 단위 -> 시속(km/h) 변환
+                    const kmh = finalSpeedValue * 23684210;
+                    
+                    if (kmh <= 0.1) return '---';
+
+                    // 시속(km/h) -> 페이스(분'초"/km) 변환
+                    const paceDecimal = 60 / kmh;
+                    const mins = Math.floor(paceDecimal);
+                    const secs = Math.floor((paceDecimal - mins) * 60);
+
+                    return `${mins}'${secs.toString().padStart(2, '0')}"/km`;
+                  })()}
+                </span>
+              </div>
+
+              {/* 목적지 거리 (RUN 모드일 때만 표시) */}
+              {gameMode === 'run' && routePath && routePath.length > 0 && (
+                <div style={{ marginBottom: '32px' }}>
+                  <span style={{ fontSize: '12px', color: isMapVisible ? '#334155' : '#94a3b8', display: 'block', marginBottom: '10px', letterSpacing: '1px', fontWeight: 'bold' }}>
+                    REMAINING TO DESTINATION
+                  </span>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '30px' }}>
+                    <div>
+                      <span style={{ fontSize: '11px', color: isMapVisible ? '#334155' : '#64748b', display: 'block', marginBottom: '4px' }}>나 ➔ 목적지</span>
+                      <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#10b981', textShadow: isMapVisible ? 'none' : '0 0 10px rgba(16, 185, 129, 0.4)' }}>
+                        {(() => {
+                          if (!userPosition) return '---';
+                          const destination = routePath[routePath.length - 1];
+                          const dist = calculateDistance(userPosition.lat, userPosition.lng, destination.lat, destination.lng);
+                          return dist >= 1000 ? `${(dist / 1000).toFixed(2)}km` : `${Math.round(dist)}m`;
+                        })()}
+                      </span>
+                    </div>
+                    <div style={{ borderLeft: `1px solid ${isMapVisible ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.1)'}`, paddingLeft: '30px' }}>
+                      <span style={{ fontSize: '11px', color: isMapVisible ? '#334155' : '#64748b', display: 'block', marginBottom: '4px' }}>좀비 ➔ 목적지</span>
+                      <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#f43f5e', textShadow: isMapVisible ? 'none' : '0 0 10px rgba(244, 63, 94, 0.4)' }}>
+                        {(() => {
+                          if (!zombiePosition) return '---';
+                          const destination = routePath[routePath.length - 1];
+                          const dist = calculateDistance(zombiePosition.lat, zombiePosition.lng, destination.lat, destination.lng);
+                          return dist >= 1000 ? `${(dist / 1000).toFixed(2)}km` : `${Math.round(dist)}m`;
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 운동 요약 통계 */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '40px',
+                borderTop: `1px solid ${isMapVisible ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.1)'}`,
+                paddingTop: '20px',
+                maxWidth: '300px',
+                margin: '0 auto'
+              }}>
+                <div>
+                  <span style={{ fontSize: '11px', color: isMapVisible ? '#334155' : '#64748b', display: 'block', marginBottom: '4px' }}>누적 이동</span>
+                  <span style={{ fontSize: '16px', fontWeight: 'bold', color: isMapVisible ? '#090d16' : '#f1f5f9' }}>
+                    {(() => {
+                      const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
+                      if (activePath.length > 1) {
+                        let total = 0;
+                        for (let i = 0; i < activePath.length - 1; i++) {
+                          total += calculateDistance(activePath[i].lat, activePath[i].lng, activePath[i + 1].lat, activePath[i + 1].lng);
+                        }
+                        return (total / 1000).toFixed(2) + 'km';
+                      }
+                      return '0.00km';
+                    })()}
+                  </span>
+                  {gameMode === 'survival' && targetDistanceRef.current > 0 && (
+                    <span style={{ fontSize: '10px', color: '#10b981', display: 'block', marginTop: '2px' }}>
+                      목표: {targetDistanceRef.current.toFixed(2)}km
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <span style={{ fontSize: '11px', color: isMapVisible ? '#334155' : '#64748b', display: 'block', marginBottom: '4px' }}>따돌림 횟수</span>
+                  <span style={{ fontSize: '16px', fontWeight: 'bold', color: isMapVisible ? '#090d16' : '#f1f5f9' }}>{escapeCount}회</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 하단 잠금 해제 가이드 */}
+            <div style={{ textAlign: 'center', width: '100%' }}>
+              <div className="lock-guide-text" style={{
+                fontSize: '13px',
+                color: isMapVisible ? '#090d16' : '#94a3b8',
+                letterSpacing: '0.5px',
+                fontWeight: isMapVisible ? 'bold' : 'normal'
+              }}>
+                🔓 잠금을 해제하려면 화면을 빠르게 <span style={{ color: isMapVisible ? '#0284c7' : '#38bdf8', fontWeight: 'bold' }}>3번 연속 터치</span>하세요
+              </div>
+            </div>
+          </div>
+
+          {/* 지도가 활성화되어 비쳐 보일 때 복귀 안내문 (사용자 클릭 방해 금지를 위해 pointerEvents: 'none') */}
+          {isMapVisible && (
+            <div style={{
+              position: 'absolute',
+              bottom: '40px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              border: '1.5px solid rgba(239, 68, 68, 0.4)',
+              padding: '10px 20px',
+              borderRadius: '24px',
+              fontSize: '12px',
+              color: '#fca5a5',
+              fontWeight: 'bold',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.6)',
+              textAlign: 'center',
+              whiteSpace: 'nowrap',
+              pointerEvents: 'none',
+              animation: 'lockGuideFade 1.5s infinite alternate'
+            }}>
+              🔓 화면 아무 곳이나 터치하면 잠금 화면으로 돌아갑니다
+            </div>
+          )}
         </div>
       )}
     </div>

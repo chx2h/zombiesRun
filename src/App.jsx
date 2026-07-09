@@ -592,7 +592,7 @@ function App() {
                   navigate('playing');
                 }}
               >
-                경로 만들기
+                코스 만들기
               </button>
               <button
                 className="menu-btn start-button menu-btn-manual"

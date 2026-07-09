@@ -336,7 +336,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord, setHandleHardwareBack })
           className={`tab-btn ${activeTab === 'favorites' ? 'active-run' : ''}`}
           style={{ padding: '10px' }}
         >
-          <span>⭐ 경로 </span>
+          <span>⭐ 코스 </span>
         </button>
         <button
           onClick={() => setActiveTab('history')}
@@ -354,10 +354,10 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord, setHandleHardwareBack })
         </button>
       </div>
 
-      <div 
-        className="history-list-container history-content-animated" 
-        style={{ 
-          display: 'flex', 
+      <div
+        className="history-list-container history-content-animated"
+        style={{
+          display: 'flex',
           flexDirection: 'column',
           backgroundImage: `linear-gradient(to bottom, rgba(9, 13, 24, 0.35), rgba(2, 6, 23, 0.62)), url(${tabBackgrounds[activeTab]})`,
           backgroundSize: 'cover',
@@ -370,15 +370,15 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord, setHandleHardwareBack })
           /* 즐겨찾기 목록 */
           favorites.length === 0 ? (
             <p className="no-records-message">
-              아직 생성해서 저장한 즐겨찾기 경로가 없습니다.<br />
-              '경로 만들기'에서 나만의 생존 경로를 등록해보세요!
+              아직 생성해서 저장한 코스가 없습니다.<br />
+              '코스 만들기'에서 나만의 생존 코스를 등록해보세요!
             </p>
           ) : (
             <table className="history-table">
               <thead>
                 <tr>
                   <th>등록 시간</th>
-                  <th>경로 이름</th>
+                  <th>코스 이름</th>
                   <th>총 거리</th>
                   <th>포인트 수</th>
                   <th>관리</th>
@@ -1111,7 +1111,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord, setHandleHardwareBack })
 
       {/* --- 공용 커스텀 컨펌 모달 --- */}
       {showConfirmModal && (
-        <div 
+        <div
           onClick={() => setShowConfirmModal(false)}
           style={{
             position: 'absolute',
@@ -1128,9 +1128,9 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord, setHandleHardwareBack })
             padding: '20px'
           }}
         >
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
-            className="hud-container" 
+            className="hud-container"
             style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '90%', maxWidth: '300px' }}
           >
             <div className="hud-header">
