@@ -249,7 +249,7 @@ export default function ManualPage({ onBackToIntro }) {
             onClick={() => setActiveTab('run')}
             className={`tab-btn ${activeTab === 'run' ? 'active-run' : ''}`}
           >
-            <span>🏃<br />RUN<br />모드</span>
+            <span>🏃<br />CHASE<br />모드</span>
           </button>
           <button
             onClick={() => setActiveTab('record')}
@@ -356,24 +356,24 @@ export default function ManualPage({ onBackToIntro }) {
             <div className="tab-pane-content">
               <div className="pane-header">
                 <div>
-                  <h3 style={{ color: '#4ade80' }}>RUN: 코스 도보 탈출</h3>
-                  <p className="pane-desc">미리 설정한 탈출로를 따라 좀비보다 먼저 골인 지점에 도달하세요.</p>
+                  <h3 style={{ color: '#4ade80' }}>CHASE: 좀비 추격 포획</h3>
+                  <p className="pane-desc">달아나는 좀비를 추격하여 골인 전에 5m 이내로 인접하여 포획하세요.</p>
                 </div>
               </div>
 
               <div className="info-grid">
                 <div className="info-card" style={{ borderColor: '#4ade80' }}>
-                  <h4 style={{ color: '#4ade80' }}>📍 작전 경로 개척 (목적지 설정)</h4>
-                  <p>지도를 클릭하여 탈출 목적지(<span style={{ color: '#f43f5e', fontWeight: 'bold' }}>붉은색 플래그 🚩</span>)를 지정하면, 목적지까지의 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>최적의 도보 경로(초록색선)</span>가 지도에 자동으로 생성됩니다.</p>
+                  <h4 style={{ color: '#4ade80' }}>📍 작전 경로 설정 및 좀비 스폰</h4>
+                  <p>지도를 클릭하여 목적지(<span style={{ color: '#f43f5e', fontWeight: 'bold' }}>붉은색 플래그 🚩</span>)를 지정하면, <span style={{ color: '#4ade80', fontWeight: 'bold' }}>최적의 추격 경로(초록색선)</span>가 생성됩니다. 좀비는 유저보다 전방 약 40m 노드에서 스폰되어 도망치기 시작합니다.</p>
                 </div>
                 <div className="info-card" style={{ borderColor: '#4ade80' }}>
-                  <h4 style={{ color: '#4ade80' }}>🏁 선착순 골인 승부</h4>
-                  <p>좀비가 경로의 시작점(Start)에서 생성되어 가이드 경로를 타고 추적을 시작합니다. 좀비보다 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>먼저 목적지 15m 이내에 골인</span>하면 승리, 가로막히거나 좀비가 먼저 골인하면 패배합니다.</p>
+                  <h4 style={{ color: '#4ade80' }}>🏁 역방향 추격과 점진적 난이도 상향</h4>
+                  <p>좀비는 유저가 가까이 오면 최대 시속 15km/h로 맹렬히 도망칩니다. 좀비가 결승점에 가기 전 <span style={{ color: '#4ade80', fontWeight: 'bold' }}>5m 이내로 포획하면 승리</span>합니다. **포획에 성공하면 다음 플레이 시 좀비 기본 속도가 자동으로 영구 상향(Lv.+1)되며, 실패 시에는 현상 유지**됩니다. (최초 Lv.5 시작)</p>
                 </div>
               </div>
 
               <div className="advice-box" style={{ borderColor: '#4ade80' }}>
-                <p><strong style={{ color: '#4ade80' }}>🏃 훈련 조언:</strong> 시작 전 HUD 슬라이더를 통해 좀비의 추격 속도(1~50)를 임의로 조절할 수 있습니다. 자신의 런닝 속도에 맞는 적절한 속도로 난이도를 맞추어 탈출 작전을 승리로 이끄세요.</p>
+                <p><strong style={{ color: '#4ade80' }}>🏃 훈련 조언:</strong> 좀비가 가까이 오면 최대 시속 15.0 km/h(페이스 4분/km)로 맹렬히 달아나므로 마지막 순간에 전속력 스프린트가 요구됩니다. 지쳤을 때는 거리를 벌려 좀비를 감속시킨 후 다시 체력을 모아 대쉬해 보세요.</p>
               </div>
             </div>
           )}
@@ -395,7 +395,7 @@ export default function ManualPage({ onBackToIntro }) {
                 </div>
                 <div className="info-card" style={{ borderColor: '#c084fc' }}>
                   <h4 style={{ color: '#c084fc' }}>⭐ 기록 보관소 유기적 연동</h4>
-                  <p>기록이 끝난 경로는 맞춤 이름을 지정하여 즐겨찾기로 저장합니다. 이 저장된 경로는 <span style={{ fontWeight: 'bold', color: '#f1f5f9' }}>기록 보관소</span>에서 탭 한 번으로 <span className="highlight-green">즉시 런 모드로 플레이</span>하거나, <span className="highlight-red">서바이벌 모드</span>의 길잡이 가이드선으로 불러올 수 있습니다.</p>
+                  <p>기록이 끝난 경로는 맞춤 이름을 지정하여 즐겨찾기로 저장합니다. 이 저장된 경로는 <span style={{ fontWeight: 'bold', color: '#f1f5f9' }}>기록 보관소</span>에서 탭 한 번으로 <span className="highlight-green">즉시 추격 모드로 플레이</span>하거나, <span className="highlight-red">서바이벌 모드</span>의 길잡이 가이드선으로 불러올 수 있습니다.</p>
                 </div>
               </div>
 

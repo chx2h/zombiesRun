@@ -580,7 +580,7 @@ function App() {
                   navigate('playing');
                 }}
               >
-                RUN
+                CHASE
               </button>
               <button
                 className="menu-btn start-button menu-btn-record"
@@ -762,10 +762,10 @@ function App() {
                   </div>
                 </div>
                 <div className="onboarding-mode-row">
-                  <div className="onboarding-mode-name">RUN</div>
+                  <div className="onboarding-mode-name">CHASE</div>
                   <div className="onboarding-mode-info">
-                    <h5 className="onboarding-mode-title">목적지 레이스</h5>
-                    <p className="onboarding-mode-desc">지도에 목적지를 찍고 좀비보다 먼저 도착하면 승리</p>
+                    <h5 className="onboarding-mode-title">좀비 추격 포획 (최초 Lv.5 시작)</h5>
+                    <p className="onboarding-mode-desc">도망치는 좀비를 뒤쫓아가 5m 이내로 포획하면 승리! 포획 성공 시 다음 좀비 속도가 영구 상향(Lv.+1)되며, 실패 시 현상 유지됩니다.</p>
                   </div>
                 </div>
                 <div className="onboarding-mode-row">
@@ -800,7 +800,7 @@ function App() {
             {/* 04 - 좀비 속도 조절 */}
             <div className="onboarding-section">
               <div className="onboarding-sec-label" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                <span>04 - 좀비 속도</span>
+                <span>04 - 좀비 속도 (SURVIVAL 전용)</span>
                 <span className="onboarding-speed-badge">
                   {selectedZombieSpeed}/50 · <strong className="speed-text-highlight" style={{
                     color: selectedZombieSpeed <= 12 ? '#10b981' : selectedZombieSpeed <= 25 ? '#f59e0b' : selectedZombieSpeed <= 39 ? '#f97316' : '#ef4444'

@@ -49,6 +49,22 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return Math.round(R * c);
 };
 
+/**
+ * RUN 모드용 좀비 최초 스폰 인덱스 연산 (유저 전방 약 40m 노드)
+ */
+const findRunModeZombieSpawnIndex = (path) => {
+  if (!path || path.length <= 1) return 0;
+  let accumulatedDist = 0;
+  for (let i = 0; i < path.length - 1; i++) {
+    accumulatedDist += calculateDistance(path[i].lat, path[i].lng, path[i+1].lat, path[i+1].lng);
+    if (accumulatedDist >= 40) {
+      return i + 1;
+    }
+  }
+  // 경로 전체 거리가 40m보다 작으면 중간 인덱스 리턴해 스폰
+  return Math.floor(path.length / 2);
+};
+
 const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTriggerExitConfirm, initialRoutePath, targetDistance = 0, setHandleHardwareBack }) => {
   // 상태 관리
   const [userPosition, setUserPosition] = useState(null);
@@ -118,12 +134,31 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const [customRouteTitle, setCustomRouteTitle] = useState('');
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
-
   // 설정 상태
   const [selectedZombieSpeed, setSelectedZombieSpeed] = useState(() => {
-    const saved = localStorage.getItem(`${gameMode}_zombieSpeed`);
-    return saved !== null ? Number(saved) : 1;
+    const saved = localStorage.getItem(`${gameMode === 'run' ? 'run' : gameMode}_zombieSpeed`);
+    if (saved !== null) return Number(saved);
+    return gameMode === 'run' ? 5 : 1;
   });
+
+  // --- 포획한 좀비 목록 도감 상태 ---
+  const [capturedZombies, setCapturedZombies] = useState([]);
+
+  useEffect(() => {
+    try {
+      const records = JSON.parse(localStorage.getItem('gameRecords') || '[]');
+      const caught = records
+        .filter(r => r.mode === 'run' && (r.result === '포획' || r.result === '탈출'))
+        .map(r => ({
+          emoji: r.capturedZombieEmoji || getZombieEmoji(r.zombieSpeed || 1),
+          level: r.zombieSpeed || 1,
+          date: r.date
+        }));
+      setCapturedZombies(caught);
+    } catch (e) {
+      console.error("Failed to load captured zombies:", e);
+    }
+  }, [isGameOver]);
 
   // --- 좀비 실시간 레벨업 및 난이도 조절 시스템 ---
   const [zombieProgress, setZombieProgress] = useState({ level: 1, xp: 0 });
@@ -150,23 +185,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   const zombieDecelFramesLeftRef = useRef(0); // 감속 지속 프레임 수
   const zombieDecelMultiplierRef = useRef(1.0); // 현재 적용 중인 감속 비율
 
-  // 포켓 모드일 때 뒤로가기 방지용 핸들러 연동
-  useEffect(() => {
-    if (setHandleHardwareBack) {
-      setHandleHardwareBack(() => {
-        if (isPocketModeRef.current) {
-          console.log("포켓 모드 활성화 상태이므로 뒤로가기 버튼 이벤트를 무시합니다.");
-          return true; // true를 리턴하여 부모(App.jsx)의 뒤로가기 처리를 막습니다.
-        }
-        return false;
-      });
-    }
-    return () => {
-      if (setHandleHardwareBack) {
-        setHandleHardwareBack(null);
-      }
-    };
-  }, [setHandleHardwareBack]);
+
 
   // --- OLED 번인 방지 및 절전 상태/Refs ---
   const [isDimmed, setIsDimmed] = useState(false);
@@ -437,6 +456,11 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     setRoutePath(fav.routePath);
     setMapCenter(fav.routePath[0]);
 
+    if (gameMode === 'run') {
+      const saved = localStorage.getItem('run_zombieSpeed');
+      setSelectedZombieSpeed(saved !== null ? Number(saved) : 5);
+    }
+
     // 좀비 스폰 타이머 재설정 (기존 타이머 클리어)
     if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current);
     setZombiePosition(null);
@@ -446,12 +470,16 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     // 지정된 딜레이 후 좀비 출현
     if (gameMode !== 'survival') {
       spawnTimerRef.current = setTimeout(() => {
-        const startPos = fav.routePath[0];
-        pathIndexRef.current = 0;
+        let spawnIndex = 0;
+        if (gameMode === 'run') {
+          spawnIndex = findRunModeZombieSpawnIndex(fav.routePath);
+        }
+        const startPos = fav.routePath[spawnIndex] || fav.routePath[0];
+        pathIndexRef.current = spawnIndex;
         setZombiePosition(startPos);
         zombiePosRef.current = startPos;
         setCountdown(0);
-        console.log("즐겨찾기 경로로 좀비 출현!");
+        console.log(`즐겨찾기 경로로 좀비 출현! (스폰 인덱스: ${spawnIndex})`);
       }, selectedSpawnDelay * 1000);
     }
 
@@ -551,6 +579,13 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   // 안드로이드 하드웨어 백 버튼 처리용 핸들러 위임 등록
   useEffect(() => {
     const handleHardwareBack = () => {
+      // 1. 포켓 모드가 활성화되어 있다면 백 버튼 조작을 무시(소비)하여 앱 이탈 및 상태 오작동을 차단합니다.
+      if (isPocketMode) {
+        console.log("포켓 모드 활성화 상태이므로 뒤로가기 버튼 이벤트를 무시합니다.");
+        return true;
+      }
+
+      // 2. 개별 모달/팝업 상태에 따른 처리
       if (showSaveSuccess) {
         setShowSaveSuccess(false);
         return true;
@@ -563,12 +598,13 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         setShowSaveModal(false);
         return true;
       }
+      // 광고 실행 중이거나 부활 선택 대기 상태일 때는 뒤로가기 버튼으로 임의 종료되는 것을 막습니다.
       if (showAdPlayer) {
-        setShowAdPlayer(false);
+        console.log("광고 재생 중이므로 뒤로가기를 무시합니다.");
         return true;
       }
       if (showReviveConfirm) {
-        setShowReviveConfirm(false);
+        console.log("부활 선택 대기 중이므로 뒤로가기를 무시합니다.");
         return true;
       }
       if (showDeleteConfirm) {
@@ -601,6 +637,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       setHandleHardwareBack(handleHardwareBack);
     }
   }, [
+    isPocketMode,
     showSaveSuccess,
     showCancelConfirm,
     showSaveModal,
@@ -931,8 +968,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           console.log("AdMob SDK 초기화 완료");
           
           // 💡 게임 시작 시 백그라운드에서 광고를 미리 로드해 둡니다 (프리로드)
+          const adUnitId = import.meta.env.VITE_ADMOB_REWARD_ID || 'ca-app-pub-3940256099942544/5224354917';
           await AdMob.prepareRewardVideoAd({
-            adId: 'ca-app-pub-3940256099942544/5224354917'
+            adId: adUnitId
           });
           console.log("AdMob 리워드 광고 프리로드 완료");
         } catch (e) {
@@ -949,6 +987,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
   // --- 실제 Google AdMob 리워드 광고 재생 또는 웹 모조 광고 재생 핸들러 ---
   const handlePlayReviveAd = useCallback(async () => {
     setShowReviveConfirm(false);
+    const adUnitId = import.meta.env.VITE_ADMOB_REWARD_ID || 'ca-app-pub-3940256099942544/5224354917';
 
     if (Capacitor.isNativePlatform()) {
       try {
@@ -972,7 +1011,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             // 다음 부활을 대비해 백그라운드에서 다시 프리로드 수행
             try {
               await AdMob.prepareRewardVideoAd({
-                adId: 'ca-app-pub-3940256099942544/5224354917'
+                adId: adUnitId
               });
               console.log("차기 리워드 광고 백그라운드 프리로드 완료");
             } catch (e) {
@@ -989,7 +1028,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           console.warn("프리로드된 광고 재생 실패. 재로드 시도:", showError);
           alert("AdMob 프리로드 재생 실패, 재로드 시도합니다: " + (showError?.message || JSON.stringify(showError)));
           await AdMob.prepareRewardVideoAd({
-            adId: 'ca-app-pub-3940256099942544/5224354917'
+            adId: adUnitId
           });
           await AdMob.showRewardVideoAd();
         }
@@ -1524,19 +1563,27 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
       lastUserPosForExpRef.current = null;
 
       if (gameMode !== 'survival') {
+        if (gameMode === 'run') {
+          const saved = localStorage.getItem('run_zombieSpeed');
+          setSelectedZombieSpeed(saved !== null ? Number(saved) : 5);
+        }
         if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current);
         setZombiePosition(null);
         zombiePosRef.current = null;
         setCountdown(selectedSpawnDelay);
 
         spawnTimerRef.current = setTimeout(() => {
-          const startPos = initialRoutePath[0];
-          pathIndexRef.current = 0;
+          let spawnIndex = 0;
+          if (gameMode === 'run') {
+            spawnIndex = findRunModeZombieSpawnIndex(initialRoutePath);
+          }
+          const startPos = initialRoutePath[spawnIndex] || initialRoutePath[0];
+          pathIndexRef.current = spawnIndex;
           setZombiePosition(startPos);
           zombiePosRef.current = startPos;
           setCountdown(0);
           gameStartTimeRef.current = Date.now(); // 좀비 출현 시점 시간 기록 시작
-          console.log("좀비출현 (복사된 경로)!");
+          console.log(`좀비출현 (복사된 경로, 스폰 인덱스: ${spawnIndex})!`);
         }, selectedSpawnDelay * 1000);
       } else {
         if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current);
@@ -1804,17 +1851,34 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     let rubberBandingMultiplier = 1.0;
     if (distanceRef.current !== null) {
       const d = distanceRef.current;
-      if (d >= 50) {
-        rubberBandingMultiplier = 2.0; // 50m 이상 멀어지면 빠르게 추격하기 위해 2.0배 가속
-      } else if (d >= 30) {
-        rubberBandingMultiplier = 1.4; // 30m ~ 50m 구간 1.4배 가속
-      } else if (d >= 15) {
-        rubberBandingMultiplier = 1.0; // 15m ~ 30m 기본 추격 페이스
-      } else if (d >= 5) {
-        // 5m ~ 15m 구간에서는 잡히기 직전의 긴장감 연출을 위해 선형 보간하여 서서히 감속 (0.75 ~ 1.0배)
-        rubberBandingMultiplier = 0.75 + ((d - 5) / 10) * 0.25;
+      if (gameMode === 'run') {
+        // [신규 RUN 모드] 사용자가 좀비를 쫓는 방식 (역방향 러버밴딩)
+        // 사용자가 멀리 있을 때는 좀비가 천천히 이동(조깅 수준)하다가, 사용자가 가까이 추격해 오면 맹렬하게 가속하여 도망침!
+        if (d >= 40) {
+          rubberBandingMultiplier = 0.3; // 40m 이상: 좀비가 거의 걷거나 천천히 조깅하듯 이동 (30% 속도)
+        } else if (d >= 25) {
+          rubberBandingMultiplier = 0.7; // 25m ~ 40m: 가볍게 러닝하는 속도로 도망 (70% 속도)
+        } else if (d >= 12) {
+          rubberBandingMultiplier = 1.1; // 12m ~ 25m: 위협을 느끼고 평상시 속도로 질주 (110% 속도)
+        } else {
+          // 12m 미만: 잡힐 위기이므로 좀비가 필사적으로 맹렬하게 가속 (160% 속도)
+          // 5m 이내가 되면 유저 승리로 판정되므로 5m ~ 12m 사이가 최고 속도 구간임
+          rubberBandingMultiplier = 1.6;
+        }
       } else {
-        rubberBandingMultiplier = 0.75;
+        // [서바이벌 모드 등] 좀비가 사용자를 쫓는 방식
+        if (d >= 50) {
+          rubberBandingMultiplier = 2.0; // 50m 이상 멀어지면 빠르게 추격하기 위해 2.0배 가속
+        } else if (d >= 30) {
+          rubberBandingMultiplier = 1.4; // 30m ~ 50m 구간 1.4배 가속
+        } else if (d >= 15) {
+          rubberBandingMultiplier = 1.0; // 15m ~ 30m 기본 추격 페이스
+        } else if (d >= 5) {
+          // 5m ~ 15m 구간에서는 잡히기 직전의 긴장감 연출을 위해 선형 보간하여 서서히 감속 (0.75 ~ 1.0배)
+          rubberBandingMultiplier = 0.75 + ((d - 5) / 10) * 0.25;
+        } else {
+          rubberBandingMultiplier = 0.75;
+        }
       }
     }
 
@@ -1971,28 +2035,55 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         }
       }
 
-      // 잡힘 판정 (Survival 모드일 때만 5m 이내 종료 또는 부활권 확인)
-      if (d <= 5 && gameMode === 'survival') {
-        // 기존의 주기적인 펄스 진동 루프 해제 및 강제 진동 정지
-        if (pulseIntervalRef.current) {
-          clearTimeout(pulseIntervalRef.current);
-          pulseIntervalRef.current = null;
-        }
-        try {
-          Haptics.impact({ style: ImpactStyle.Heavy });
-        } catch (e) { }
-        if (navigator.vibrate) {
-          navigator.vibrate(800); // 잡혔을 때 800ms 강한 단발 충격
-        }
+      // 잡힘 판정 (Survival 모드는 5m 이내 잡히면 부활권 확인/게임오버, RUN 모드는 5m 이내 쫓아가서 좀비를 잡으면 유저 즉시 승리!)
+      if (d <= 5) {
+        if (gameMode === 'survival') {
+          // 기존의 주기적인 펄스 진동 루프 해제 및 강제 진동 정지
+          if (pulseIntervalRef.current) {
+            clearTimeout(pulseIntervalRef.current);
+            pulseIntervalRef.current = null;
+          }
+          try {
+            Haptics.impact({ style: ImpactStyle.Heavy });
+          } catch (e) { }
+          if (navigator.vibrate) {
+            navigator.vibrate(800); // 잡혔을 때 800ms 강한 단발 충격
+          }
 
-        if (!reviveUsedRef.current) {
-          setIsGamePaused(true);
-          isGamePausedRef.current = true;
-          setShowReviveConfirm(true);
-          return;
-        } else {
+          if (!reviveUsedRef.current) {
+            setIsGamePaused(true);
+            isGamePausedRef.current = true;
+            setShowReviveConfirm(true);
+            return;
+          } else {
+            setIsGameOver(true);
+            setGameResult('lose');
+            if (audioCtxRef.current) {
+              gainNodeRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+              ambientGainRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
+            }
+            return;
+          }
+        } else if (gameMode === 'run') {
+          // RUN 모드: 좀비를 포획함 -> 유저 승리!
+          if (pulseIntervalRef.current) {
+            clearTimeout(pulseIntervalRef.current);
+            pulseIntervalRef.current = null;
+          }
+          try {
+            Haptics.impact({ style: ImpactStyle.Heavy });
+          } catch (e) { }
+          if (navigator.vibrate) {
+            navigator.vibrate([100, 50, 100, 50, 300]); // 승리 진동 패턴
+          }
+
           setIsGameOver(true);
-          setGameResult('lose');
+          setGameResult('win'); // 유저의 승리!
+          setSelectedZombieSpeed(prev => {
+            const nextSpeed = Math.min(50, prev + 1);
+            localStorage.setItem('run_zombieSpeed', nextSpeed.toString());
+            return nextSpeed;
+          });
           if (audioCtxRef.current) {
             gainNodeRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
             ambientGainRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
@@ -2019,21 +2110,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           return;
         }
       }
-
-      // 사용자가 목적지에 도달했는지 확인 (RUN 모드 승리 조건)
-      if (gameMode === 'run' && routePath && routePath.length > 0) {
-        const destination = routePath[routePath.length - 1];
-        const distToFinish = calculateDistance(userPosRef.current.lat, userPosRef.current.lng, destination.lat, destination.lng);
-        if (distToFinish <= 15) { // 15미터 이내 도착 시 승리
-          setIsGameOver(true);
-          setGameResult('win');
-          if (audioCtxRef.current) {
-            gainNodeRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
-            ambientGainRef.current?.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.5);
-          }
-          return;
-        }
-      }
     }
 
     requestRef.current = requestAnimationFrame(() => animateRef.current && animateRef.current());
@@ -2044,8 +2120,12 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
     if (isGameOver && onSaveRecord && !hasSavedRef.current) {
       hasSavedRef.current = true; // 중복 저장 차단 락 활성화
       let result = '-';
-      if (gameResult === 'win') result = '탈출';
-      if (gameResult === 'lose') result = '사망';
+      if (gameResult === 'win') {
+        result = gameMode === 'run' ? '포획' : '탈출';
+      }
+      if (gameResult === 'lose') {
+        result = gameMode === 'run' ? '도망' : '사망';
+      }
 
       const activePath = (gameMode === 'record' || gameMode === 'survival') ? recordedPath : routePath;
       let totalDistanceStr = '-';
@@ -2065,7 +2145,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
         result: result,
         routePath: activePath,
         duration: gameStartTimeRef.current ? Math.round((Date.now() - gameStartTimeRef.current) / 1000) : 0,
-        escapeCount: escapeCount
+        escapeCount: escapeCount,
+        capturedZombieEmoji: gameMode === 'run' && gameResult === 'win' ? getZombieEmoji(selectedZombieSpeed) : null,
+        capturedZombieLevel: gameMode === 'run' && gameResult === 'win' ? selectedZombieSpeed : null
       });
     }
   }, [isGameOver, gameResult, gameMode, routePath, recordedPath, onSaveRecord, selectedZombieSpeed, zombieProgress.level, escapeCount]);
@@ -2180,7 +2262,8 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
           style={{
             position: 'absolute',
             top: '12px',
-            right: '12px',
+            left: '50%',
+            transform: 'translateX(-50%)',
             zIndex: 1010,
             backgroundColor: '#ef4444',
             border: '1px solid #ef4444',
@@ -2980,21 +3063,7 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
               취소
             </button>
 
-            {/* 좀비 속도 조절 및 시간 설정 (경로 만들기 시 좀비 추격을 위해 추가) */}
-            <div className="hud-control-row" style={{ marginTop: '8px' }}>
-              <label className="hud-label">좀비 속도 ({selectedZombieSpeed}/50)</label>
-              <input type="range" min="1" max="50" value={selectedZombieSpeed} onChange={(e) => setSelectedZombieSpeed(Number(e.target.value))} style={{ flexGrow: 1, accentColor: '#f43f5e' }} />
-            </div>
 
-            <div className="hud-control-row">
-              <label className="hud-label">좀비 발생 시간</label>
-              <select className="hud-select" value={selectedSpawnDelay} onChange={(e) => setSelectedSpawnDelay(Number(e.target.value))}>
-                <option value={0}>즉시</option>
-                <option value={10}>10초</option>
-                <option value={30}>30초</option>
-                <option value={60}>60초</option>
-              </select>
-            </div>
           </div>
         </div>
       ) : (
@@ -3047,43 +3116,6 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                   </button>
                 </div>
 
-                {/* 좀비 속도 조절 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13px', color: '#94a3b8' }}>좀비 속도</span>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#ffffff', fontFamily: 'Share Tech Mono' }}>
-                      {selectedZombieSpeed}/50 · <strong style={{ color: selectedZombieSpeed <= 12 ? '#10b981' : selectedZombieSpeed <= 25 ? '#f59e0b' : selectedZombieSpeed <= 39 ? '#f97316' : '#ef4444' }}>
-                        {selectedZombieSpeed <= 12 ? '느긋' : selectedZombieSpeed <= 25 ? '보통' : selectedZombieSpeed <= 39 ? '빠름' : '광란'}
-                      </strong>
-                    </span>
-                  </div>
-                  <div className="onboarding-slider-wrapper" style={{ margin: 0 }}>
-                    <input
-                      type="range"
-                      min="1"
-                      max="50"
-                      value={selectedZombieSpeed}
-                      onChange={(e) => {
-                        setSelectedZombieSpeed(Number(e.target.value));
-                        triggerTickVibration();
-                      }}
-                      className="onboarding-speed-slider"
-                      style={{
-                        width: '100%',
-                        background: 'linear-gradient(to right, #ea580c, #ef4444)',
-                        height: '6px',
-                        borderRadius: '3px',
-                        outline: 'none',
-                        WebkitAppearance: 'none'
-                      }}
-                    />
-                    <div className="onboarding-slider-captions" style={{ marginTop: '4px' }}>
-                      <span>1 느긋</span>
-                      <span>50 광란</span>
-                    </div>
-                  </div>
-                </div>
-
                 {/* 좀비 발생 시간 선택 가로 버튼 세트 */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <span style={{ fontSize: '13px', color: '#94a3b8' }}>좀비 발생 시간</span>
@@ -3120,6 +3152,64 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                       );
                     })}
                   </div>
+                </div>
+
+                {/* 🏆 포획한 좀비 목록 도감 */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                  <span style={{ fontSize: '13px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>🏆 포획한 좀비 도감</span>
+                    <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold' }}>{capturedZombies.length}마리 포획</span>
+                  </span>
+                  {capturedZombies.length > 0 ? (
+                    <div style={{
+                      display: 'flex',
+                      gap: '8px',
+                      overflowX: 'auto',
+                      padding: '4px 0 8px 0',
+                      WebkitOverflowScrolling: 'touch'
+                    }}>
+                      {capturedZombies.map((zombie, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            flexShrink: 0,
+                            width: '45px',
+                            height: '52px',
+                            backgroundColor: 'rgba(30, 41, 59, 0.5)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative'
+                          }}
+                        >
+                          <span style={{ fontSize: '22px' }}>{zombie.emoji}</span>
+                          <span style={{
+                            fontSize: '9px',
+                            color: '#ef4444',
+                            fontWeight: 'bold',
+                            fontFamily: 'monospace',
+                            marginTop: '2px'
+                          }}>
+                            Lv.{zombie.level}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: 'rgba(30, 41, 59, 0.3)',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                      fontSize: '11px',
+                      color: '#64748b'
+                    }}>
+                      아직 포획한 좀비가 없습니다. 좀비를 쫓아가 잡으세요!
+                    </div>
+                  )}
                 </div>
 
                 {/* 하단 메인 작전 경로 탐색 가이드 버튼 */}
@@ -3184,15 +3274,27 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             ) : (
               <>
                 <div className="hud-header" onClick={handleDebugTap} style={{ cursor: 'pointer', margin: 0, paddingBottom: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                  <div className="hud-mode-tag" style={{ color: '#ef4444', fontFamily: "'Black Han Sans', sans-serif" }}>MODE: {gameMode.toUpperCase()}</div>
+                  <div className="hud-mode-tag" style={{ color: '#ef4444', fontFamily: "'Black Han Sans', sans-serif" }}>MODE: {gameMode === 'run' ? 'CHASE' : gameMode.toUpperCase()}</div>
                   <div className="hud-status-dot" style={{ backgroundColor: '#ef4444' }}></div>
                 </div>
 
                 <div className="hud-main-display" style={{ padding: '8px 0', border: 'none', background: 'none', boxShadow: 'none' }}>
                   {isGameOver ? (
-                    <span style={{ color: gameResult === 'win' ? '#10b981' : '#ef4444', fontWeight: '900', fontSize: '1.1rem', fontFamily: "'Black Han Sans', sans-serif" }}>
-                      {gameResult === 'win' ? '탈출 성공!' : (gameMode === 'run' ? '좀비가 먼저 도착함!' : '좀비에게 잡혔습니다!')}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+                      <span style={{ color: gameResult === 'win' ? '#10b981' : '#ef4444', fontWeight: '900', fontSize: '1.1rem', fontFamily: "'Black Han Sans', sans-serif" }}>
+                        {gameResult === 'win' ? (gameMode === 'run' ? '좀비 포획 성공!' : '탈출 성공!') : (gameMode === 'run' ? '좀비가 탈출함 (포획 실패)!' : '좀비에게 잡혔습니다!')}
+                      </span>
+                      {gameMode === 'run' && gameResult === 'win' && (
+                        <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold', marginTop: '2px' }}>
+                          ⚡ 성공! 다음 좀비 기본 속도가 상향됩니다 (Lv.{selectedZombieSpeed - 1} ➔ Lv.{selectedZombieSpeed})
+                        </span>
+                      )}
+                      {gameMode === 'run' && gameResult === 'lose' && (
+                        <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                          현재 난이도 유지 (Lv.{selectedZombieSpeed})
+                        </span>
+                      )}
+                    </div>
                   ) : (
                     <div className="hud-distance-text" style={{ fontSize: '0.95rem', color: '#f1f5f9', fontWeight: 'bold' }}>
                       {gameMode === 'run' ? (
@@ -3265,103 +3367,9 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                       </span>
                     </span>
                   </div>
-                ) : (
-                  /* 좀비 속도 슬라이더 리뉴얼 */
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '13px', color: '#94a3b8' }}>좀비 속도</span>
-                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#ffffff', fontFamily: 'Share Tech Mono' }}>
-                        {selectedZombieSpeed}/50 · <strong style={{ color: selectedZombieSpeed <= 12 ? '#10b981' : selectedZombieSpeed <= 25 ? '#f59e0b' : selectedZombieSpeed <= 39 ? '#f97316' : '#ef4444' }}>
-                          {selectedZombieSpeed <= 12 ? '느긋' : selectedZombieSpeed <= 25 ? '보통' : selectedZombieSpeed <= 39 ? '빠름' : '광란'}
-                        </strong>
-                      </span>
-                    </div>
-                    <div className="onboarding-slider-wrapper" style={{ margin: 0 }}>
-                      <input
-                        type="range"
-                        min="1"
-                        max="50"
-                        value={selectedZombieSpeed}
-                        onChange={(e) => {
-                          setSelectedZombieSpeed(Number(e.target.value));
-                          triggerTickVibration();
-                        }}
-                        className="onboarding-speed-slider"
-                        style={{
-                          width: '100%',
-                          background: 'linear-gradient(to right, #ea580c, #ef4444)',
-                          height: '6px',
-                          borderRadius: '3px',
-                          outline: 'none',
-                          WebkitAppearance: 'none'
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
+                ) : null}
 
-                {/* 좀비 발생 시간 선택 버튼 세트 리뉴얼 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <span style={{ fontSize: '13px', color: '#94a3b8' }}>좀비 발생 시간</span>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    {[
-                      { label: '즉시', value: 0 },
-                      { label: '10초', value: 10 },
-                      { label: '30초', value: 30 },
-                      { label: '60초', value: 60 }
-                    ].map((item) => {
-                      const isSelected = selectedSpawnDelay === item.value;
-                      return (
-                        <button
-                          key={item.value}
-                          onClick={() => {
-                            setSelectedSpawnDelay(item.value);
-                            triggerTickVibration();
-                          }}
-                          style={{
-                            flex: 1,
-                            backgroundColor: isSelected ? '#ef4444' : 'rgba(30, 41, 59, 0.4)',
-                            color: '#ffffff',
-                            border: isSelected ? 'none' : '1px solid rgba(255, 255, 255, 0.15)',
-                            borderRadius: '6px',
-                            padding: '8px 0',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          {item.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
 
-                {((gameMode !== 'survival' && routePath.length > 0)) && (
-                  <button
-                    onClick={() => {
-                      handleResetZombie();
-                      triggerTickVibration();
-                    }}
-                    className="hud-reset-btn"
-                    style={{
-                      margin: '4px 0 0 0',
-                      backgroundColor: '#ef4444',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '12px',
-                      fontWeight: 'bold',
-                      fontSize: '13px',
-                      boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
-                      cursor: 'pointer',
-                      letterSpacing: '0.5px'
-                    }}
-                  >
-                    재추격 시작 (RESTART)
-                  </button>
-                )}
               </>
             )}
           </div>
@@ -4173,20 +4181,33 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
                 }}
                 style={{
                   display: 'inline-block',
-                  border: '2px solid #ef4444',
+                  border: showReviveConfirm ? '3px solid #ef4444' : '2px solid #ef4444',
                   borderRadius: '8px',
                   padding: '12px 16px',
                   backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                  boxShadow: '0 0 15px rgba(239, 68, 68, 0.2)',
+                  boxShadow: showReviveConfirm ? '0 0 20px rgba(239, 68, 68, 0.4)' : '0 0 15px rgba(239, 68, 68, 0.2)',
                   marginBottom: '16px'
                 }}>
-                <span style={{ color: '#f87171', fontWeight: 'bold', fontSize: '18px', display: 'block', marginBottom: '4px' }}>
-                  ⚠️ 주머니 모드 활성화됨
-                </span>
-                <span style={{ color: '#cbd5e1', fontSize: '12px', lineHeight: '1.5', display: 'block', marginBottom: '8px' }}>
-                  화면을 완전히 끄면 좀비 추격이 멈춥니다!<br />
-                  이 화면 상태 그대로 주머니에 넣고 뛰세요.
-                </span>
+                {showReviveConfirm ? (
+                  <span className="danger-blink-text" style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '18px', display: 'block', marginBottom: '4px' }}>
+                    🚨 좀비에게 잡혔습니다!
+                  </span>
+                ) : (
+                  <span style={{ color: '#f87171', fontWeight: 'bold', fontSize: '18px', display: 'block', marginBottom: '4px' }}>
+                    ⚠️ 주머니 모드 활성화됨
+                  </span>
+                )}
+                {showReviveConfirm ? (
+                  <span style={{ color: '#cbd5e1', fontSize: '12px', lineHeight: '1.5', display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
+                    화면을 빠르게 3번 터치하여 잠금을 해제하고<br />
+                    부활(비상 구급 상자) 여부를 선택하세요!
+                  </span>
+                ) : (
+                  <span style={{ color: '#cbd5e1', fontSize: '12px', lineHeight: '1.5', display: 'block', marginBottom: '8px' }}>
+                    화면을 완전히 끄면 좀비 추격이 멈춥니다!<br />
+                    이 화면 상태 그대로 주머니에 넣고 뛰세요.
+                  </span>
+                )}
                 {!isMapVisible && (
                   <div
                     style={{
@@ -4212,15 +4233,15 @@ const ZombieMapApp = ({ gameMode, onExit, onSaveRecord, setIsGameActive, setTrig
             <div style={{ textAlign: 'center', margin: 'auto 0', width: '100%' }}>
               <div style={{ marginBottom: '20px' }}>
                 <span style={{ fontSize: '14px', color: isMapVisible ? '#334155' : '#94a3b8', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 'bold' }}>
-                  ZOMBIE DISTANCE
+                  {showReviveConfirm ? 'ZOMBIE STATUS' : 'ZOMBIE DISTANCE'}
                 </span>
-                <span className={distance !== null && distance <= 25 ? 'danger-blink-text' : ''} style={{
+                <span className={showReviveConfirm || (distance !== null && distance <= 25) ? 'danger-blink-text' : ''} style={{
                   fontSize: '64px',
                   fontWeight: '900',
-                  color: distance !== null && distance <= 25 ? '#ef4444' : (isMapVisible ? '#090d16' : '#f8fafc'),
+                  color: showReviveConfirm || (distance !== null && distance <= 25) ? '#ef4444' : (isMapVisible ? '#090d16' : '#f8fafc'),
                   fontFamily: 'monospace'
                 }}>
-                  {distance !== null ? `${Math.round(distance)}m` : '---'}
+                  {showReviveConfirm ? 'CAUGHT' : (distance !== null ? `${Math.round(distance)}m` : '---')}
                 </span>
               </div>
 

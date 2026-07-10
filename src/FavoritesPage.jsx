@@ -1036,7 +1036,7 @@ const FavoritesPage = ({ onBackToIntro, onReplayRecord, setHandleHardwareBack })
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px 12px', fontSize: '13px' }}>
                     <div>
                       <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>게임 모드</span>
-                      <span style={{ fontWeight: 'bold', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>{rec.mode}</span>
+                      <span style={{ fontWeight: 'bold', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>{rec.mode === 'run' ? 'chase' : rec.mode}</span>
                     </div>
                     <div>
                       <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>이동 거리</span>
